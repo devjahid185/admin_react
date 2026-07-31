@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
@@ -209,7 +209,7 @@ export default function NewsPage({ token }) {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <input
           placeholder="Search by title"
-          className="w-full md:max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="w-full md:max-w-sm rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -217,14 +217,14 @@ export default function NewsPage({ token }) {
           }}
         />
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Total: {meta?.total || records.length}</span>
+          <span className="text-xs text-[#64748b]">Total: {meta?.total || records.length}</span>
           <Button onClick={openCreate}>Add News</Button>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
         <table className="min-w-[980px] w-full text-xs md:text-sm">
-          <thead className="bg-slate-100 text-slate-600">
+          <thead className="bg-[#f8fafc] text-[#53637a]">
             <tr>
               <th className="text-left px-3 py-2 md:px-4">ID</th>
               <th className="text-left px-3 py-2 md:px-4">Title</th>
@@ -236,7 +236,7 @@ export default function NewsPage({ token }) {
           </thead>
           <tbody>
             {records.map((n) => (
-              <tr key={n.id} className="border-t border-slate-100">
+              <tr key={n.id} className="border-t border-[#edf1f6]">
                 <td className="px-3 py-2 md:px-4">{n.id}</td>
                 <td className="px-3 py-2 md:px-4">{n.title}</td>
                 <td className="px-3 py-2 md:px-4">{n.slug || "-"}</td>
@@ -256,7 +256,7 @@ export default function NewsPage({ token }) {
             ))}
             {!records.length && (
               <tr>
-                <td className="px-4 py-4 text-slate-500" colSpan={6}>
+                <td className="px-4 py-4 text-[#64748b]" colSpan={6}>
                   {loading ? "Loading..." : "No news found."}
                 </td>
               </tr>
@@ -277,18 +277,18 @@ export default function NewsPage({ token }) {
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-3xl rounded-md bg-white p-6 shadow-xl">
+          <div className="w-full max-w-3xl rounded-[18px] border border-[#dfe6ef] bg-white p-6 shadow-2xl shadow-slate-900/15 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">{mode === "create" ? "Add News" : "Edit News"}</h3>
-              <button className="text-sm text-slate-500" onClick={() => setModalOpen(false)}>
+              <button className="text-sm text-[#64748b]" onClick={() => setModalOpen(false)}>
                 Close
               </button>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-500">Title</label>
+                <label className="text-xs text-[#64748b]">Title</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                 />
@@ -297,9 +297,9 @@ export default function NewsPage({ token }) {
                 )}
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-500">Slug</label>
+                <label className="text-xs text-[#64748b]">Slug</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={formSlug}
                   onChange={(e) => {
                     setFormSlug(e.target.value);
@@ -308,14 +308,14 @@ export default function NewsPage({ token }) {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-500">Image URL</label>
+                <label className="text-xs text-[#64748b]">Image URL</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.image}
                   onChange={(e) => setForm({ ...form, image: e.target.value })}
                 />
                 <div className="mt-3 flex flex-col gap-2">
-                  <label className="text-xs text-slate-500">Upload Image</label>
+                  <label className="text-xs text-[#64748b]">Upload Image</label>
                   <input
                     type="file"
                     accept="image/*"
@@ -325,19 +325,19 @@ export default function NewsPage({ token }) {
                     }}
                   />
                   {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
-                  {uploading && <p className="text-xs text-slate-500">Uploading image...</p>}
+                  {uploading && <p className="text-xs text-[#64748b]">Uploading image...</p>}
                 </div>
                 {previewImage && (
-                  <div className="mt-2 overflow-hidden rounded-md border border-slate-200">
+                  <div className="mt-2 overflow-hidden rounded-[14px] border border-[#dfe6ef]">
                     <img src={previewImage} alt="Preview" className="h-40 w-full object-cover" />
                   </div>
                 )}
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-500">Content</label>
+                <label className="text-xs text-[#64748b]">Content</label>
                 <textarea
                   rows={5}
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.content}
                   onChange={(e) => setForm({ ...form, content: e.target.value })}
                 />
@@ -346,9 +346,9 @@ export default function NewsPage({ token }) {
                 )}
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-500">Author</label>
+                <label className="text-xs text-[#64748b]">Author</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.author}
                   onChange={(e) => setForm({ ...form, author: e.target.value })}
                 />
@@ -368,5 +368,6 @@ export default function NewsPage({ token }) {
     </div>
   );
 }
+
 
 

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest } from "../../lib/api.js";
@@ -166,7 +166,7 @@ export default function DoctorsPage({ token }) {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <input
           placeholder="Search by name or phone"
-          className="w-full md:max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="w-full md:max-w-sm rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -174,14 +174,14 @@ export default function DoctorsPage({ token }) {
           }}
         />
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Total: {meta?.total || records.length}</span>
+          <span className="text-xs text-[#64748b]">Total: {meta?.total || records.length}</span>
           <Button onClick={openCreate}>Add Doctor</Button>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
         <table className="min-w-[980px] w-full text-xs md:text-sm">
-          <thead className="bg-slate-100 text-slate-600">
+          <thead className="bg-[#f8fafc] text-[#53637a]">
             <tr>
               <th className="text-left px-3 py-2 md:px-4">ID</th>
               <th className="text-left px-3 py-2 md:px-4">Name</th>
@@ -195,7 +195,7 @@ export default function DoctorsPage({ token }) {
           </thead>
           <tbody>
             {records.map((d) => (
-              <tr key={d.id} className="border-t border-slate-100">
+              <tr key={d.id} className="border-t border-[#edf1f6]">
                 <td className="px-3 py-2 md:px-4">{d.id}</td>
                 <td className="px-3 py-2 md:px-4">{d.name}</td>
                 <td className="px-3 py-2 md:px-4">{d.category_id}</td>
@@ -217,7 +217,7 @@ export default function DoctorsPage({ token }) {
             ))}
             {!records.length && (
               <tr>
-                <td className="px-4 py-4 text-slate-500" colSpan={8}>
+                <td className="px-4 py-4 text-[#64748b]" colSpan={8}>
                   {loading ? "Loading..." : "No doctors found."}
                 </td>
               </tr>
@@ -238,26 +238,26 @@ export default function DoctorsPage({ token }) {
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-4xl rounded-md bg-white p-6 shadow-xl">
+          <div className="w-full max-w-4xl rounded-[18px] border border-[#dfe6ef] bg-white p-6 shadow-2xl shadow-slate-900/15 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">{mode === "create" ? "Add Doctor" : "Edit Doctor"}</h3>
-              <button className="text-sm text-slate-500" onClick={() => setModalOpen(false)}>
+              <button className="text-sm text-[#64748b]" onClick={() => setModalOpen(false)}>
                 Close
               </button>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <div>
-                <label className="text-xs text-slate-500">User ID</label>
+                <label className="text-xs text-[#64748b]">User ID</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.user_id}
                   onChange={(e) => setForm({ ...form, user_id: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Category</label>
+                <label className="text-xs text-[#64748b]">Category</label>
                 <select
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.category_id}
                   onChange={(e) => setForm({ ...form, category_id: e.target.value })}
                 >
@@ -270,115 +270,115 @@ export default function DoctorsPage({ token }) {
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-500">Name</label>
+                <label className="text-xs text-[#64748b]">Name</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Title</label>
+                <label className="text-xs text-[#64748b]">Title</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Specialization</label>
+                <label className="text-xs text-[#64748b]">Specialization</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.specialization}
                   onChange={(e) => setForm({ ...form, specialization: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Hospital</label>
+                <label className="text-xs text-[#64748b]">Hospital</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.hospital}
                   onChange={(e) => setForm({ ...form, hospital: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Clinic</label>
+                <label className="text-xs text-[#64748b]">Clinic</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.clinic}
                   onChange={(e) => setForm({ ...form, clinic: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Experience Years</label>
+                <label className="text-xs text-[#64748b]">Experience Years</label>
                 <input
                   type="number"
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.experience_years}
                   onChange={(e) => setForm({ ...form, experience_years: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Fees</label>
+                <label className="text-xs text-[#64748b]">Fees</label>
                 <input
                   type="number"
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.fees}
                   onChange={(e) => setForm({ ...form, fees: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Phone</label>
+                <label className="text-xs text-[#64748b]">Phone</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Email</label>
+                <label className="text-xs text-[#64748b]">Email</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">District</label>
+                <label className="text-xs text-[#64748b]">District</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.district}
                   onChange={(e) => setForm({ ...form, district: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Upazila</label>
+                <label className="text-xs text-[#64748b]">Upazila</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.upazila}
                   onChange={(e) => setForm({ ...form, upazila: e.target.value })}
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-500">Address</label>
+                <label className="text-xs text-[#64748b]">Address</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.address}
                   onChange={(e) => setForm({ ...form, address: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Chamber Time</label>
+                <label className="text-xs text-[#64748b]">Chamber Time</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.chamber_time}
                   onChange={(e) => setForm({ ...form, chamber_time: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Availability</label>
+                <label className="text-xs text-[#64748b]">Availability</label>
                 <select
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.is_available ? "1" : "0"}
                   onChange={(e) => setForm({ ...form, is_available: e.target.value === "1" })}
                 >
@@ -387,9 +387,9 @@ export default function DoctorsPage({ token }) {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-slate-500">Status</label>
+                <label className="text-xs text-[#64748b]">Status</label>
                 <select
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
                 >
@@ -398,10 +398,10 @@ export default function DoctorsPage({ token }) {
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-500">About</label>
+                <label className="text-xs text-[#64748b]">About</label>
                 <textarea
                   rows={3}
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.about}
                   onChange={(e) => setForm({ ...form, about: e.target.value })}
                 />
@@ -419,5 +419,6 @@ export default function DoctorsPage({ token }) {
     </div>
   );
 }
+
 
 

@@ -1,4 +1,4 @@
-﻿export default function Pagination({
+export default function Pagination({
   meta,
   page,
   perPage,
@@ -15,24 +15,19 @@
   const canNext = currentPage < safeLastPage;
   const options = [10, 20, 50, 100];
 
+  const buttonClass =
+    "rounded-[12px] border border-[#dfe6ef] bg-white px-3 py-1.5 text-sm font-semibold text-[#24324a] shadow-sm transition hover:border-red-200 hover:text-[#ee0012] disabled:opacity-40 disabled:hover:text-[#24324a]";
+
   return (
-    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-xs text-slate-500">
+    <div className="flex flex-col gap-3 rounded-[16px] border border-[#dfe6ef] bg-white px-4 py-3 text-xs font-medium text-[#64748b] shadow-sm md:flex-row md:items-center md:justify-between">
       <div className="flex items-center gap-2">
-        <button
-          className="rounded-md border border-slate-300 px-3 py-1 text-sm disabled:opacity-40"
-          onClick={() => canPrev && onPageChange?.(currentPage - 1)}
-          disabled={!canPrev}
-        >
+        <button className={buttonClass} onClick={() => canPrev && onPageChange?.(currentPage - 1)} disabled={!canPrev}>
           Prev
         </button>
-        <span>
+        <span className="rounded-[12px] bg-[#f8fafc] px-3 py-1.5">
           Page {currentPage} of {safeLastPage}
         </span>
-        <button
-          className="rounded-md border border-slate-300 px-3 py-1 text-sm disabled:opacity-40"
-          onClick={() => canNext && onPageChange?.(currentPage + 1)}
-          disabled={!canNext}
-        >
+        <button className={buttonClass} onClick={() => canNext && onPageChange?.(currentPage + 1)} disabled={!canNext}>
           Next
         </button>
       </div>
@@ -40,7 +35,7 @@
         <div className="flex items-center gap-2">
           <span>Rows</span>
           <select
-            className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+            className="rounded-[12px] border border-[#dfe6ef] px-2 py-1.5 text-sm"
             value={perPage}
             onChange={(e) => onPerPageChange?.(Number(e.target.value))}
           >
@@ -51,10 +46,8 @@
             ))}
           </select>
         </div>
-        {showTotal && <span>Total: {total}</span>}
+        {showTotal && <span className="rounded-[12px] bg-red-50 px-3 py-1.5 font-semibold text-[#ee0012]">Total: {total}</span>}
       </div>
     </div>
   );
 }
-
-

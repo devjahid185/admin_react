@@ -1,13 +1,11 @@
-﻿export default function Input({ label, ...props }) {
+export default function Input({ label, ...props }) {
   return (
-    <label className="block text-sm font-medium text-slate-700">
+    <label className="block text-sm font-semibold text-[#24324a]">
       {label}
       <input
-        className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-700/15"
+        className="mt-1.5 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3.5 py-2.5 text-sm text-[#0f172a] shadow-sm outline-none transition placeholder:text-slate-400 focus:border-red-300 focus:ring-4 focus:ring-red-500/10"
         {...props}
       />
     </label>
   );
 }
-
-

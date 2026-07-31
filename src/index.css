@@ -1,4 +1,4 @@
-﻿* {
+* {
   box-sizing: border-box;
 }
 
@@ -11,10 +11,67 @@ body,
 
 body {
   font-family: "Inter", system-ui, -apple-system, sans-serif;
-  background: #f8fafc;
-  color: #0f172a;
+  background: #f4f6f9;
+  color: #101827;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+.admin-shell input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.admin-shell select,
+.admin-shell textarea {
+  border-color: #dfe6ef !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  color: #101827 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  outline: none;
+}
+
+.admin-shell input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+.admin-shell select:focus,
+.admin-shell textarea:focus {
+  border-color: #f4a7ae !important;
+  box-shadow: 0 0 0 4px rgba(238, 0, 18, 0.08);
+}
+
+.admin-shell input[type="file"] {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  padding: 10px;
+  font-size: 13px;
+}
+
+.admin-shell table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-shell thead {
+  background: #f8fafc !important;
+  color: #53637a !important;
+}
+
+.admin-shell th {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-shell tbody tr {
+  transition: background-color 160ms ease;
+}
+
+.admin-shell tbody tr:hover {
+  background: #fbfdff;
+}
+
+.admin-shell label {
+  font-weight: 700;
+  color: #53637a;
 }
 
 .scrollbar-hidden {

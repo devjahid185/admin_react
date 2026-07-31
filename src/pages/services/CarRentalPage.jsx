@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest } from "../../lib/api.js";
@@ -127,7 +127,7 @@ export default function CarRentalPage({ token }) {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <input
           placeholder="Search by title or location"
-          className="w-full md:max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="w-full md:max-w-sm rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -135,14 +135,14 @@ export default function CarRentalPage({ token }) {
           }}
         />
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Total: {meta?.total || records.length}</span>
+          <span className="text-xs text-[#64748b]">Total: {meta?.total || records.length}</span>
           <Button onClick={openCreate}>Add Rental</Button>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
         <table className="min-w-[940px] w-full text-xs md:text-sm">
-          <thead className="bg-slate-100 text-slate-600">
+          <thead className="bg-[#f8fafc] text-[#53637a]">
             <tr>
               <th className="text-left px-3 py-2 md:px-4">ID</th>
               <th className="text-left px-3 py-2 md:px-4">Title</th>
@@ -155,7 +155,7 @@ export default function CarRentalPage({ token }) {
           </thead>
           <tbody>
             {records.map((r) => (
-              <tr key={r.id} className="border-t border-slate-100">
+              <tr key={r.id} className="border-t border-[#edf1f6]">
                 <td className="px-3 py-2 md:px-4">{r.id}</td>
                 <td className="px-3 py-2 md:px-4">{r.title}</td>
                 <td className="px-3 py-2 md:px-4">{r.brand || "-"}</td>
@@ -176,7 +176,7 @@ export default function CarRentalPage({ token }) {
             ))}
             {!records.length && (
               <tr>
-                <td className="px-4 py-4 text-slate-500" colSpan={7}>
+                <td className="px-4 py-4 text-[#64748b]" colSpan={7}>
                   {loading ? "Loading..." : "No rentals found."}
                 </td>
               </tr>
@@ -197,98 +197,98 @@ export default function CarRentalPage({ token }) {
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-3xl rounded-md bg-white p-6 shadow-xl">
+          <div className="w-full max-w-3xl rounded-[18px] border border-[#dfe6ef] bg-white p-6 shadow-2xl shadow-slate-900/15 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">{mode === "create" ? "Add Car Rental" : "Edit Car Rental"}</h3>
-              <button className="text-sm text-slate-500" onClick={() => setModalOpen(false)}>
+              <button className="text-sm text-[#64748b]" onClick={() => setModalOpen(false)}>
                 Close
               </button>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <div>
-                <label className="text-xs text-slate-500">Owner User ID</label>
+                <label className="text-xs text-[#64748b]">Owner User ID</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.user_id}
                   onChange={(e) => setForm({ ...form, user_id: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Category ID</label>
+                <label className="text-xs text-[#64748b]">Category ID</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.category_id}
                   onChange={(e) => setForm({ ...form, category_id: e.target.value })}
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-500">Title</label>
+                <label className="text-xs text-[#64748b]">Title</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Brand</label>
+                <label className="text-xs text-[#64748b]">Brand</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.brand}
                   onChange={(e) => setForm({ ...form, brand: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Model</label>
+                <label className="text-xs text-[#64748b]">Model</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.model}
                   onChange={(e) => setForm({ ...form, model: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Year</label>
+                <label className="text-xs text-[#64748b]">Year</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.year}
                   onChange={(e) => setForm({ ...form, year: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Seat Count</label>
+                <label className="text-xs text-[#64748b]">Seat Count</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.seat_count}
                   onChange={(e) => setForm({ ...form, seat_count: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Price per Day</label>
+                <label className="text-xs text-[#64748b]">Price per Day</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.price_per_day}
                   onChange={(e) => setForm({ ...form, price_per_day: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Location</label>
+                <label className="text-xs text-[#64748b]">Location</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Contact Phone</label>
+                <label className="text-xs text-[#64748b]">Contact Phone</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.contact_phone}
                   onChange={(e) => setForm({ ...form, contact_phone: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Status</label>
+                <label className="text-xs text-[#64748b]">Status</label>
                 <select
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
                 >
@@ -309,5 +309,6 @@ export default function CarRentalPage({ token }) {
     </div>
   );
 }
+
 
 

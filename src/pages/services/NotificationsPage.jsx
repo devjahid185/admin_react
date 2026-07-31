@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiRequest, apiUpload } from "../../lib/api.js";
 import Button from "../../components/Button.jsx";
 
@@ -97,11 +97,11 @@ export default function NotificationsPage({ token, onUnauthorized }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-md border border-slate-200 bg-white p-6">
+      <div className="rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm p-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Send notification</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className="text-lg font-semibold text-[#101827]">Send notification</h2>
+            <p className="text-sm text-[#64748b]">
               Title, message, or image can be sent. Image-only notifications are supported.
             </p>
           </div>
@@ -109,13 +109,13 @@ export default function NotificationsPage({ token, onUnauthorized }) {
 
         <div className="mt-6 grid gap-4 md:grid-cols-[1fr,1fr]">
           <div className="space-y-3">
-            <label className="text-xs font-semibold text-slate-500">Target</label>
+            <label className="text-xs font-semibold text-[#64748b]">Target</label>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setTarget("all")}
                 className={`rounded-full border px-4 py-2 text-xs font-semibold ${
-                  target === "all" ? "border-red-700 bg-red-700 text-white" : "border-slate-200 text-slate-600"
+                  target === "all" ? "border-red-700 bg-red-700 text-white" : "border-[#dfe6ef] text-[#53637a]"
                 }`}
               >
                 All users
@@ -124,7 +124,7 @@ export default function NotificationsPage({ token, onUnauthorized }) {
                 type="button"
                 onClick={() => setTarget("user")}
                 className={`rounded-full border px-4 py-2 text-xs font-semibold ${
-                  target === "user" ? "border-red-700 bg-red-700 text-white" : "border-slate-200 text-slate-600"
+                  target === "user" ? "border-red-700 bg-red-700 text-white" : "border-[#dfe6ef] text-[#53637a]"
                 }`}
               >
                 Single user
@@ -134,18 +134,18 @@ export default function NotificationsPage({ token, onUnauthorized }) {
             {target === "user" && (
               <div className="space-y-2">
                 <input
-                  className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   placeholder="Search user by name, phone, email"
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                 />
                 {selectedUser && (
-                  <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+                  <div className="rounded-[14px] border border-[#dfe6ef] bg-[#f8fafc] px-3 py-2 text-xs">
                     Selected: {selectedUser.name || "Unnamed"} ({selectedUser.email || selectedUser.phone || "N/A"})
                   </div>
                 )}
                 {userResults.length > 0 && (
-                  <div className="max-h-40 overflow-auto rounded-md border border-slate-200">
+                  <div className="max-h-40 overflow-auto rounded-[14px] border border-[#dfe6ef]">
                     {userResults.map((user) => (
                       <button
                         type="button"
@@ -154,10 +154,10 @@ export default function NotificationsPage({ token, onUnauthorized }) {
                           setSelectedUser(user);
                           setUserResults([]);
                         }}
-                        className="flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-xs hover:bg-slate-50"
+                        className="flex w-full items-center justify-between border-b border-[#edf1f6] px-3 py-2 text-left text-xs hover:bg-[#f8fafc]"
                       >
                         <span>{user.name || "Unnamed"}</span>
-                        <span className="text-slate-400">{user.email || user.phone || "N/A"}</span>
+                        <span className="text-[#8b98ab]">{user.email || user.phone || "N/A"}</span>
                       </button>
                     ))}
                   </div>
@@ -167,15 +167,15 @@ export default function NotificationsPage({ token, onUnauthorized }) {
           </div>
 
           <div className="space-y-3">
-            <label className="text-xs font-semibold text-slate-500">Notification content</label>
+            <label className="text-xs font-semibold text-[#64748b]">Notification content</label>
             <input
-              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+              className="w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
               placeholder="Title (optional)"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
             <textarea
-              className="min-h-[120px] w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+              className="min-h-[120px] w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
               placeholder="Message (optional)"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -184,9 +184,9 @@ export default function NotificationsPage({ token, onUnauthorized }) {
               type="file"
               accept="image/*"
               onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+              className="w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
             />
-            {imageFile && <p className="text-xs text-slate-500">Selected image: {imageFile.name}</p>}
+            {imageFile && <p className="text-xs text-[#64748b]">Selected image: {imageFile.name}</p>}
           </div>
         </div>
 
@@ -199,13 +199,13 @@ export default function NotificationsPage({ token, onUnauthorized }) {
         </div>
       </div>
 
-      <div className="rounded-md border border-slate-200 bg-white p-6">
+      <div className="rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm p-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">Recent notifications</h3>
+          <h3 className="text-lg font-semibold text-[#101827]">Recent notifications</h3>
           <button
             type="button"
             onClick={loadNotifications}
-            className="text-xs font-semibold text-slate-500"
+            className="text-xs font-semibold text-[#64748b]"
           >
             Refresh
           </button>
@@ -213,7 +213,7 @@ export default function NotificationsPage({ token, onUnauthorized }) {
 
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-[720px] w-full text-xs md:text-sm">
-            <thead className="bg-slate-100 text-slate-600">
+            <thead className="bg-[#f8fafc] text-[#53637a]">
               <tr>
                 <th className="text-left px-3 py-2 md:px-4">Title</th>
                 <th className="text-left px-3 py-2 md:px-4">Message</th>
@@ -223,7 +223,7 @@ export default function NotificationsPage({ token, onUnauthorized }) {
             </thead>
             <tbody>
               {notifications.map((n) => (
-                <tr key={n.id} className="border-t border-slate-100">
+                <tr key={n.id} className="border-t border-[#edf1f6]">
                   <td className="px-3 py-2 md:px-4">{n.title || "-"}</td>
                   <td className="px-3 py-2 md:px-4">{n.message || "-"}</td>
                   <td className="px-3 py-2 md:px-4">{n.user?.name || n.user_id || "-"}</td>
@@ -232,7 +232,7 @@ export default function NotificationsPage({ token, onUnauthorized }) {
               ))}
               {!notifications.length && (
                 <tr>
-                  <td className="px-4 py-4 text-slate-500" colSpan={4}>
+                  <td className="px-4 py-4 text-[#64748b]" colSpan={4}>
                     {loadingList ? "Loading..." : "No notifications found."}
                   </td>
                 </tr>
@@ -244,5 +244,6 @@ export default function NotificationsPage({ token, onUnauthorized }) {
     </div>
   );
 }
+
 
 

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import AuthLayout from "../layouts/AuthLayout.jsx";
 import Button from "../components/Button.jsx";
 import Input from "../components/Input.jsx";
@@ -37,9 +37,10 @@ export default function LoginPage({ onLogin, initialError = "" }) {
           {loading ? "Signing in..." : "Login"}
         </Button>
       </form>
-      <div className="mt-6 text-xs text-slate-500">This panel is restricted to authorized admins.</div>
+      <div className="mt-6 text-xs text-[#64748b]">This panel is restricted to authorized admins.</div>
     </AuthLayout>
   );
 }
+
 
 

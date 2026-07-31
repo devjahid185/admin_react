@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest } from "../../lib/api.js";
@@ -118,7 +118,7 @@ export default function JobsPage({ token }) {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <input
           placeholder="Search by title or company"
-          className="w-full md:max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="w-full md:max-w-sm rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -126,14 +126,14 @@ export default function JobsPage({ token }) {
           }}
         />
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Total: {meta?.total || records.length}</span>
+          <span className="text-xs text-[#64748b]">Total: {meta?.total || records.length}</span>
           <Button onClick={openCreate}>Add Job</Button>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
         <table className="min-w-[940px] w-full text-xs md:text-sm">
-          <thead className="bg-slate-100 text-slate-600">
+          <thead className="bg-[#f8fafc] text-[#53637a]">
             <tr>
               <th className="text-left px-3 py-2 md:px-4">ID</th>
               <th className="text-left px-3 py-2 md:px-4">Title</th>
@@ -146,7 +146,7 @@ export default function JobsPage({ token }) {
           </thead>
           <tbody>
             {records.map((j) => (
-              <tr key={j.id} className="border-t border-slate-100">
+              <tr key={j.id} className="border-t border-[#edf1f6]">
                 <td className="px-3 py-2 md:px-4">{j.id}</td>
                 <td className="px-3 py-2 md:px-4">{j.title}</td>
                 <td className="px-3 py-2 md:px-4">{j.company}</td>
@@ -167,7 +167,7 @@ export default function JobsPage({ token }) {
             ))}
             {!records.length && (
               <tr>
-                <td className="px-4 py-4 text-slate-500" colSpan={7}>
+                <td className="px-4 py-4 text-[#64748b]" colSpan={7}>
                   {loading ? "Loading..." : "No jobs found."}
                 </td>
               </tr>
@@ -188,75 +188,75 @@ export default function JobsPage({ token }) {
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-3xl rounded-md bg-white p-6 shadow-xl">
+          <div className="w-full max-w-3xl rounded-[18px] border border-[#dfe6ef] bg-white p-6 shadow-2xl shadow-slate-900/15 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">{mode === "create" ? "Add Job" : "Edit Job"}</h3>
-              <button className="text-sm text-slate-500" onClick={() => setModalOpen(false)}>
+              <button className="text-sm text-[#64748b]" onClick={() => setModalOpen(false)}>
                 Close
               </button>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <div>
-                <label className="text-xs text-slate-500">Posted By (User ID)</label>
+                <label className="text-xs text-[#64748b]">Posted By (User ID)</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.posted_by}
                   onChange={(e) => setForm({ ...form, posted_by: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Company</label>
+                <label className="text-xs text-[#64748b]">Company</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.company}
                   onChange={(e) => setForm({ ...form, company: e.target.value })}
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-500">Job Title</label>
+                <label className="text-xs text-[#64748b]">Job Title</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-500">Description</label>
+                <label className="text-xs text-[#64748b]">Description</label>
                 <textarea
                   rows={4}
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Salary</label>
+                <label className="text-xs text-[#64748b]">Salary</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.salary}
                   onChange={(e) => setForm({ ...form, salary: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Location</label>
+                <label className="text-xs text-[#64748b]">Location</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Type</label>
+                <label className="text-xs text-[#64748b]">Type</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500">Contact</label>
+                <label className="text-xs text-[#64748b]">Contact</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.contact}
                   onChange={(e) => setForm({ ...form, contact: e.target.value })}
                 />
@@ -274,5 +274,6 @@ export default function JobsPage({ token }) {
     </div>
   );
 }
+
 
 

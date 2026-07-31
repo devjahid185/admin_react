@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Input from "../../components/Input.jsx";
 import { apiRequest } from "../../lib/api.js";
@@ -101,23 +101,23 @@ export default function SmsSettingsPage({ token, onUnauthorized }) {
   };
 
   if (loading) {
-    return <div className="rounded-md border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading SMS settings...</div>;
+    return <div className="rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm p-6 text-sm text-[#64748b]">Loading SMS settings...</div>;
   }
 
   return (
     <div className="space-y-5">
-      {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-      {success && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
+      {error && <div className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {success && <div className="rounded-[14px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr,0.8fr]">
-        <form onSubmit={save} className="rounded-md border border-slate-200 bg-white p-5">
+        <form onSubmit={save} className="rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm p-5">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">SMS Gateway</h2>
-              <p className="text-sm text-slate-500">Control OTP delivery and MRAM SMS credentials.</p>
+              <h2 className="text-lg font-semibold text-[#101827]">SMS Gateway</h2>
+              <p className="text-sm text-[#64748b]">Control OTP delivery and MRAM SMS credentials.</p>
             </div>
-            <label className="inline-flex cursor-pointer items-center gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-              <span className="text-sm font-medium text-slate-700">{form.is_enabled ? "Enabled" : "Disabled"}</span>
+            <label className="inline-flex cursor-pointer items-center gap-3 rounded-[14px] border border-[#dfe6ef] bg-[#f8fafc] px-3 py-2">
+              <span className="text-sm font-medium text-[#24324a]">{form.is_enabled ? "Enabled" : "Disabled"}</span>
               <input
                 type="checkbox"
                 className="h-5 w-5 accent-red-700"
@@ -128,10 +128,10 @@ export default function SmsSettingsPage({ token, onUnauthorized }) {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-[#24324a]">
               Provider
               <select
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700/15"
+                className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700/15"
                 value={form.provider}
                 onChange={(e) => updateField("provider", e.target.value)}
               >
@@ -151,10 +151,10 @@ export default function SmsSettingsPage({ token, onUnauthorized }) {
               placeholder={meta?.has_api_key ? "Leave blank to keep current key" : "Enter API key"}
               type="password"
             />
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-[#24324a]">
               SMS Label
               <select
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700/15"
+                className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700/15"
                 value={form.label}
                 onChange={(e) => updateField("label", e.target.value)}
               >
@@ -162,10 +162,10 @@ export default function SmsSettingsPage({ token, onUnauthorized }) {
                 <option value="promotional">Promotional</option>
               </select>
             </label>
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-[#24324a]">
               Message Type
               <select
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700/15"
+                className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700/15"
                 value={form.message_type}
                 onChange={(e) => updateField("message_type", e.target.value)}
               >
@@ -188,31 +188,31 @@ export default function SmsSettingsPage({ token, onUnauthorized }) {
         </form>
 
         <div className="space-y-4">
-          <div className="rounded-md border border-slate-200 bg-white p-5">
-            <h3 className="text-base font-semibold text-slate-900">Gateway Status</h3>
+          <div className="rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm p-5">
+            <h3 className="text-base font-semibold text-[#101827]">Gateway Status</h3>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between gap-4">
-                <span className="text-slate-500">Status</span>
-                <span className={form.is_enabled ? "font-semibold text-emerald-700" : "font-semibold text-slate-500"}>
+                <span className="text-[#64748b]">Status</span>
+                <span className={form.is_enabled ? "font-semibold text-emerald-700" : "font-semibold text-[#64748b]"}>
                   {form.is_enabled ? "Active" : "Off"}
                 </span>
               </div>
               <div className="flex justify-between gap-4">
-                <span className="text-slate-500">Credential</span>
-                <span className="font-semibold text-slate-800">{meta?.has_api_key ? "Saved" : "Missing"}</span>
+                <span className="text-[#64748b]">Credential</span>
+                <span className="font-semibold text-[#24324a]">{meta?.has_api_key ? "Saved" : "Missing"}</span>
               </div>
               <div className="flex justify-between gap-4">
-                <span className="text-slate-500">Last test</span>
-                <span className="text-right text-slate-700">{meta?.last_tested_at || "Not tested"}</span>
+                <span className="text-[#64748b]">Last test</span>
+                <span className="text-right text-[#24324a]">{meta?.last_tested_at || "Not tested"}</span>
               </div>
               {meta?.last_test_result && (
-                <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-600">{meta.last_test_result}</div>
+                <div className="rounded-[14px] bg-[#f8fafc] p-3 text-xs text-[#53637a]">{meta.last_test_result}</div>
               )}
             </div>
           </div>
 
-          <div className="rounded-md border border-slate-200 bg-white p-5">
-            <h3 className="text-base font-semibold text-slate-900">Send Test SMS</h3>
+          <div className="rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm p-5">
+            <h3 className="text-base font-semibold text-[#101827]">Send Test SMS</h3>
             <div className="mt-4 space-y-3">
               <Input
                 label="Phone number"
@@ -220,10 +220,10 @@ export default function SmsSettingsPage({ token, onUnauthorized }) {
                 onChange={(e) => setTestPhone(e.target.value)}
                 placeholder="015XXXXXXXX"
               />
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="block text-sm font-medium text-[#24324a]">
                 Message
                 <textarea
-                  className="mt-1 min-h-24 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700/15"
+                  className="mt-1 min-h-24 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700/15"
                   value={testMessage}
                   onChange={(e) => setTestMessage(e.target.value)}
                 />
@@ -238,5 +238,6 @@ export default function SmsSettingsPage({ token, onUnauthorized }) {
     </div>
   );
 }
+
 
 

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Button from "../../components/Button.jsx";
 import { apiRequest } from "../../lib/api.js";
 
@@ -112,18 +112,18 @@ export default function ServicePage({ token, resource }) {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <input
           placeholder="Search"
-          className="w-full md:max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="w-full md:max-w-sm rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Total: {meta?.total || records.length}</span>
+          <span className="text-xs text-[#64748b]">Total: {meta?.total || records.length}</span>
           <Button onClick={openCreate}>Create</Button>
         </div>
       </div>
-      <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
         <table className="min-w-[720px] w-full text-xs md:text-sm">
-          <thead className="bg-slate-100 text-slate-600">
+          <thead className="bg-[#f8fafc] text-[#53637a]">
             <tr>
               {resourceColumns.map((col) => (
                 <th key={col} className="text-left px-3 py-2 md:px-4">
@@ -135,7 +135,7 @@ export default function ServicePage({ token, resource }) {
           </thead>
           <tbody>
             {records.map((record) => (
-              <tr key={record.id} className="border-t border-slate-100">
+              <tr key={record.id} className="border-t border-[#edf1f6]">
                 {resourceColumns.map((col) => {
                   const value = record[col];
                   const text =
@@ -164,7 +164,7 @@ export default function ServicePage({ token, resource }) {
             ))}
             {!records.length && (
               <tr>
-                <td className="px-4 py-4 text-slate-500" colSpan={resourceColumns.length + 1}>
+                <td className="px-4 py-4 text-[#64748b]" colSpan={resourceColumns.length + 1}>
                   {loading ? "Loading..." : "No records found."}
                 </td>
               </tr>
@@ -175,18 +175,18 @@ export default function ServicePage({ token, resource }) {
 
       {editorOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-2xl rounded-md bg-white p-6 shadow-xl">
+          <div className="w-full max-w-2xl rounded-[18px] border border-[#dfe6ef] bg-white p-6 shadow-2xl shadow-slate-900/15 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">
                 {editorMode === "create" ? "Create Record" : "Edit Record"}
               </h3>
-              <button className="text-sm text-slate-500" onClick={() => setEditorOpen(false)}>
+              <button className="text-sm text-[#64748b]" onClick={() => setEditorOpen(false)}>
                 Close
               </button>
             </div>
-            <p className="mt-1 text-xs text-slate-500">Edit the JSON fields below. Keep valid JSON.</p>
+            <p className="mt-1 text-xs text-[#64748b]">Edit the JSON fields below. Keep valid JSON.</p>
             <textarea
-              className="mt-4 h-72 w-full rounded-md border border-slate-300 p-3 font-mono text-xs"
+              className="mt-4 h-72 w-full rounded-[14px] border border-[#dfe6ef] p-3 font-mono text-xs"
               value={editorText}
               onChange={(e) => setEditorText(e.target.value)}
             />
@@ -202,5 +202,6 @@ export default function ServicePage({ token, resource }) {
     </div>
   );
 }
+
 
 

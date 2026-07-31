@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout.jsx";
 import { apiRequest } from "../lib/api.js";
 import Button from "../components/Button.jsx";
@@ -23,17 +23,22 @@ import NewsPage from "./services/NewsPage.jsx";
 import NoticesPage from "./services/NoticesPage.jsx";
 import UpdatesPage from "./services/UpdatesPage.jsx";
 import FaqsPage from "./services/FaqsPage.jsx";
+import HomeBannersPage from "./services/HomeBannersPage.jsx";
 import NotificationsPage from "./services/NotificationsPage.jsx";
 import MessagesPage from "./services/MessagesPage.jsx";
 import PaymentsPage from "./services/PaymentsPage.jsx";
 import SmsSettingsPage from "./services/SmsSettingsPage.jsx";
 import EmailSettingsPage from "./services/EmailSettingsPage.jsx";
 import ProfilePage from "./ProfilePage.jsx";
+import ServicePage from "./services/ServicePage.jsx";
+import FoodAdminPage from "./services/FoodAdminPage.jsx";
+import FoodDeliverySettingsPage from "./services/FoodDeliverySettingsPage.jsx";
 
 const DEFAULT_ADMIN_MODULES = [
   { name: "Dashboard", slug: "dashboard", group_name: "Core", route: "/admin" },
   { name: "Profile", slug: "profile", group_name: "Core", route: "/admin/profile" },
   { name: "Users", slug: "users", group_name: "Core", route: "/admin/users" },
+  { name: "Home Banners", slug: "home-banners", group_name: "Engagement", route: "/admin/home-banners" },
   { name: "Workers", slug: "workers", group_name: "Services", route: "/admin/workers" },
   { name: "Businesses", slug: "businesses", group_name: "Services", route: "/admin/businesses" },
   { name: "Marketplace", slug: "marketplace", group_name: "Services", route: "/admin/marketplace" },
@@ -42,6 +47,13 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Hospitals", slug: "hospitals", group_name: "Services", route: "/admin/hospitals" },
   { name: "Hotels", slug: "hotels", group_name: "Services", route: "/admin/hotels" },
   { name: "Restaurants", slug: "restaurants", group_name: "Services", route: "/admin/restaurants" },
+  { name: "Food Items", slug: "food-items", group_name: "Food Delivery", route: "/admin/food-items" },
+  { name: "Food Categories", slug: "food-categories", group_name: "Food Delivery", route: "/admin/food-categories" },
+  { name: "Food Banners", slug: "food-banners", group_name: "Food Delivery", route: "/admin/food-banners" },
+  { name: "Food Orders", slug: "food-orders", group_name: "Food Delivery", route: "/admin/food-orders" },
+  { name: "Food Coupons", slug: "food-coupons", group_name: "Food Delivery", route: "/admin/food-coupons" },
+  { name: "Food Reviews", slug: "food-reviews", group_name: "Food Delivery", route: "/admin/food-reviews" },
+  { name: "Delivery Settings", slug: "food-delivery-settings", group_name: "Food Delivery", route: "/admin/food-delivery-settings" },
   { name: "Property", slug: "property", group_name: "Services", route: "/admin/property" },
   { name: "Education", slug: "education", group_name: "Services", route: "/admin/education" },
   { name: "Blood Donation", slug: "blood", group_name: "Services", route: "/admin/blood" },
@@ -105,7 +117,7 @@ export default function DashboardPage({ token, onLogout }) {
       if (activeModule !== "dashboard") return;
       try {
         const data = await apiRequest("/admin/stats", { token });
-        setDashboardStats(data.stats || null);
+        setDashboardStats({ ...(data.stats || {}), charts: data.charts || {} });
         setDashboardRecent(data.recent || null);
       } catch (err) {
         setError(err.message || "Unable to load dashboard stats.");
@@ -201,13 +213,16 @@ export default function DashboardPage({ token, onLogout }) {
     notices: NoticesPage,
     updates: UpdatesPage,
     faqs: FaqsPage,
+    "home-banners": HomeBannersPage,
     notifications: NotificationsPage,
     messages: MessagesPage,
     payments: PaymentsPage,
     "sms-settings": SmsSettingsPage,
     "email-settings": EmailSettingsPage,
+    "food-delivery-settings": FoodDeliverySettingsPage,
   };
   const ServiceComponent = servicePageMap[activeModule] || null;
+  const genericResourceModules = ["food-items", "food-categories", "food-banners", "food-orders", "food-coupons", "food-reviews", "food-addresses"];
 
   return (
     <DashboardLayout
@@ -220,202 +235,297 @@ export default function DashboardPage({ token, onLogout }) {
     >
       {error && <div className="mb-4 text-red-600">{error}</div>}
       {activeModule === "dashboard" && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {(() => {
             const formatDate = (value) => {
               if (!value) return "-";
               const date = new Date(value);
               if (Number.isNaN(date.getTime())) return value;
-              return date.toLocaleString();
+              return date.toLocaleString(undefined, {
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              });
             };
+            const compact = (value) => Number(value || 0).toLocaleString();
+            const money = (value) => `BDT ${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+            const charts = dashboardStats?.charts || {};
+            const dailyVisits = charts.daily_visits || [];
+            const monthlyVisits = charts.monthly_visits || [];
+            const serviceTotals = charts.service_totals || [];
+            const maxDaily = Math.max(1, ...dailyVisits.map((item) => Number(item.visits || 0)));
+            const maxMonthly = Math.max(1, ...monthlyVisits.map((item) => Number(item.visits || 0)));
+            const maxService = Math.max(1, ...serviceTotals.map((item) => Number(item.value || 0)));
 
-            const services = [
-              { slug: "users", label: "Users", stat: dashboardStats?.users, note: "Registered accounts" },
-              { slug: "workers", label: "Workers", stat: dashboardStats?.workers, note: "Verified workers" },
-              { slug: "businesses", label: "Businesses", stat: dashboardStats?.businesses, note: "Local listings" },
-              { slug: "marketplace", label: "Marketplace", stat: dashboardStats?.marketplace_items, note: "Active items" },
-              { slug: "jobs", label: "Jobs", stat: dashboardStats?.jobs, note: "Open posts" },
-              { slug: "doctors", label: "Doctors", stat: dashboardStats?.doctors, note: "Doctor profiles" },
-              { slug: "hospitals", label: "Hospitals", stat: dashboardStats?.hospitals, note: "Hospital records" },
-              { slug: "hotels", label: "Hotels", stat: dashboardStats?.hotels, note: "Hotel listings" },
-              { slug: "restaurants", label: "Restaurants", stat: dashboardStats?.restaurants, note: "Restaurant listings" },
-              { slug: "property", label: "Property", stat: dashboardStats?.properties, note: "Rent & sale" },
-              { slug: "education", label: "Education", stat: dashboardStats?.education, note: "Institutes" },
-              { slug: "launches", label: "Launch Services", stat: dashboardStats?.launches, note: "Routes & schedules" },
+            const kpis = [
+              { label: "Visits Today", value: dashboardStats?.visits_today, note: `${compact(dashboardStats?.unique_visitors_today)} unique users`, accent: "red", slug: "users" },
+              { label: "Weekly Visits", value: dashboardStats?.visits_week, note: "Last 7 days activity", accent: "dark" },
+              { label: "Monthly Visits", value: dashboardStats?.visits_month, note: "Current month traffic", accent: "dark" },
+              { label: "New Users", value: dashboardStats?.new_users_month, note: `${compact(dashboardStats?.new_users_today)} joined today`, accent: "red", slug: "users" },
+              { label: "Food Orders", value: dashboardStats?.food_orders, note: `${compact(dashboardStats?.food_orders_pending)} needs action`, accent: "red", slug: "food-orders" },
+              { label: "Messages", value: dashboardStats?.messages_total, note: `${compact(dashboardStats?.messages_today)} sent today`, accent: "dark", slug: "messages" },
+              { label: "Reports", value: dashboardStats?.reports_pending, note: "Pending moderation", accent: "red", slug: "reports" },
+              { label: "Reviews", value: dashboardStats?.reviews_total, note: "Community feedback", accent: "dark", slug: "reviews" },
+            ];
+
+            const contentSignals = [
+              { label: "Active Banners", value: dashboardStats?.home_banners_active, total: dashboardStats?.home_banners, slug: "home-banners" },
+              { label: "Updates", value: dashboardStats?.updates, total: dashboardStats?.updates, slug: "updates" },
+              { label: "News", value: dashboardStats?.news, total: dashboardStats?.news, slug: "news" },
+              { label: "Notices", value: dashboardStats?.notices, total: dashboardStats?.notices, slug: "notices" },
+              { label: "Notifications", value: dashboardStats?.notifications_total, total: dashboardStats?.notifications_total, slug: "notifications" },
+              { label: "Emergency Contacts", value: dashboardStats?.emergency_contacts, total: dashboardStats?.emergency_contacts, slug: "emergency" },
+            ];
+
+            const serviceHighlights = [
+              { label: "Workers", value: dashboardStats?.workers, slug: "workers" },
+              { label: "Businesses", value: dashboardStats?.businesses, slug: "businesses" },
+              { label: "Marketplace", value: dashboardStats?.marketplace_items, slug: "marketplace" },
+              { label: "Jobs", value: dashboardStats?.jobs, slug: "jobs" },
+              { label: "Doctors", value: dashboardStats?.doctors, slug: "doctors" },
+              { label: "Hospitals", value: dashboardStats?.hospitals, slug: "hospitals" },
+              { label: "Restaurants", value: dashboardStats?.restaurants, slug: "restaurants" },
+              { label: "Food Items", value: dashboardStats?.food_items, slug: "food-items" },
+              { label: "Properties", value: dashboardStats?.properties, slug: "property" },
+              { label: "Education", value: dashboardStats?.education, slug: "education" },
+              { label: "Launch Routes", value: dashboardStats?.launches, slug: "launches" },
+              { label: "Car Rentals", value: dashboardStats?.car_rentals, slug: "car-rental" },
             ];
 
             return (
               <>
-                <div className="rounded-md border border-slate-200 bg-white p-6">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <section className="rounded-[18px] border border-[#020617] bg-[#030716] p-5 text-white shadow-lg shadow-slate-900/10 md:p-6">
+                  <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-slate-400">Operations dashboard</p>
-                      <h2 className="text-2xl font-semibold text-slate-900">
-                        {admin?.name || "Admin"} · Bholabashi Control
-                      </h2>
-                      <p className="text-sm text-slate-500">{admin?.email || ""}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-red-300">Admin Command Center</p>
+                      <h2 className="mt-3 text-2xl font-bold text-white md:text-3xl">Bholabashi operations dashboard</h2>
+                      <p className="mt-2 max-w-3xl text-sm leading-6 text-white/75">
+                        Track traffic, user growth, service coverage, food orders, notifications and moderation from one focused workspace.
+                      </p>
                     </div>
-                    <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                        Status: Active
-                      </span>
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                        API: {dashboardStats ? "Connected" : "Loading"}
-                      </span>
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                        Last login: {formatDate(admin?.last_login_at)}
-                      </span>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="dark" onClick={() => setActiveModule("users")}>Users</Button>
+                      <Button variant="dark" onClick={() => setActiveModule("food-orders")}>Food orders</Button>
+                      <Button variant="dark" onClick={() => setActiveModule("notifications")}>Send notification</Button>
                     </div>
                   </div>
-                </div>
+                </section>
 
-                <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-                  <div className="rounded-md border border-slate-200 bg-white p-4">
-                    <p className="text-xs text-slate-500">Users</p>
-                    <p className="text-2xl font-semibold text-slate-900">{dashboardStats?.users ?? "-"}</p>
-                    <p className="text-xs text-slate-400">Registered accounts</p>
-                  </div>
-                  <div className="rounded-md border border-slate-200 bg-white p-4">
-                    <p className="text-xs text-slate-500">Marketplace</p>
-                    <p className="text-2xl font-semibold text-slate-900">{dashboardStats?.marketplace_items ?? "-"}</p>
-                    <p className="text-xs text-slate-400">Active items</p>
-                  </div>
-                  <div className="rounded-md border border-slate-200 bg-white p-4">
-                    <p className="text-xs text-slate-500">Jobs</p>
-                    <p className="text-2xl font-semibold text-slate-900">{dashboardStats?.jobs ?? "-"}</p>
-                    <p className="text-xs text-slate-400">Open positions</p>
-                  </div>
-                  <div className="rounded-md border border-slate-200 bg-white p-4">
-                    <p className="text-xs text-slate-500">Health</p>
-                    <p className="text-2xl font-semibold text-slate-900">
-                      {(dashboardStats?.doctors ?? 0) + (dashboardStats?.hospitals ?? 0) || "-"}
-                    </p>
-                    <p className="text-xs text-slate-400">Doctors + Hospitals</p>
-                  </div>
-                  <div className="rounded-md border border-slate-200 bg-white p-4">
-                    <p className="text-xs text-slate-500">Reports</p>
-                    <p className="text-2xl font-semibold text-slate-900">{dashboardStats?.reports_pending ?? "-"}</p>
-                    <p className="text-xs text-slate-400">Pending moderation</p>
-                  </div>
-                  <div className="rounded-md border border-slate-200 bg-white p-4">
-                    <p className="text-xs text-slate-500">Reviews</p>
-                    <p className="text-2xl font-semibold text-slate-900">{dashboardStats?.reviews_total ?? "-"}</p>
-                    <p className="text-xs text-slate-400">Total feedback</p>
-                  </div>
-                </div>
+                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  {kpis.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => item.slug && setActiveModule(item.slug)}
+                      className={`group rounded-[16px] border bg-white p-5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ${item.accent === "red" ? "border-red-100 hover:border-red-300" : "border-[#dfe6ef] hover:border-slate-300"}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748b]">{item.label}</p>
+                          <p className="mt-4 text-3xl font-bold text-[#050b18]">{compact(item.value)}</p>
+                          <p className="mt-1 text-xs text-[#64748b]">{item.note}</p>
+                        </div>
+                        <span className={`flex h-10 w-10 items-center justify-center rounded-[12px] text-lg font-black ${item.accent === "red" ? "bg-red-50 text-[#ee0012]" : "bg-slate-100 text-[#0f172a]"}`}>
+                          {item.label.slice(0, 1)}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </section>
 
-                <div className="grid gap-4 lg:grid-cols-[2fr,1fr]">
-                  <div className="rounded-md border border-slate-200 bg-white p-6">
+                <section className="grid gap-4 xl:grid-cols-[2fr,1fr]">
+                  <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md md:p-6">
                     <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <h3 className="text-lg font-semibold text-slate-900">Service coverage</h3>
-                        <p className="text-sm text-slate-500">
-                          Live service totals and quick access to each module.
-                        </p>
+                        <h3 className="text-lg font-bold text-[#101827]">Daily visitor trend</h3>
+                        <p className="text-sm text-[#64748b]">Last 14 days app visit, new user, message and order activity.</p>
                       </div>
-                      <Button variant="ghost" onClick={() => setActiveModule("reports")}>
-                        Review reports
-                      </Button>
+                      <span className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">Live from DB</span>
                     </div>
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      {services.map((service) => (
+                    <div className="mt-6 flex h-72 items-end gap-2 overflow-x-auto rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] p-4">
+                      {dailyVisits.length ? dailyVisits.map((item) => {
+                        const height = Math.max(8, (Number(item.visits || 0) / maxDaily) * 210);
+                        return (
+                          <div key={item.date || item.label} className="flex min-w-[44px] flex-1 flex-col items-center justify-end gap-2">
+                            <div className="text-[11px] font-semibold text-[#64748b]">{compact(item.visits)}</div>
+                            <div className="group relative flex h-[220px] w-full items-end justify-center">
+                              <div
+                                className="w-7 rounded-t-[8px] bg-[#ee0012] transition duration-200 group-hover:w-9 group-hover:bg-[#c90010]"
+                                style={{ height }}
+                              />
+                              <div className="pointer-events-none absolute bottom-full mb-2 hidden w-40 rounded-[12px] border border-[#dfe6ef] bg-white p-3 text-left text-xs shadow-xl group-hover:block">
+                                <p className="font-bold text-[#101827]">{item.label}</p>
+                                <p className="text-[#64748b]">Visits: {compact(item.visits)}</p>
+                                <p className="text-[#64748b]">New users: {compact(item.users)}</p>
+                                <p className="text-[#64748b]">Messages: {compact(item.messages)}</p>
+                                <p className="text-[#64748b]">Food orders: {compact(item.orders)}</p>
+                              </div>
+                            </div>
+                            <div className="whitespace-nowrap text-[10px] text-[#8b98ab]">{item.label}</div>
+                          </div>
+                        );
+                      }) : (
+                        <div className="m-auto rounded-[14px] border border-dashed border-[#cbd5e1] bg-white px-6 py-5 text-center text-sm text-[#64748b]">
+                          Visit data will appear after users open the app.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md">
+                      <h3 className="text-lg font-bold text-[#101827]">Visitor summary</h3>
+                      <div className="mt-4 grid gap-3">
+                        <div className="rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748b]">Today</p>
+                          <p className="mt-2 text-2xl font-bold text-[#050b18]">{compact(dashboardStats?.visits_today)}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-[14px] border border-[#edf1f6] bg-white p-4">
+                            <p className="text-xs text-[#64748b]">Weekly</p>
+                            <p className="mt-2 text-xl font-bold text-[#050b18]">{compact(dashboardStats?.visits_week)}</p>
+                          </div>
+                          <div className="rounded-[14px] border border-[#edf1f6] bg-white p-4">
+                            <p className="text-xs text-[#64748b]">Monthly</p>
+                            <p className="mt-2 text-xl font-bold text-[#050b18]">{compact(dashboardStats?.visits_month)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md">
+                      <h3 className="text-lg font-bold text-[#101827]">Monthly growth</h3>
+                      <div className="mt-4 space-y-3">
+                        {monthlyVisits.map((item) => (
+                          <div key={item.label}>
+                            <div className="mb-1 flex justify-between text-xs text-[#64748b]">
+                              <span>{item.label}</span>
+                              <span>{compact(item.visits)} visits</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-[#eef2f7]">
+                              <div className="h-2 rounded-full bg-[#ee0012]" style={{ width: `${Math.max(4, (Number(item.visits || 0) / maxMonthly) * 100)}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                        {!monthlyVisits.length && <p className="text-sm text-[#64748b]">No monthly data yet.</p>}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="grid gap-4 xl:grid-cols-[1.35fr,1fr]">
+                  <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md md:p-6">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <h3 className="text-lg font-bold text-[#101827]">Service distribution</h3>
+                        <p className="text-sm text-[#64748b]">Total records by service, clickable for fast management.</p>
+                      </div>
+                      <Button variant="ghost" onClick={() => setActiveModule("reports")}>Moderation queue</Button>
+                    </div>
+                    <div className="mt-5 grid gap-3 md:grid-cols-2">
+                      {(serviceTotals.length ? serviceTotals : serviceHighlights).map((service) => {
+                        const value = Number(service.value || 0);
+                        const width = Math.max(3, (value / maxService) * 100);
+                        return (
+                          <button
+                            key={service.slug || service.label}
+                            type="button"
+                            onClick={() => service.slug && setActiveModule(service.slug)}
+                            className="rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] p-4 text-left transition hover:-translate-y-0.5 hover:border-red-200 hover:bg-white hover:shadow-sm"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm font-bold text-[#101827]">{service.label}</p>
+                              <p className="text-sm font-black text-[#050b18]">{compact(value)}</p>
+                            </div>
+                            <div className="mt-3 h-2 rounded-full bg-white">
+                              <div className="h-2 rounded-full bg-[#ee0012]" style={{ width: `${width}%` }} />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md md:p-6">
+                    <h3 className="text-lg font-bold text-[#101827]">Content and engagement</h3>
+                    <p className="text-sm text-[#64748b]">Publishing, notification and support signals.</p>
+                    <div className="mt-5 space-y-3">
+                      {contentSignals.map((item) => (
                         <button
-                          key={service.slug}
-                          onClick={() => setActiveModule(service.slug)}
-                          className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-left hover:bg-white"
+                          key={item.label}
+                          type="button"
+                          onClick={() => item.slug && setActiveModule(item.slug)}
+                          className="flex w-full items-center justify-between rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] px-4 py-3 text-left transition hover:border-red-200 hover:bg-white hover:shadow-sm"
                         >
-                          <div>
-                            <p className="text-sm font-semibold text-slate-900">{service.label}</p>
-                            <p className="text-xs text-slate-500">{service.note}</p>
-                          </div>
-                          <div className="text-lg font-semibold text-slate-900">
-                            {service.stat ?? "-"}
-                          </div>
+                          <span className="text-sm font-semibold text-[#24324a]">{item.label}</span>
+                          <span className="text-sm font-black text-[#050b18]">{compact(item.value)}</span>
                         </button>
                       ))}
                     </div>
                   </div>
+                </section>
 
-                  <div className="rounded-md border border-slate-200 bg-white p-6">
-                    <h3 className="text-lg font-semibold text-slate-900">Quick actions</h3>
-                    <p className="text-sm text-slate-500">
-                      Jump directly to the most common admin tasks.
-                    </p>
-                    <div className="mt-4 flex flex-col gap-2">
-                      <Button onClick={() => setActiveModule("users")}>Manage users</Button>
-                      <Button variant="ghost" onClick={() => setActiveModule("marketplace")}>
-                        Review marketplace
-                      </Button>
-                      <Button variant="ghost" onClick={() => setActiveModule("jobs")}>
-                        Review job posts
-                      </Button>
-                      <Button variant="ghost" onClick={() => setActiveModule("updates")}>
-                        Post updates
-                      </Button>
-                    </div>
+                <section className="grid gap-4 xl:grid-cols-4">
+                  <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md xl:col-span-2">
+                    <p className="text-sm font-bold text-[#101827]">Recent app visits</p>
+                    <ul className="mt-3 space-y-3 text-sm text-[#53637a]">
+                      {(dashboardRecent?.visits || []).map((visit) => (
+                        <li key={visit.id} className="flex items-start justify-between gap-3 rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
+                          <div>
+                            <p className="font-semibold text-[#24324a]">{visit.user?.name || visit.user?.email || visit.user?.phone || "Guest user"}</p>
+                            <p className="text-xs text-[#8b98ab]">{visit.source || "app"} / {visit.path || "home"}</p>
+                          </div>
+                          <span className="whitespace-nowrap text-xs text-[#8b98ab]">{formatDate(visit.visited_at)}</span>
+                        </li>
+                      ))}
+                      {!dashboardRecent?.visits?.length && <li className="text-[#8b98ab]">No visit data yet.</li>}
+                    </ul>
                   </div>
-                </div>
 
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="rounded-md border border-slate-200 bg-white p-4">
-                    <p className="text-sm font-semibold text-slate-900">Recent users</p>
-                    <ul className="mt-3 space-y-3 text-sm text-slate-600">
-                      {(dashboardRecent?.users || []).map((u) => (
-                        <li key={u.id} className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="font-medium text-slate-800">{u.name || "Unnamed"}</p>
-                            <p className="text-xs text-slate-400">{u.email || u.phone || "-"}</p>
+                  <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md">
+                    <p className="text-sm font-bold text-[#101827]">Recent food orders</p>
+                    <ul className="mt-3 space-y-3 text-sm text-[#53637a]">
+                      {(dashboardRecent?.food_orders || []).map((order) => (
+                        <li key={order.id} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
+                          <div className="flex justify-between gap-2">
+                            <p className="font-semibold text-[#24324a]">{order.order_no || `Order #${order.id}`}</p>
+                            <p className="text-xs font-bold text-[#ee0012]">{order.status}</p>
                           </div>
-                          <span className="text-xs text-slate-400">{formatDate(u.created_at)}</span>
+                          <p className="mt-1 text-xs text-[#8b98ab]">{money(order.grand_total)} - {formatDate(order.created_at)}</p>
                         </li>
                       ))}
-                      {!dashboardRecent?.users?.length && <li className="text-slate-400">No data</li>}
+                      {!dashboardRecent?.food_orders?.length && <li className="text-[#8b98ab]">No orders yet.</li>}
                     </ul>
                   </div>
-                  <div className="rounded-md border border-slate-200 bg-white p-4">
-                    <p className="text-sm font-semibold text-slate-900">Recent reports</p>
-                    <ul className="mt-3 space-y-3 text-sm text-slate-600">
-                      {(dashboardRecent?.reports || []).map((r) => (
-                        <li key={r.id} className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="font-medium text-slate-800">
-                              {r.target_type} #{r.target_id}
-                            </p>
-                            <p className="text-xs text-slate-400">{r.reason || "-"}</p>
-                          </div>
-                          <span className="text-xs text-slate-400">{r.status}</span>
+
+                  <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md">
+                    <p className="text-sm font-bold text-[#101827]">Moderation feed</p>
+                    <ul className="mt-3 space-y-3 text-sm text-[#53637a]">
+                      {(dashboardRecent?.reports || []).slice(0, 3).map((report) => (
+                        <li key={report.id} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
+                          <p className="font-semibold text-[#24324a]">{report.target_type} #{report.target_id}</p>
+                          <p className="mt-1 text-xs text-[#8b98ab]">{report.reason || "No reason"}</p>
                         </li>
                       ))}
-                      {!dashboardRecent?.reports?.length && <li className="text-slate-400">No data</li>}
-                    </ul>
-                  </div>
-                  <div className="rounded-md border border-slate-200 bg-white p-4">
-                    <p className="text-sm font-semibold text-slate-900">Recent reviews</p>
-                    <ul className="mt-3 space-y-3 text-sm text-slate-600">
-                      {(dashboardRecent?.reviews || []).map((r) => (
-                        <li key={r.id} className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="font-medium text-slate-800">
-                              {r.type} #{r.target_id}
-                            </p>
-                            <p className="text-xs text-slate-400">{r.comment || "No comment"}</p>
-                          </div>
-                          <span className="text-xs text-slate-400">{r.rating}★</span>
+                      {(dashboardRecent?.reviews || []).slice(0, 2).map((review) => (
+                        <li key={`review-${review.id}`} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
+                          <p className="font-semibold text-[#24324a]">{review.type} #{review.target_id}</p>
+                          <p className="mt-1 text-xs text-[#8b98ab]">Rating {review.rating} {"\u2605"}</p>
                         </li>
                       ))}
-                      {!dashboardRecent?.reviews?.length && <li className="text-slate-400">No data</li>}
+                      {!dashboardRecent?.reports?.length && !dashboardRecent?.reviews?.length && <li className="text-[#8b98ab]">No moderation items.</li>}
                     </ul>
                   </div>
-                </div>
+                </section>
               </>
             );
           })()}
         </div>
       )}
       {activeModule === "admins" && (
-        <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
           <table className="min-w-[640px] w-full text-xs md:text-sm">
-            <thead className="bg-slate-100 text-slate-600">
+            <thead className="bg-[#f8fafc] text-[#53637a]">
               <tr>
                 <th className="text-left px-3 py-2 md:px-4">Name</th>
                 <th className="text-left px-3 py-2 md:px-4">Email</th>
@@ -425,7 +535,7 @@ export default function DashboardPage({ token, onLogout }) {
             </thead>
             <tbody>
               {coreRecords.map((a) => (
-                <tr key={a.id} className="border-t border-slate-100">
+                <tr key={a.id} className="border-t border-[#edf1f6]">
                   <td className="px-3 py-2 md:px-4">{a.name}</td>
                   <td className="px-3 py-2 md:px-4">{a.email}</td>
                   <td className="px-3 py-2 md:px-4">{a.is_super ? "Yes" : "No"}</td>
@@ -440,7 +550,7 @@ export default function DashboardPage({ token, onLogout }) {
               ))}
               {!coreRecords.length && (
                 <tr>
-                  <td className="px-4 py-4 text-slate-500" colSpan={4}>
+                  <td className="px-4 py-4 text-[#64748b]" colSpan={4}>
                     {coreLoading ? "Loading..." : "No admins found."}
                   </td>
                 </tr>
@@ -451,9 +561,9 @@ export default function DashboardPage({ token, onLogout }) {
       )}
 
       {activeModule === "reports" && (
-        <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
           <table className="min-w-[720px] w-full text-xs md:text-sm">
-            <thead className="bg-slate-100 text-slate-600">
+            <thead className="bg-[#f8fafc] text-[#53637a]">
               <tr>
                 <th className="text-left px-3 py-2 md:px-4">Reporter</th>
                 <th className="text-left px-3 py-2 md:px-4">Target</th>
@@ -464,13 +574,13 @@ export default function DashboardPage({ token, onLogout }) {
             </thead>
             <tbody>
               {coreRecords.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100">
+                <tr key={r.id} className="border-t border-[#edf1f6]">
                   <td className="px-3 py-2 md:px-4">{r.reporter_id}</td>
                   <td className="px-3 py-2 md:px-4">{r.target_type} #{r.target_id}</td>
                   <td className="px-3 py-2 md:px-4">{r.reason}</td>
                   <td className="px-3 py-2 md:px-4">
                     <select
-                      className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+                      className="rounded-[14px] border border-[#dfe6ef] px-2 py-1 text-sm"
                       value={r.status}
                       onChange={(e) => updateReport(r.id, e.target.value)}
                     >
@@ -491,7 +601,7 @@ export default function DashboardPage({ token, onLogout }) {
               ))}
               {!coreRecords.length && (
                 <tr>
-                  <td className="px-4 py-4 text-slate-500" colSpan={5}>
+                  <td className="px-4 py-4 text-[#64748b]" colSpan={5}>
                     {coreLoading ? "Loading..." : "No reports found."}
                   </td>
                 </tr>
@@ -502,9 +612,9 @@ export default function DashboardPage({ token, onLogout }) {
       )}
 
       {activeModule === "reviews" && (
-        <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
           <table className="min-w-[720px] w-full text-xs md:text-sm">
-            <thead className="bg-slate-100 text-slate-600">
+            <thead className="bg-[#f8fafc] text-[#53637a]">
               <tr>
                 <th className="text-left px-3 py-2 md:px-4">User</th>
                 <th className="text-left px-3 py-2 md:px-4">Type</th>
@@ -516,7 +626,7 @@ export default function DashboardPage({ token, onLogout }) {
             </thead>
             <tbody>
               {coreRecords.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100">
+                <tr key={r.id} className="border-t border-[#edf1f6]">
                   <td className="px-3 py-2 md:px-4">{r.user_id}</td>
                   <td className="px-3 py-2 md:px-4">{r.type}</td>
                   <td className="px-3 py-2 md:px-4">#{r.target_id}</td>
@@ -533,7 +643,7 @@ export default function DashboardPage({ token, onLogout }) {
               ))}
               {!coreRecords.length && (
                 <tr>
-                  <td className="px-4 py-4 text-slate-500" colSpan={6}>
+                  <td className="px-4 py-4 text-[#64748b]" colSpan={6}>
                     {coreLoading ? "Loading..." : "No reviews found."}
                   </td>
                 </tr>
@@ -545,15 +655,22 @@ export default function DashboardPage({ token, onLogout }) {
 
       {!ServiceComponent &&
         !["dashboard", "admins", "reports", "reviews"].includes(activeModule) && (
-          <div className="rounded-md border border-slate-200 bg-white p-6 text-sm text-slate-600">
-            This module will be converted to a full form-based admin screen next.
-          </div>
+          activeModule?.startsWith("food-") ? (
+            <FoodAdminPage token={token} resource={activeModule} />
+          ) : genericResourceModules.includes(activeModule) ? (
+            <ServicePage token={token} resource={activeModule} />
+          ) : (
+            <div className="rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm p-6 text-sm text-[#53637a]">
+              This module will be converted to a full form-based admin screen next.
+            </div>
+          )
         )}
 
       {ServiceComponent && <ServiceComponent token={token} onUnauthorized={onLogout} />}
     </DashboardLayout>
   );
 }
+
 
 
 

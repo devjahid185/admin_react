@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest } from "../../lib/api.js";
@@ -121,7 +121,7 @@ export default function PaymentsPage({ token }) {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <input
           placeholder="Search by transaction ID"
-          className="w-full md:max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="w-full md:max-w-sm rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -129,14 +129,14 @@ export default function PaymentsPage({ token }) {
           }}
         />
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Total: {meta?.total || records.length}</span>
+          <span className="text-xs text-[#64748b]">Total: {meta?.total || records.length}</span>
           <Button onClick={openCreate}>Add Payment</Button>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
         <table className="min-w-[960px] w-full text-xs md:text-sm">
-          <thead className="bg-slate-100 text-slate-600">
+          <thead className="bg-[#f8fafc] text-[#53637a]">
             <tr>
               <th className="text-left px-3 py-2 md:px-4">ID</th>
               <th className="text-left px-3 py-2 md:px-4">User</th>
@@ -149,7 +149,7 @@ export default function PaymentsPage({ token }) {
           </thead>
           <tbody>
             {records.map((pay) => (
-              <tr key={pay.id} className="border-t border-slate-100">
+              <tr key={pay.id} className="border-t border-[#edf1f6]">
                 <td className="px-3 py-2 md:px-4">{pay.id}</td>
                 <td className="px-3 py-2 md:px-4">{pay.user_id}</td>
                 <td className="px-3 py-2 md:px-4">{pay.amount}</td>
@@ -170,7 +170,7 @@ export default function PaymentsPage({ token }) {
             ))}
             {!records.length && (
               <tr>
-                <td className="px-4 py-4 text-slate-500" colSpan={7}>
+                <td className="px-4 py-4 text-[#64748b]" colSpan={7}>
                   {loading ? "Loading..." : "No payments found."}
                 </td>
               </tr>
@@ -191,19 +191,19 @@ export default function PaymentsPage({ token }) {
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-3xl rounded-md bg-white p-6 shadow-xl">
+          <div className="w-full max-w-3xl rounded-[18px] border border-[#dfe6ef] bg-white p-6 shadow-2xl shadow-slate-900/15 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">{mode === "create" ? "Add Payment" : "Edit Payment"}</h3>
-              <button className="text-sm text-slate-500" onClick={() => setModalOpen(false)}>
+              <button className="text-sm text-[#64748b]" onClick={() => setModalOpen(false)}>
                 Close
               </button>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <div>
-                <label className="text-xs text-slate-500">User ID</label>
+                <label className="text-xs text-[#64748b]">User ID</label>
                 <input
                   type="number"
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.user_id}
                   onChange={(e) => setForm({ ...form, user_id: e.target.value })}
                 />
@@ -212,19 +212,19 @@ export default function PaymentsPage({ token }) {
                 )}
               </div>
               <div>
-                <label className="text-xs text-slate-500">Amount</label>
+                <label className="text-xs text-[#64748b]">Amount</label>
                 <input
                   type="number"
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.amount}
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 />
                 {fieldErrors.amount && <p className="mt-1 text-xs text-red-600">{fieldErrors.amount}</p>}
               </div>
               <div>
-                <label className="text-xs text-slate-500">Method</label>
+                <label className="text-xs text-[#64748b]">Method</label>
                 <select
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.method}
                   onChange={(e) => setForm({ ...form, method: e.target.value })}
                 >
@@ -236,9 +236,9 @@ export default function PaymentsPage({ token }) {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-slate-500">Status</label>
+                <label className="text-xs text-[#64748b]">Status</label>
                 <select
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
                 >
@@ -250,9 +250,9 @@ export default function PaymentsPage({ token }) {
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-500">Transaction ID</label>
+                <label className="text-xs text-[#64748b]">Transaction ID</label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
                   value={form.transaction_id}
                   onChange={(e) => setForm({ ...form, transaction_id: e.target.value })}
                 />
@@ -278,5 +278,6 @@ export default function PaymentsPage({ token }) {
     </div>
   );
 }
+
 
 

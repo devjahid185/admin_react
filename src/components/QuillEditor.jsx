@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { apiUpload } from "../lib/api.js";
 
 export default function QuillEditor({
