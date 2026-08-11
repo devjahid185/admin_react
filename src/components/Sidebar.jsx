@@ -32,6 +32,7 @@ const ICONS = {
   payments: "PY",
   "sms-settings": "SM",
   "email-settings": "EM",
+  riders: "RD",
 };
 
 function iconFor(item) {

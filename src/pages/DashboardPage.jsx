@@ -33,6 +33,7 @@ import ProfilePage from "./ProfilePage.jsx";
 import ServicePage from "./services/ServicePage.jsx";
 import FoodAdminPage from "./services/FoodAdminPage.jsx";
 import FoodDeliverySettingsPage from "./services/FoodDeliverySettingsPage.jsx";
+import RiderAdminPage from "./services/RiderAdminPage.jsx";
 
 const DEFAULT_ADMIN_MODULES = [
   { name: "Dashboard", slug: "dashboard", group_name: "Core", route: "/admin" },
@@ -54,11 +55,7 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Food Coupons", slug: "food-coupons", group_name: "Food Delivery", route: "/admin/food-coupons" },
   { name: "Food Reviews", slug: "food-reviews", group_name: "Food Delivery", route: "/admin/food-reviews" },
   { name: "Delivery Settings", slug: "food-delivery-settings", group_name: "Food Delivery", route: "/admin/food-delivery-settings" },
-  { name: "রাইডার তালিকা", slug: "riders", group_name: "Rider System", route: "/admin/riders" },
-  { name: "KYC ডকুমেন্ট", slug: "rider-documents", group_name: "Rider System", route: "/admin/rider-documents" },
-  { name: "রাইডার ওয়ালেট", slug: "rider-wallet", group_name: "Rider System", route: "/admin/rider-wallet" },
-  { name: "রাইডার সাপোর্ট", slug: "rider-support-tickets", group_name: "Rider System", route: "/admin/rider-support-tickets" },
-  { name: "রাইডার রেটিং", slug: "rider-ratings", group_name: "Rider System", route: "/admin/rider-ratings" },
+  { name: "Rider Management", slug: "riders", group_name: "Rider System", route: "/admin/riders" },
   { name: "Property", slug: "property", group_name: "Services", route: "/admin/property" },
   { name: "Education", slug: "education", group_name: "Services", route: "/admin/education" },
   { name: "Blood Donation", slug: "blood", group_name: "Services", route: "/admin/blood" },
@@ -81,13 +78,14 @@ const DEFAULT_ADMIN_MODULES = [
 ];
 
 function mergeAdminModules(apiModules = []) {
+  const hidden = new Set(["rider-documents", "rider-wallet", "rider-support-tickets", "rider-ratings", "rider-locations"]);
   const merged = new Map(DEFAULT_ADMIN_MODULES.map((item) => [item.slug, item]));
   apiModules.forEach((item) => {
-    if (item?.slug) {
+    if (item?.slug && !hidden.has(item.slug)) {
       merged.set(item.slug, { ...merged.get(item.slug), ...item });
     }
   });
-  return Array.from(merged.values());
+  return Array.from(merged.values()).filter((item) => !hidden.has(item.slug));
 }
 
 export default function DashboardPage({ token, onLogout }) {
@@ -225,6 +223,7 @@ export default function DashboardPage({ token, onLogout }) {
     "sms-settings": SmsSettingsPage,
     "email-settings": EmailSettingsPage,
     "food-delivery-settings": FoodDeliverySettingsPage,
+    riders: RiderAdminPage,
   };
   const ServiceComponent = servicePageMap[activeModule] || null;
   const genericResourceModules = [
@@ -235,11 +234,6 @@ export default function DashboardPage({ token, onLogout }) {
     "food-coupons",
     "food-reviews",
     "food-addresses",
-    "riders",
-    "rider-documents",
-    "rider-wallet",
-    "rider-support-tickets",
-    "rider-ratings",
   ];
 
   return (
@@ -688,6 +682,4 @@ export default function DashboardPage({ token, onLogout }) {
     </DashboardLayout>
   );
 }
-
-
 
