@@ -54,6 +54,11 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Food Coupons", slug: "food-coupons", group_name: "Food Delivery", route: "/admin/food-coupons" },
   { name: "Food Reviews", slug: "food-reviews", group_name: "Food Delivery", route: "/admin/food-reviews" },
   { name: "Delivery Settings", slug: "food-delivery-settings", group_name: "Food Delivery", route: "/admin/food-delivery-settings" },
+  { name: "রাইডার তালিকা", slug: "riders", group_name: "Rider System", route: "/admin/riders" },
+  { name: "KYC ডকুমেন্ট", slug: "rider-documents", group_name: "Rider System", route: "/admin/rider-documents" },
+  { name: "রাইডার ওয়ালেট", slug: "rider-wallet", group_name: "Rider System", route: "/admin/rider-wallet" },
+  { name: "রাইডার সাপোর্ট", slug: "rider-support-tickets", group_name: "Rider System", route: "/admin/rider-support-tickets" },
+  { name: "রাইডার রেটিং", slug: "rider-ratings", group_name: "Rider System", route: "/admin/rider-ratings" },
   { name: "Property", slug: "property", group_name: "Services", route: "/admin/property" },
   { name: "Education", slug: "education", group_name: "Services", route: "/admin/education" },
   { name: "Blood Donation", slug: "blood", group_name: "Services", route: "/admin/blood" },
@@ -222,7 +227,20 @@ export default function DashboardPage({ token, onLogout }) {
     "food-delivery-settings": FoodDeliverySettingsPage,
   };
   const ServiceComponent = servicePageMap[activeModule] || null;
-  const genericResourceModules = ["food-items", "food-categories", "food-banners", "food-orders", "food-coupons", "food-reviews", "food-addresses"];
+  const genericResourceModules = [
+    "food-items",
+    "food-categories",
+    "food-banners",
+    "food-orders",
+    "food-coupons",
+    "food-reviews",
+    "food-addresses",
+    "riders",
+    "rider-documents",
+    "rider-wallet",
+    "rider-support-tickets",
+    "rider-ratings",
+  ];
 
   return (
     <DashboardLayout
@@ -670,7 +688,6 @@ export default function DashboardPage({ token, onLogout }) {
     </DashboardLayout>
   );
 }
-
 
 
 
