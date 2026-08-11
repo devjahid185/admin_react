@@ -426,14 +426,24 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                     ))}
                   </div>
                   {order?.delivery_map_url && (
-                    <a
-                      href={order.delivery_map_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-4 inline-flex w-full items-center justify-center rounded-[12px] border border-red-200 bg-white px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50"
-                    >
-                      View delivery location on map
-                    </a>
+                    <div className="mt-4 overflow-hidden rounded-[14px] border border-[#dfe6ef] bg-white">
+                      {order?.delivery_lat && order?.delivery_lng && (
+                        <iframe
+                          title="Delivery location map"
+                          className="h-56 w-full"
+                          loading="lazy"
+                          src={`https://maps.google.com/maps?q=${order.delivery_lat},${order.delivery_lng}&z=15&output=embed`}
+                        />
+                      )}
+                      <a
+                        href={order.delivery_map_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex w-full items-center justify-center px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50"
+                      >
+                        View delivery location on map
+                      </a>
+                    </div>
                   )}
                 </div>
               </div>
