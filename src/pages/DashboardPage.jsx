@@ -295,7 +295,7 @@ export default function DashboardPage({ token, onLogout }) {
 
             return (
               <>
-                <section className="rounded-[18px] border border-[#020617] bg-[#030716] p-5 text-white shadow-lg shadow-slate-900/10 md:p-6">
+                {/* <section className="rounded-[18px] border border-[#020617] bg-[#030716] p-5 text-white shadow-lg shadow-slate-900/10 md:p-6">
                   <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-red-300">Admin Command Center</p>
@@ -310,7 +310,7 @@ export default function DashboardPage({ token, onLogout }) {
                       <Button variant="dark" onClick={() => setActiveModule("notifications")}>Send notification</Button>
                     </div>
                   </div>
-                </section>
+                </section> */}
 
                 <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {kpis.map((item) => (
