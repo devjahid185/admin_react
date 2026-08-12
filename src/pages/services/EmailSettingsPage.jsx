@@ -43,7 +43,7 @@ export default function EmailSettingsPage({ token, onUnauthorized }) {
         port: settings.port || 587,
         username: settings.username || "",
         password: "",
-        encryption: settings.encryption || "tls",
+        encryption: settings.encryption === "starttls" ? "tls" : settings.encryption || "tls",
         from_address: settings.from_address || "",
         from_name: settings.from_name || "Bholabashi",
         timeout: settings.timeout || "",
@@ -161,9 +161,8 @@ export default function EmailSettingsPage({ token, onUnauthorized }) {
                 onChange={(e) => updateField("encryption", e.target.value)}
                 disabled={!isSmtp}
               >
-                <option value="tls">TLS</option>
-                <option value="ssl">SSL</option>
-                <option value="starttls">STARTTLS</option>
+                <option value="tls">TLS / STARTTLS (587)</option>
+                <option value="ssl">SSL / SMTPS (465)</option>
                 <option value="none">None</option>
               </select>
             </label>
@@ -288,4 +287,3 @@ export default function EmailSettingsPage({ token, onUnauthorized }) {
     </div>
   );
 }
-
