@@ -103,7 +103,7 @@ const RESOURCE_CONFIG = {
       { key: "coupon_code", label: "Coupon Code" },
       { key: "order_note", label: "Order Note", type: "textarea" },
     ],
-    columns: ["id", "order_no", "rider_id", "receiver_name", "receiver_phone", "status", "delivery_fee", "rider_earning", "cash_collected", "grand_total", "created_at"],
+    columns: ["id", "order_no", "rider_assignment_label", "accepted_rider_name", "route_distance_km", "receiver_name", "receiver_phone", "status", "delivery_fee", "grand_total", "created_at"],
   },
   riders: {
     title: "রাইডার তালিকা",
@@ -359,7 +359,10 @@ function FoodOrderRouteMap({ order }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h4 className="text-base font-bold text-[#111827]">Restaurant to Delivery Map</h4>
-          <p className="mt-1 text-sm text-[#64748b]">Restaurant pickup and customer delivery location together.</p>
+          <p className="mt-1 text-sm text-[#64748b]">
+            Restaurant pickup and customer delivery location together
+            {order?.route_distance_km !== null && order?.route_distance_km !== undefined ? ` • ${order.route_distance_km} KM` : ""}.
+          </p>
         </div>
         {routeUrl && (
           <a
@@ -424,10 +427,14 @@ function FoodOrderViewModal({ loading, order, onClose }) {
     ["Payment", `${order?.payment_method || "-"} / ${order?.payment_status || "unpaid"}`],
     ["Customer", `${order?.receiver_name || "-"} (${order?.receiver_phone || "-"})`],
     ["Restaurant", order?.restaurant?.name || order?.restaurant_id],
+    ["Rider Status", order?.rider_assignment_label],
+    ["Accepted Rider", order?.accepted_rider_name ? `${order.accepted_rider_name} (${order.accepted_rider_phone || "-"})` : "-"],
+    ["Pending Rider Requests", order?.pending_rider_requests_count ?? 0],
     ["Delivery Area", order?.delivery_area],
     ["Delivery Address", order?.delivery_address],
     ["Landmark", order?.landmark],
-    ["Delivery Distance", order?.delivery_distance_km ? `${order.delivery_distance_km} KM` : "-"],
+    ["Route Distance", order?.route_distance_km !== null && order?.route_distance_km !== undefined ? `${order.route_distance_km} KM` : "-"],
+    ["Stored Charge Distance", order?.delivery_distance_km ? `${order.delivery_distance_km} KM` : "-"],
     ["Charge Mode", order?.delivery_charge_mode],
     ["Created", formatDateTime(order?.created_at)],
     ["Estimated Delivery", formatDateTime(order?.estimated_delivery_at)],
@@ -528,6 +535,42 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                     >
                       View delivery location on map
                     </a>
+                  )}
+                </div>
+                <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
+                  <h4 className="text-base font-bold text-[#111827]">Rider Assignment</h4>
+                  <div className="mt-3 rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] p-3 text-sm">
+                    <div className="font-bold text-[#111827]">{order?.rider_assignment_label || "No rider accepted yet"}</div>
+                    <div className="mt-1 text-[#64748b]">
+                      {order?.accepted_rider_name
+                        ? `${order.accepted_rider_name} (${order.accepted_rider_phone || "-"}) accepted this order.`
+                        : `${order?.pending_rider_requests_count || 0} rider request pending, ${order?.total_rider_requests_count || 0} total request sent.`}
+                    </div>
+                  </div>
+                  {!!order?.rider_requests?.length && (
+                    <div className="mt-3 overflow-hidden rounded-[12px] border border-[#edf1f6]">
+                      <table className="w-full text-sm">
+                        <thead className="bg-[#f8fafc] text-xs uppercase tracking-wide text-[#53637a]">
+                          <tr>
+                            <th className="px-3 py-2 text-left">Rider</th>
+                            <th className="px-3 py-2 text-left">Status</th>
+                            <th className="px-3 py-2 text-right">Distance</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {order.rider_requests.map((request) => (
+                            <tr key={request.id} className="border-t border-[#edf1f6]">
+                              <td className="px-3 py-2">
+                                <div className="font-semibold text-[#111827]">{request.rider?.name || `Rider #${request.rider_id}`}</div>
+                                <div className="text-xs text-[#64748b]">{request.rider?.phone || "-"}</div>
+                              </td>
+                              <td className="px-3 py-2 capitalize">{String(request.status || "-").replace(/_/g, " ")}</td>
+                              <td className="px-3 py-2 text-right">{request.distance_km ? `${request.distance_km} KM` : "-"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
               </div>
@@ -770,6 +813,19 @@ export default function FoodAdminPage({ token, resource }) {
       return value ? <img src={value} alt="" className="h-12 w-16 rounded-[10px] object-cover" /> : <span className="text-[#94a3b8]">No image</span>;
     }
     if (value === null || value === undefined || value === "") return "-";
+    if (col === "rider_assignment_label") {
+      const waiting = String(value).toLowerCase().includes("waiting");
+      const accepted = String(value).toLowerCase().includes("accepted");
+      const cls = accepted
+        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+        : waiting
+          ? "border-amber-200 bg-amber-50 text-amber-700"
+          : "border-slate-200 bg-slate-50 text-slate-600";
+      return <span className={`inline-flex rounded-[10px] border px-2.5 py-1 text-xs font-bold ${cls}`}>{value}</span>;
+    }
+    if (col === "route_distance_km") {
+      return `${value} KM`;
+    }
     if (col === "delivery_map_url") {
       return (
         <a href={value} target="_blank" rel="noreferrer" className="font-semibold text-red-700 hover:underline">
