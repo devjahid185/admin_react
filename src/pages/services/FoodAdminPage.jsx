@@ -323,6 +323,99 @@ function buildPayload(form, config) {
   return payload;
 }
 
+function toCoord(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function mapsRouteUrl(fromLat, fromLng, toLat, toLng) {
+  if ([fromLat, fromLng, toLat, toLng].some((value) => value === null)) return null;
+  return `https://www.google.com/maps/dir/?api=1&origin=${fromLat},${fromLng}&destination=${toLat},${toLng}&travelmode=driving`;
+}
+
+function mapsEmbedRouteUrl(fromLat, fromLng, toLat, toLng) {
+  if ([fromLat, fromLng, toLat, toLng].some((value) => value === null)) return null;
+  return `https://maps.google.com/maps?saddr=${fromLat},${fromLng}&daddr=${toLat},${toLng}&output=embed`;
+}
+
+function mapsPointUrl(lat, lng) {
+  if (lat === null || lng === null) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+}
+
+function FoodOrderRouteMap({ order }) {
+  const restaurantLat = toCoord(order?.restaurant?.lat);
+  const restaurantLng = toCoord(order?.restaurant?.lng);
+  const deliveryLat = toCoord(order?.delivery_lat);
+  const deliveryLng = toCoord(order?.delivery_lng);
+  const routeUrl = mapsRouteUrl(restaurantLat, restaurantLng, deliveryLat, deliveryLng);
+  const embedUrl = mapsEmbedRouteUrl(restaurantLat, restaurantLng, deliveryLat, deliveryLng);
+  const deliveryUrl = mapsPointUrl(deliveryLat, deliveryLng) || order?.delivery_map_url;
+  const restaurantUrl = mapsPointUrl(restaurantLat, restaurantLng);
+
+  return (
+    <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h4 className="text-base font-bold text-[#111827]">Restaurant to Delivery Map</h4>
+          <p className="mt-1 text-sm text-[#64748b]">Restaurant pickup and customer delivery location together.</p>
+        </div>
+        {routeUrl && (
+          <a
+            href={routeUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center rounded-[12px] border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-100"
+          >
+            Open route
+          </a>
+        )}
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] p-3 text-sm">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">Restaurant</div>
+          <div className="mt-1 font-semibold text-[#111827]">{order?.restaurant?.name || "-"}</div>
+          <div className="mt-1 text-xs text-[#64748b]">{restaurantLat !== null && restaurantLng !== null ? `${restaurantLat}, ${restaurantLng}` : "Location missing"}</div>
+        </div>
+        <div className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] p-3 text-sm">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">Customer</div>
+          <div className="mt-1 font-semibold text-[#111827]">{order?.receiver_name || "-"}</div>
+          <div className="mt-1 text-xs text-[#64748b]">{deliveryLat !== null && deliveryLng !== null ? `${deliveryLat}, ${deliveryLng}` : "Location missing"}</div>
+        </div>
+      </div>
+
+      {embedUrl ? (
+        <iframe
+          title={`Route map ${order?.order_no || ""}`}
+          src={embedUrl}
+          className="mt-4 h-72 w-full rounded-[14px] border border-[#dfe6ef]"
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      ) : (
+        <div className="mt-4 rounded-[14px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          Restaurant and delivery coordinates are both required to show the route map.
+        </div>
+      )}
+
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        {restaurantUrl && (
+          <a href={restaurantUrl} target="_blank" rel="noreferrer" className="rounded-[12px] border border-[#dfe6ef] px-3 py-2 text-center text-sm font-semibold text-[#24324a] hover:bg-[#f8fafc]">
+            Open restaurant
+          </a>
+        )}
+        {deliveryUrl && (
+          <a href={deliveryUrl} target="_blank" rel="noreferrer" className="rounded-[12px] border border-[#dfe6ef] px-3 py-2 text-center text-sm font-semibold text-[#24324a] hover:bg-[#f8fafc]">
+            Open delivery
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function FoodOrderViewModal({ loading, order, onClose }) {
   const items = order?.items || [];
   const detailRows = [
@@ -415,6 +508,7 @@ function FoodOrderViewModal({ loading, order, onClose }) {
               </div>
 
               <div className="space-y-4">
+                <FoodOrderRouteMap order={order} />
                 <div className="rounded-[16px] border border-[#dfe6ef] bg-[#f8fafc] p-4">
                   <h4 className="text-base font-bold text-[#111827]">Delivery & Customer</h4>
                   <div className="mt-4 space-y-3 text-sm">
