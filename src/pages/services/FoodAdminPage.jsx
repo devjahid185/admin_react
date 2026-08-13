@@ -349,10 +349,13 @@ function FoodOrderRouteMap({ order }) {
   const restaurantLng = toCoord(order?.restaurant?.lng);
   const deliveryLat = toCoord(order?.delivery_lat);
   const deliveryLng = toCoord(order?.delivery_lng);
+  const riderLat = toCoord(order?.rider?.last_lat);
+  const riderLng = toCoord(order?.rider?.last_lng);
   const routeUrl = mapsRouteUrl(restaurantLat, restaurantLng, deliveryLat, deliveryLng);
   const embedUrl = mapsEmbedRouteUrl(restaurantLat, restaurantLng, deliveryLat, deliveryLng);
   const deliveryUrl = mapsPointUrl(deliveryLat, deliveryLng) || order?.delivery_map_url;
   const restaurantUrl = mapsPointUrl(restaurantLat, restaurantLng);
+  const riderUrl = mapsPointUrl(riderLat, riderLng);
 
   return (
     <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
@@ -376,7 +379,7 @@ function FoodOrderRouteMap({ order }) {
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] p-3 text-sm">
           <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">Restaurant</div>
           <div className="mt-1 font-semibold text-[#111827]">{order?.restaurant?.name || "-"}</div>
@@ -386,6 +389,12 @@ function FoodOrderRouteMap({ order }) {
           <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">Customer</div>
           <div className="mt-1 font-semibold text-[#111827]">{order?.receiver_name || "-"}</div>
           <div className="mt-1 text-xs text-[#64748b]">{deliveryLat !== null && deliveryLng !== null ? `${deliveryLat}, ${deliveryLng}` : "Location missing"}</div>
+        </div>
+        <div className="rounded-[12px] border border-emerald-100 bg-emerald-50 p-3 text-sm">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">Live Rider</div>
+          <div className="mt-1 font-semibold text-[#111827]">{order?.rider?.name || order?.accepted_rider_name || "-"}</div>
+          <div className="mt-1 text-xs text-emerald-700">{riderLat !== null && riderLng !== null ? `${riderLat}, ${riderLng}` : "Location not started"}</div>
+          <div className="mt-1 text-[11px] text-emerald-700">{order?.rider?.last_location_at ? `Updated ${formatDateTime(order.rider.last_location_at)}` : ""}</div>
         </div>
       </div>
 
@@ -414,6 +423,11 @@ function FoodOrderRouteMap({ order }) {
             Open delivery
           </a>
         )}
+        {riderUrl && (
+          <a href={riderUrl} target="_blank" rel="noreferrer" className="rounded-[12px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-sm font-semibold text-emerald-700 hover:bg-emerald-100">
+            Open rider live
+          </a>
+        )}
       </div>
     </div>
   );
@@ -429,6 +443,8 @@ function FoodOrderViewModal({ loading, order, onClose }) {
     ["Restaurant", order?.restaurant?.name || order?.restaurant_id],
     ["Rider Status", order?.rider_assignment_label],
     ["Accepted Rider", order?.accepted_rider_name ? `${order.accepted_rider_name} (${order.accepted_rider_phone || "-"})` : "-"],
+    ["Rider Last Location", order?.rider?.last_lat && order?.rider?.last_lng ? `${order.rider.last_lat}, ${order.rider.last_lng}` : "-"],
+    ["Rider Location Updated", formatDateTime(order?.rider?.last_location_at)],
     ["Pending Rider Requests", order?.pending_rider_requests_count ?? 0],
     ["Delivery Area", order?.delivery_area],
     ["Delivery Address", order?.delivery_address],
@@ -654,6 +670,19 @@ export default function FoodAdminPage({ token, resource }) {
       setForm((prev) => ({ ...prev, slug: slugify(prev.name) }));
     }
   }, [form.name, form.slug, resource]);
+
+  useEffect(() => {
+    if (!viewOpen || resource !== "food-orders" || !viewOrder?.id) return undefined;
+    const timer = window.setInterval(async () => {
+      try {
+        const data = await apiRequest(`/admin/resources/${resource}/${viewOrder.id}`, { token });
+        setViewOrder(data);
+      } catch (err) {
+        console.warn("Unable to refresh food order tracking", err);
+      }
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, [resource, token, viewOpen, viewOrder?.id]);
 
   const visibleColumns = useMemo(() => {
     const preferred = config.columns || [];
