@@ -24,6 +24,7 @@ import NoticesPage from "./services/NoticesPage.jsx";
 import UpdatesPage from "./services/UpdatesPage.jsx";
 import FaqsPage from "./services/FaqsPage.jsx";
 import HomeBannersPage from "./services/HomeBannersPage.jsx";
+import HomeServiceShortcutsPage from "./services/HomeServiceShortcutsPage.jsx";
 import NotificationsPage from "./services/NotificationsPage.jsx";
 import MessagesPage from "./services/MessagesPage.jsx";
 import PaymentsPage from "./services/PaymentsPage.jsx";
@@ -40,6 +41,7 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Profile", slug: "profile", group_name: "Core", route: "/admin/profile" },
   { name: "Users", slug: "users", group_name: "Core", route: "/admin/users" },
   { name: "Home Banners", slug: "home-banners", group_name: "Engagement", route: "/admin/home-banners" },
+  { name: "Home Services", slug: "home-service-shortcuts", group_name: "Engagement", route: "/admin/home-service-shortcuts" },
   { name: "Workers", slug: "workers", group_name: "Services", route: "/admin/workers" },
   { name: "Businesses", slug: "businesses", group_name: "Services", route: "/admin/businesses" },
   { name: "Marketplace", slug: "marketplace", group_name: "Services", route: "/admin/marketplace" },
@@ -217,6 +219,7 @@ export default function DashboardPage({ token, onLogout }) {
     updates: UpdatesPage,
     faqs: FaqsPage,
     "home-banners": HomeBannersPage,
+    "home-service-shortcuts": HomeServiceShortcutsPage,
     notifications: NotificationsPage,
     messages: MessagesPage,
     payments: PaymentsPage,
@@ -682,4 +685,3 @@ export default function DashboardPage({ token, onLogout }) {
     </DashboardLayout>
   );
 }
-

@@ -25,6 +25,7 @@ const ICONS = {
   updates: "UP",
   faqs: "FQ",
   "home-banners": "BN",
+  "home-service-shortcuts": "HS",
   notifications: "PN",
   reviews: "RV",
   reports: "RP",
