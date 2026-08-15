@@ -35,6 +35,7 @@ import ServicePage from "./services/ServicePage.jsx";
 import FoodAdminPage from "./services/FoodAdminPage.jsx";
 import FoodDeliverySettingsPage from "./services/FoodDeliverySettingsPage.jsx";
 import RiderAdminPage from "./services/RiderAdminPage.jsx";
+import SupportSettingsPage from "./services/SupportSettingsPage.jsx";
 
 const DEFAULT_ADMIN_MODULES = [
   { name: "Dashboard", slug: "dashboard", group_name: "Core", route: "/admin" },
@@ -77,6 +78,7 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Payments", slug: "payments", group_name: "Finance", route: "/admin/payments" },
   { name: "SMS Settings", slug: "sms-settings", group_name: "System", route: "/admin/sms-settings" },
   { name: "Email Settings", slug: "email-settings", group_name: "System", route: "/admin/email-settings" },
+  { name: "Support Settings", slug: "support-settings", group_name: "System", route: "/admin/support-settings" },
 ];
 
 function mergeAdminModules(apiModules = []) {
@@ -226,6 +228,7 @@ export default function DashboardPage({ token, onLogout }) {
     "sms-settings": SmsSettingsPage,
     "email-settings": EmailSettingsPage,
     "food-delivery-settings": FoodDeliverySettingsPage,
+    "support-settings": SupportSettingsPage,
     riders: RiderAdminPage,
   };
   const ServiceComponent = servicePageMap[activeModule] || null;
