@@ -6,6 +6,7 @@ import { apiRequest } from "../../lib/api.js";
 const defaultForm = {
   is_enabled: false,
   provider: "google",
+  mobile_map_mode: "webview",
   browser_api_key: "",
   maps_javascript_enabled: true,
   embed_enabled: true,
@@ -113,6 +114,17 @@ export default function MapSettingsPage({ token, onUnauthorized }) {
                 <option value="google">Google Maps Platform</option>
               </select>
             </label>
+            <label className="block text-sm font-medium text-[#24324a]">
+              App map mode
+              <select
+                className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700/15"
+                value={form.mobile_map_mode || "webview"}
+                onChange={(e) => updateField("mobile_map_mode", e.target.value)}
+              >
+                <option value="webview">WebView Google Map</option>
+                <option value="native_android">Native Android Map</option>
+              </select>
+            </label>
             <Input
               label={`Browser API Key ${meta?.browser_api_key_masked ? `(${meta.browser_api_key_masked})` : ""}`}
               value={form.browser_api_key}
@@ -120,15 +132,15 @@ export default function MapSettingsPage({ token, onUnauthorized }) {
               placeholder={meta?.has_browser_api_key ? "Leave blank to keep current key" : "Paste Google browser key"}
               type="password"
             />
+            <div className="rounded-[14px] border border-[#dfe6ef] bg-[#f8fafc] p-3 text-sm text-[#53637a]">
+              Key status: <b className="text-[#24324a]">{meta?.has_browser_api_key ? "Saved" : "Missing"}</b>
+            </div>
             <Input
               label="Client cache minutes"
               type="number"
               value={form.client_cache_minutes ?? 1440}
               onChange={(e) => updateField("client_cache_minutes", Number(e.target.value || 1440))}
             />
-            <div className="rounded-[14px] border border-[#dfe6ef] bg-[#f8fafc] p-3 text-sm text-[#53637a]">
-              Key status: <b className="text-[#24324a]">{meta?.has_browser_api_key ? "Saved" : "Missing"}</b>
-            </div>
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
@@ -171,6 +183,7 @@ export default function MapSettingsPage({ token, onUnauthorized }) {
             <p>Map settings are cached by clients to avoid repeated settings API calls.</p>
             <p>Directions API is optional and should stay off unless turn-by-turn route distance is required.</p>
             <p>Maps load only inside map/detail screens, not on every list row.</p>
+            <p>Native Android mode uses the app's Android Maps SDK key from the APK build, then runtime settings decide when it is active.</p>
             <p>Restrict this key in Google Cloud by domain/package to protect billing.</p>
           </div>
         </div>
