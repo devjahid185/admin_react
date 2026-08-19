@@ -443,7 +443,7 @@ function FoodOrderRouteMap({ order, mapSettings }) {
   );
 }
 
-function FoodOrderViewModal({ loading, order, onClose }) {
+function FoodOrderViewModal({ loading, order, mapSettings, onClose }) {
   const items = order?.items || [];
   const detailRows = [
     ["Order No", order?.order_no],
@@ -1022,6 +1022,7 @@ export default function FoodAdminPage({ token, resource }) {
         <FoodOrderViewModal
           loading={viewLoading}
           order={viewOrder}
+          mapSettings={mapSettings}
           onClose={() => {
             setViewOpen(false);
             setViewOrder(null);
