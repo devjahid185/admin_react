@@ -335,18 +335,8 @@ function mapsRouteUrl(fromLat, fromLng, toLat, toLng) {
   return `https://www.google.com/maps/dir/?api=1&origin=${fromLat},${fromLng}&destination=${toLat},${toLng}&travelmode=driving`;
 }
 
-function mapsEmbedRouteUrl(fromLat, fromLng, toLat, toLng, mapSettings) {
+function mapsEmbedRouteUrl(fromLat, fromLng, toLat, toLng) {
   if ([fromLat, fromLng, toLat, toLng].some((value) => value === null)) return null;
-  const key = mapSettings?.is_enabled && mapSettings?.embed_enabled ? mapSettings?.browser_api_key : "";
-  if (key) {
-    const params = new URLSearchParams({
-      key,
-      origin: `${fromLat},${fromLng}`,
-      destination: `${toLat},${toLng}`,
-      mode: "driving",
-    });
-    return `https://www.google.com/maps/embed/v1/directions?${params.toString()}`;
-  }
   return `https://maps.google.com/maps?saddr=${fromLat},${fromLng}&daddr=${toLat},${toLng}&output=embed`;
 }
 
@@ -355,7 +345,7 @@ function mapsPointUrl(lat, lng) {
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 }
 
-function FoodOrderRouteMap({ order, mapSettings }) {
+function FoodOrderRouteMap({ order }) {
   const restaurantLat = toCoord(order?.restaurant?.lat);
   const restaurantLng = toCoord(order?.restaurant?.lng);
   const deliveryLat = toCoord(order?.delivery_lat);
@@ -363,7 +353,7 @@ function FoodOrderRouteMap({ order, mapSettings }) {
   const riderLat = toCoord(order?.rider?.last_lat);
   const riderLng = toCoord(order?.rider?.last_lng);
   const routeUrl = mapsRouteUrl(restaurantLat, restaurantLng, deliveryLat, deliveryLng);
-  const embedUrl = mapsEmbedRouteUrl(restaurantLat, restaurantLng, deliveryLat, deliveryLng, mapSettings);
+  const embedUrl = mapsEmbedRouteUrl(restaurantLat, restaurantLng, deliveryLat, deliveryLng);
   const deliveryUrl = mapsPointUrl(deliveryLat, deliveryLng) || order?.delivery_map_url;
   const restaurantUrl = mapsPointUrl(restaurantLat, restaurantLng);
   const riderUrl = mapsPointUrl(riderLat, riderLng);
@@ -444,7 +434,7 @@ function FoodOrderRouteMap({ order, mapSettings }) {
   );
 }
 
-function FoodOrderViewModal({ loading, order, mapSettings, onClose }) {
+function FoodOrderViewModal({ loading, order, onClose }) {
   const items = order?.items || [];
   const detailRows = [
     ["Order No", order?.order_no],
@@ -542,7 +532,7 @@ function FoodOrderViewModal({ loading, order, mapSettings, onClose }) {
               </div>
 
               <div className="space-y-4">
-                <FoodOrderRouteMap order={order} mapSettings={mapSettings} />
+                <FoodOrderRouteMap order={order} />
                 <div className="rounded-[16px] border border-[#dfe6ef] bg-[#f8fafc] p-4">
                   <h4 className="text-base font-bold text-[#111827]">Delivery & Customer</h4>
                   <div className="mt-4 space-y-3 text-sm">
@@ -810,7 +800,6 @@ export default function FoodAdminPage({ token, resource }) {
   const [viewOpen, setViewOpen] = useState(false);
   const [viewLoading, setViewLoading] = useState(false);
   const [viewOrder, setViewOrder] = useState(null);
-  const [mapSettings, setMapSettings] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [orderFilters, setOrderFilters] = useState({ payment_method: "", payment_status: "", status: "", restaurant_id: "", date_from: "", date_to: "" });
@@ -876,21 +865,6 @@ export default function FoodAdminPage({ token, resource }) {
   useEffect(() => {
     loadPaymentSummary();
   }, [resource, token, search, orderFilters]);
-
-  useEffect(() => {
-    if (resource !== "food-orders" || mapSettings) return undefined;
-    let alive = true;
-    apiRequest("/map-settings")
-      .then((data) => {
-        if (alive) setMapSettings(data.settings || null);
-      })
-      .catch(() => {
-        if (alive) setMapSettings(null);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [resource, mapSettings]);
 
   useEffect(() => {
     if (!imageFile) {
@@ -1295,7 +1269,6 @@ export default function FoodAdminPage({ token, resource }) {
         <FoodOrderViewModal
           loading={viewLoading}
           order={viewOrder}
-          mapSettings={mapSettings}
           onClose={() => {
             setViewOpen(false);
             setViewOrder(null);
