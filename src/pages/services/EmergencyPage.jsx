@@ -141,7 +141,7 @@ export default function EmergencyPage({ token }) {
       </div>
 
       <BulkDeleteBar
-        selectedCount={selectedIds.size}
+        selectedCount={selectedIds.length}
         deleting={bulkDeleting}
         onClear={() => setSelectedIds([])}
         onDelete={bulkDelete}

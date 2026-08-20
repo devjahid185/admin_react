@@ -156,7 +156,7 @@ export default function MessagesPage({ token }) {
       </div>
 
       <BulkDeleteBar
-        selectedCount={selectedIds.size}
+        selectedCount={selectedIds.length}
         deleting={bulkDeleting}
         onClear={() => setSelectedIds([])}
         onDelete={bulkDelete}

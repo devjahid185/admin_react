@@ -169,7 +169,7 @@ export default function UsersPage({ token, onUnauthorized }) {
       </div>
 
       <BulkDeleteBar
-        selectedCount={selectedIds.size}
+        selectedCount={selectedIds.length}
         deleting={bulkDeleting}
         itemLabel="users"
         onClear={() => setSelectedIds([])}

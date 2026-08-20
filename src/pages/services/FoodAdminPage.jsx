@@ -942,7 +942,7 @@ export default function FoodAdminPage({ token, resource }) {
       {error && <div className="rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       <BulkDeleteBar
-        selectedCount={selectedIds.size}
+        selectedCount={selectedIds.length}
         deleting={bulkDeleting}
         onClear={() => setSelectedIds([])}
         onDelete={bulkDelete}

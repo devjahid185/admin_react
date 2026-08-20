@@ -285,7 +285,7 @@ export default function DashboardPage({ token, onLogout }) {
       {["admins", "reports", "reviews"].includes(activeModule) && (
         <div className="mb-4">
           <BulkDeleteBar
-            selectedCount={coreSelectedIds.size}
+            selectedCount={coreSelectedIds.length}
             deleting={coreBulkDeleting}
             itemLabel={activeModule}
             onClear={() => setCoreSelectedIds([])}
