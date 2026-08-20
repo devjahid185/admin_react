@@ -59,71 +59,38 @@
         grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
         gap: 18px;
       }
-      .phone {
-        max-width: 240px;
+      .screenshot-card {
+        max-width: 280px;
         width: 100%;
         margin: 0 auto;
+      }
+      .phone {
         border: 10px solid #111827;
         border-radius: 30px;
         background: #111827;
         box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
-      }
-      .phone-screen {
-        min-height: 390px;
-        border-radius: 20px;
-        background: #ffffff;
         overflow: hidden;
       }
-      .status {
-        height: 24px;
-        background: #101827;
+      .phone img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 20px;
+        background: #fff;
       }
-      .appbar {
-        padding: 14px;
-        color: #fff;
-        background: linear-gradient(135deg, #ee0012, #b70d1a);
-        font-size: 13px;
-        font-weight: 900;
-      }
-      .mock-body { padding: 14px; }
-      .tile {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        min-height: 54px;
-        margin-bottom: 10px;
-        padding: 10px;
-        border: 1px solid #edf1f6;
-        border-radius: 14px;
-        background: #f8fafc;
-      }
-      .icon {
-        width: 28px;
-        height: 28px;
-        border-radius: 999px;
-        background: #fee2e2;
-      }
-      .line { height: 8px; border-radius: 999px; background: #cbd5e1; }
-      .line.short { width: 56%; margin-top: 7px; }
-      .line.long { width: 82%; }
-      .danger {
-        border-color: #fecaca;
-        background: #fff1f2;
-      }
-      .danger .line { background: #ef4444; }
-      .button {
-        margin-top: 12px;
-        padding: 11px 12px;
-        border-radius: 12px;
-        background: #ee0012;
-        color: #fff;
+      .shot-caption {
+        margin-top: 10px;
         text-align: center;
-        font-size: 13px;
-        font-weight: 900;
       }
-      .note {
-        border-color: #fde68a;
-        background: #fffbeb;
+      .shot-caption strong {
+        display: block;
+        color: #101827;
+        font-size: 14px;
+      }
+      .shot-caption span {
+        display: block;
+        color: #64748b;
+        font-size: 13px;
       }
       footer {
         padding: 20px 0;
@@ -188,49 +155,40 @@
           available inside the Bholavashi app.
         </p>
         <div class="screens">
-          <div class="phone">
-            <div class="phone-screen">
-              <div class="status"></div>
-              <div class="appbar">More</div>
-              <div class="mock-body">
-                <div class="tile"><div class="icon"></div><div style="flex:1"><div class="line long"></div><div class="line short"></div></div></div>
-                <div class="tile"><div class="icon"></div><div style="flex:1"><div class="line long"></div><div class="line short"></div></div></div>
-                <div class="tile"><div class="icon"></div><div style="flex:1"><div class="line long"></div><div class="line short"></div></div></div>
-                <div class="button">Account & Security</div>
-              </div>
+          <div class="screenshot-card">
+            <div class="phone">
+              <img src="/delete-account/screenshots/step-1.jpeg" alt="Bholavashi home screen showing the More menu button" />
+            </div>
+            <div class="shot-caption">
+              <strong>Step 1</strong>
+              <span>Open the More menu from the bottom navigation.</span>
             </div>
           </div>
-          <div class="phone">
-            <div class="phone-screen">
-              <div class="status"></div>
-              <div class="appbar">Account & Security</div>
-              <div class="mock-body">
-                <div class="tile"><div class="icon"></div><div style="flex:1"><div class="line long"></div><div class="line short"></div></div></div>
-                <div class="tile"><div class="icon"></div><div style="flex:1"><div class="line long"></div><div class="line short"></div></div></div>
-                <div class="tile danger"><div class="icon"></div><div style="flex:1"><div class="line long"></div><div class="line short"></div></div></div>
-              </div>
+          <div class="screenshot-card">
+            <div class="phone">
+              <img src="/delete-account/screenshots/step-2.jpeg" alt="Bholavashi More page showing Account and Security menu item" />
+            </div>
+            <div class="shot-caption">
+              <strong>Step 2</strong>
+              <span>Tap Account & Security from the More page.</span>
             </div>
           </div>
-          <div class="phone">
-            <div class="phone-screen">
-              <div class="status"></div>
-              <div class="appbar">Delete account request</div>
-              <div class="mock-body">
-                <div class="tile note"><div style="flex:1"><div class="line long"></div><div class="line long"></div><div class="line short"></div></div></div>
-                <div class="button">Continue</div>
-                <div class="tile"><div style="flex:1"><div class="line long"></div><div class="line short"></div></div></div>
-              </div>
+          <div class="screenshot-card">
+            <div class="phone">
+              <img src="/delete-account/screenshots/step-3.jpeg" alt="Bholavashi Account and Security page showing Delete Account menu item" />
+            </div>
+            <div class="shot-caption">
+              <strong>Step 3</strong>
+              <span>Tap Delete Account inside Account & Security.</span>
             </div>
           </div>
-          <div class="phone">
-            <div class="phone-screen">
-              <div class="status"></div>
-              <div class="appbar">Support request</div>
-              <div class="mock-body">
-                <div class="tile"><div style="flex:1"><div class="line long"></div><div class="line short"></div></div></div>
-                <div class="tile"><div style="flex:1"><div class="line long"></div><div class="line long"></div><div class="line short"></div></div></div>
-                <div class="button">Send request</div>
-              </div>
+          <div class="screenshot-card">
+            <div class="phone">
+              <img src="/delete-account/screenshots/step-4.jpeg" alt="Bholavashi delete account confirmation dialog" />
+            </div>
+            <div class="shot-caption">
+              <strong>Step 4</strong>
+              <span>Confirm and continue to the official deletion request page.</span>
             </div>
           </div>
         </div>
