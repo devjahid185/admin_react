@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../components/BulkDeleteBar.jsx";
 import Button from "../components/Button.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
 import Pagination from "../components/Pagination.jsx";
@@ -26,6 +27,8 @@ export default function UsersPage({ token, onUnauthorized }) {
   const [mode, setMode] = useState("create");
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -39,6 +42,7 @@ export default function UsersPage({ token, onUnauthorized }) {
       const data = await apiRequest(`/admin/users?${params.toString()}`, { token });
       setRecords(data.data || []);
       setMeta(data);
+      setSelectedIds([]);
     } catch (err) {
       const msg = err.message || "Unable to load users.";
       setError(msg);
@@ -123,7 +127,27 @@ export default function UsersPage({ token, onUnauthorized }) {
   const deleteUser = async (id) => {
     await apiRequest(`/admin/users/${id}`, { method: "DELETE", token });
     setRecords((prev) => prev.filter((u) => u.id !== id));
+    setSelectedIds((prev) => toggleSelectedId(prev, id, false));
   };
+
+  const bulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    if (!window.confirm(`Delete ${ids.length} selected users? This action cannot be undone.`)) return;
+    setBulkDeleting(true);
+    setError("");
+    try {
+      await Promise.all(ids.map((id) => apiRequest(`/admin/users/${id}`, { method: "DELETE", token })));
+      setRecords((prev) => prev.filter((record) => !selectedIds.includes(record.id)));
+      setSelectedIds([]);
+    } catch (err) {
+      setError(err.message || "Bulk delete failed.");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const selectionState = visibleSelectionState(records, selectedIds);
 
   return (
     <div className="space-y-4">
@@ -144,10 +168,29 @@ export default function UsersPage({ token, onUnauthorized }) {
         </div>
       </div>
 
+      <BulkDeleteBar
+        selectedCount={selectedIds.size}
+        deleting={bulkDeleting}
+        itemLabel="users"
+        onClear={() => setSelectedIds([])}
+        onDelete={bulkDelete}
+      />
+
       <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
         <table className="min-w-[720px] w-full text-xs md:text-sm">
           <thead className="bg-[#f8fafc] text-[#53637a]">
             <tr>
+              <th className="w-10 px-3 py-2 md:px-4">
+                <input
+                  type="checkbox"
+                  checked={selectionState.allVisibleSelected}
+                  ref={(input) => {
+                    if (input) input.indeterminate = selectionState.someVisibleSelected;
+                  }}
+                  onChange={(e) => setSelectedIds((prev) => toggleVisibleIds(prev, records, e.target.checked))}
+                  aria-label="Select all visible users"
+                />
+              </th>
               <th className="text-left px-3 py-2 md:px-4">Name</th>
               <th className="text-left px-3 py-2 md:px-4">Email</th>
               <th className="text-left px-3 py-2 md:px-4">Phone</th>
@@ -160,6 +203,14 @@ export default function UsersPage({ token, onUnauthorized }) {
           <tbody>
             {records.map((u) => (
               <tr key={u.id} className="border-t border-[#edf1f6]">
+                <td className="px-3 py-2 md:px-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(u.id)}
+                    onChange={(e) => setSelectedIds((prev) => toggleSelectedId(prev, u.id, e.target.checked))}
+                    aria-label={`Select user ${u.id}`}
+                  />
+                </td>
                 <td className="px-3 py-2 md:px-4">{u.name}</td>
                 <td className="px-3 py-2 md:px-4">{u.email || "-"}</td>
                 <td className="px-3 py-2 md:px-4">{u.phone || "-"}</td>
@@ -187,7 +238,7 @@ export default function UsersPage({ token, onUnauthorized }) {
             ))}
             {!records.length && (
               <tr>
-                <td className="px-4 py-4 text-[#64748b]" colSpan={7}>
+                <td className="px-4 py-4 text-[#64748b]" colSpan={8}>
                   {loading ? "Loading..." : "No users found."}
                 </td>
               </tr>
@@ -293,6 +344,5 @@ export default function UsersPage({ token, onUnauthorized }) {
     </div>
   );
 }
-
 
 

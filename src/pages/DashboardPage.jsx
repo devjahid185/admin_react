@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout.jsx";
 import { apiRequest } from "../lib/api.js";
+import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../components/BulkDeleteBar.jsx";
 import Button from "../components/Button.jsx";
 import UsersPage from "./UsersPage.jsx";
 import WorkersPage from "./services/WorkersPage.jsx";
@@ -104,6 +105,8 @@ export default function DashboardPage({ token, onLogout }) {
   const [coreLoading, setCoreLoading] = useState(false);
   const [dashboardStats, setDashboardStats] = useState(null);
   const [dashboardRecent, setDashboardRecent] = useState(null);
+  const [coreSelectedIds, setCoreSelectedIds] = useState([]);
+  const [coreBulkDeleting, setCoreBulkDeleting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -158,17 +161,21 @@ export default function DashboardPage({ token, onLogout }) {
           const data = await apiRequest("/admin/admins", { token });
           setCoreRecords(data.admins || []);
           setCoreMeta(null);
+          setCoreSelectedIds([]);
         } else if (activeModule === "reports") {
           const data = await apiRequest("/admin/reports", { token });
           setCoreRecords(data.data || []);
           setCoreMeta(data);
+          setCoreSelectedIds([]);
         } else if (activeModule === "reviews") {
           const data = await apiRequest("/admin/reviews", { token });
           setCoreRecords(data.data || []);
           setCoreMeta(data);
+          setCoreSelectedIds([]);
         } else {
           setCoreRecords([]);
           setCoreMeta(null);
+          setCoreSelectedIds([]);
         }
       } catch (err) {
         setError(err.message || "Unable to load data.");
@@ -192,6 +199,26 @@ export default function DashboardPage({ token, onLogout }) {
   const deleteRow = async (path, id) => {
     await apiRequest(`${path}/${id}`, { method: "DELETE", token });
     setCoreRecords((prev) => prev.filter((r) => r.id !== id));
+    setCoreSelectedIds((prev) => toggleSelectedId(prev, id, false));
+  };
+
+  const coreDeletePath = activeModule === "admins" ? "/admin/admins" : activeModule === "reports" ? "/admin/reports" : activeModule === "reviews" ? "/admin/reviews" : null;
+  const coreSelectionState = visibleSelectionState(coreRecords, coreSelectedIds);
+  const bulkDeleteCoreRows = async () => {
+    const ids = Array.from(coreSelectedIds);
+    if (!coreDeletePath || !ids.length) return;
+    if (!window.confirm(`Delete ${ids.length} selected ${activeModule}? This action cannot be undone.`)) return;
+    setCoreBulkDeleting(true);
+    setError("");
+    try {
+      await Promise.all(ids.map((id) => apiRequest(`${coreDeletePath}/${id}`, { method: "DELETE", token })));
+      setCoreRecords((prev) => prev.filter((record) => !coreSelectedIds.includes(record.id)));
+      setCoreSelectedIds([]);
+    } catch (err) {
+      setError(err.message || "Bulk delete failed.");
+    } finally {
+      setCoreBulkDeleting(false);
+    }
   };
 
   const updateReport = async (id, status) => {
@@ -255,6 +282,17 @@ export default function DashboardPage({ token, onLogout }) {
       onSelectModule={(item) => setActiveModule(item.slug)}
     >
       {error && <div className="mb-4 text-red-600">{error}</div>}
+      {["admins", "reports", "reviews"].includes(activeModule) && (
+        <div className="mb-4">
+          <BulkDeleteBar
+            selectedCount={coreSelectedIds.size}
+            deleting={coreBulkDeleting}
+            itemLabel={activeModule}
+            onClear={() => setCoreSelectedIds([])}
+            onDelete={bulkDeleteCoreRows}
+          />
+        </div>
+      )}
       {activeModule === "dashboard" && (
         <div className="space-y-5">
           {(() => {
@@ -548,6 +586,17 @@ export default function DashboardPage({ token, onLogout }) {
           <table className="min-w-[640px] w-full text-xs md:text-sm">
             <thead className="bg-[#f8fafc] text-[#53637a]">
               <tr>
+                <th className="w-10 px-3 py-2 md:px-4">
+                  <input
+                    type="checkbox"
+                    checked={coreSelectionState.allVisibleSelected}
+                    ref={(input) => {
+                      if (input) input.indeterminate = coreSelectionState.someVisibleSelected;
+                    }}
+                    onChange={(e) => setCoreSelectedIds((prev) => toggleVisibleIds(prev, coreRecords, e.target.checked))}
+                    aria-label="Select all visible admins"
+                  />
+                </th>
                 <th className="text-left px-3 py-2 md:px-4">Name</th>
                 <th className="text-left px-3 py-2 md:px-4">Email</th>
                 <th className="text-left px-3 py-2 md:px-4">Super</th>
@@ -557,6 +606,14 @@ export default function DashboardPage({ token, onLogout }) {
             <tbody>
               {coreRecords.map((a) => (
                 <tr key={a.id} className="border-t border-[#edf1f6]">
+                  <td className="px-3 py-2 md:px-4">
+                    <input
+                      type="checkbox"
+                      checked={coreSelectedIds.includes(a.id)}
+                      onChange={(e) => setCoreSelectedIds((prev) => toggleSelectedId(prev, a.id, e.target.checked))}
+                      aria-label={`Select admin ${a.id}`}
+                    />
+                  </td>
                   <td className="px-3 py-2 md:px-4">{a.name}</td>
                   <td className="px-3 py-2 md:px-4">{a.email}</td>
                   <td className="px-3 py-2 md:px-4">{a.is_super ? "Yes" : "No"}</td>
@@ -571,7 +628,7 @@ export default function DashboardPage({ token, onLogout }) {
               ))}
               {!coreRecords.length && (
                 <tr>
-                  <td className="px-4 py-4 text-[#64748b]" colSpan={4}>
+                  <td className="px-4 py-4 text-[#64748b]" colSpan={5}>
                     {coreLoading ? "Loading..." : "No admins found."}
                   </td>
                 </tr>
@@ -586,6 +643,17 @@ export default function DashboardPage({ token, onLogout }) {
           <table className="min-w-[720px] w-full text-xs md:text-sm">
             <thead className="bg-[#f8fafc] text-[#53637a]">
               <tr>
+                <th className="w-10 px-3 py-2 md:px-4">
+                  <input
+                    type="checkbox"
+                    checked={coreSelectionState.allVisibleSelected}
+                    ref={(input) => {
+                      if (input) input.indeterminate = coreSelectionState.someVisibleSelected;
+                    }}
+                    onChange={(e) => setCoreSelectedIds((prev) => toggleVisibleIds(prev, coreRecords, e.target.checked))}
+                    aria-label="Select all visible reports"
+                  />
+                </th>
                 <th className="text-left px-3 py-2 md:px-4">Reporter</th>
                 <th className="text-left px-3 py-2 md:px-4">Target</th>
                 <th className="text-left px-3 py-2 md:px-4">Reason</th>
@@ -596,6 +664,14 @@ export default function DashboardPage({ token, onLogout }) {
             <tbody>
               {coreRecords.map((r) => (
                 <tr key={r.id} className="border-t border-[#edf1f6]">
+                  <td className="px-3 py-2 md:px-4">
+                    <input
+                      type="checkbox"
+                      checked={coreSelectedIds.includes(r.id)}
+                      onChange={(e) => setCoreSelectedIds((prev) => toggleSelectedId(prev, r.id, e.target.checked))}
+                      aria-label={`Select report ${r.id}`}
+                    />
+                  </td>
                   <td className="px-3 py-2 md:px-4">{r.reporter_id}</td>
                   <td className="px-3 py-2 md:px-4">{r.target_type} #{r.target_id}</td>
                   <td className="px-3 py-2 md:px-4">{r.reason}</td>
@@ -622,7 +698,7 @@ export default function DashboardPage({ token, onLogout }) {
               ))}
               {!coreRecords.length && (
                 <tr>
-                  <td className="px-4 py-4 text-[#64748b]" colSpan={5}>
+                  <td className="px-4 py-4 text-[#64748b]" colSpan={6}>
                     {coreLoading ? "Loading..." : "No reports found."}
                   </td>
                 </tr>
@@ -637,6 +713,17 @@ export default function DashboardPage({ token, onLogout }) {
           <table className="min-w-[720px] w-full text-xs md:text-sm">
             <thead className="bg-[#f8fafc] text-[#53637a]">
               <tr>
+                <th className="w-10 px-3 py-2 md:px-4">
+                  <input
+                    type="checkbox"
+                    checked={coreSelectionState.allVisibleSelected}
+                    ref={(input) => {
+                      if (input) input.indeterminate = coreSelectionState.someVisibleSelected;
+                    }}
+                    onChange={(e) => setCoreSelectedIds((prev) => toggleVisibleIds(prev, coreRecords, e.target.checked))}
+                    aria-label="Select all visible reviews"
+                  />
+                </th>
                 <th className="text-left px-3 py-2 md:px-4">User</th>
                 <th className="text-left px-3 py-2 md:px-4">Type</th>
                 <th className="text-left px-3 py-2 md:px-4">Target</th>
@@ -648,6 +735,14 @@ export default function DashboardPage({ token, onLogout }) {
             <tbody>
               {coreRecords.map((r) => (
                 <tr key={r.id} className="border-t border-[#edf1f6]">
+                  <td className="px-3 py-2 md:px-4">
+                    <input
+                      type="checkbox"
+                      checked={coreSelectedIds.includes(r.id)}
+                      onChange={(e) => setCoreSelectedIds((prev) => toggleSelectedId(prev, r.id, e.target.checked))}
+                      aria-label={`Select review ${r.id}`}
+                    />
+                  </td>
                   <td className="px-3 py-2 md:px-4">{r.user_id}</td>
                   <td className="px-3 py-2 md:px-4">{r.type}</td>
                   <td className="px-3 py-2 md:px-4">#{r.target_id}</td>
@@ -664,7 +759,7 @@ export default function DashboardPage({ token, onLogout }) {
               ))}
               {!coreRecords.length && (
                 <tr>
-                  <td className="px-4 py-4 text-[#64748b]" colSpan={6}>
+                  <td className="px-4 py-4 text-[#64748b]" colSpan={7}>
                     {coreLoading ? "Loading..." : "No reviews found."}
                   </td>
                 </tr>

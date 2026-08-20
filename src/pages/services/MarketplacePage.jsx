@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest } from "../../lib/api.js";
@@ -15,6 +16,8 @@ const emptyForm = {
 
 export default function MarketplacePage({ token }) {
   const [records, setRecords] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -39,6 +42,7 @@ export default function MarketplacePage({ token }) {
       const data = await apiRequest(`/admin/resources/marketplace?${params.toString()}`, { token });
       setRecords(data.data || []);
       setMeta(data.meta || null);
+      setSelectedIds([]);
     } catch (err) {
       setError(err.message || "Unable to load marketplace items.");
     } finally {
@@ -119,8 +123,28 @@ export default function MarketplacePage({ token }) {
   const deleteItem = async (id) => {
     await apiRequest(`/admin/resources/marketplace/${id}`, { method: "DELETE", token });
     setRecords((prev) => prev.filter((r) => r.id !== id));
+    setSelectedIds((prev) => toggleSelectedId(prev, id, false));
   };
 
+
+  const bulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    if (!window.confirm(`Delete ${ids.length} selected records? This action cannot be undone.`)) return;
+    setBulkDeleting(true);
+    setError("");
+    try {
+      await Promise.all(ids.map((id) => apiRequest(`/admin/resources/marketplace/${id}`, { method: "DELETE", token })));
+      setRecords((prev) => prev.filter((record) => !selectedIds.includes(record.id)));
+      setSelectedIds([]);
+    } catch (err) {
+      setError(err.message || "Bulk delete failed.");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const selectionState = visibleSelectionState(records, selectedIds);
   return (
     <div className="space-y-4">
       {error && <div className="text-sm text-red-600">{error}</div>}
@@ -140,10 +164,27 @@ export default function MarketplacePage({ token }) {
         </div>
       </div>
 
+      <BulkDeleteBar
+        selectedCount={selectedIds.size}
+        deleting={bulkDeleting}
+        onClear={() => setSelectedIds([])}
+        onDelete={bulkDelete}
+      />
       <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
         <table className="min-w-[900px] w-full text-xs md:text-sm">
           <thead className="bg-[#f8fafc] text-[#53637a]">
             <tr>
+              <th className="w-10 px-3 py-2 md:px-4">
+                <input
+                  type="checkbox"
+                  checked={selectionState.allVisibleSelected}
+                  ref={(input) => {
+                    if (input) input.indeterminate = selectionState.someVisibleSelected;
+                  }}
+                  onChange={(e) => setSelectedIds((prev) => toggleVisibleIds(prev, records, e.target.checked))}
+                  aria-label="Select all visible records"
+                />
+              </th>
               <th className="text-left px-3 py-2 md:px-4">ID</th>
               <th className="text-left px-3 py-2 md:px-4">Title</th>
               <th className="text-left px-3 py-2 md:px-4">Category</th>
@@ -156,6 +197,14 @@ export default function MarketplacePage({ token }) {
           <tbody>
             {records.map((item) => (
               <tr key={item.id} className="border-t border-[#edf1f6]">
+                <td className="px-3 py-2 md:px-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(item.id)}
+                    onChange={(e) => setSelectedIds((prev) => toggleSelectedId(prev, item.id, e.target.checked))}
+                    aria-label={`Select record ${item.id}`}
+                  />
+                </td>
                 <td className="px-3 py-2 md:px-4">{item.id}</td>
                 <td className="px-3 py-2 md:px-4">{item.title}</td>
                 <td className="px-3 py-2 md:px-4">{item.category_id}</td>
@@ -176,7 +225,7 @@ export default function MarketplacePage({ token }) {
             ))}
             {!records.length && (
               <tr>
-                <td className="px-4 py-4 text-[#64748b]" colSpan={7}>
+                <td className="px-4 py-4 text-[#64748b]" colSpan={8}>
                   {loading ? "Loading..." : "No items found."}
                 </td>
               </tr>

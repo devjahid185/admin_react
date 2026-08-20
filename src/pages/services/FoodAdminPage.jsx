@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
 import Input from "../../components/Input.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
@@ -637,6 +638,8 @@ export default function FoodAdminPage({ token, resource }) {
   const [viewLoading, setViewLoading] = useState(false);
   const [viewOrder, setViewOrder] = useState(null);
   const [mapSettings, setMapSettings] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -646,6 +649,7 @@ export default function FoodAdminPage({ token, resource }) {
       setRecords(data.data || []);
       setColumns(data.columns || []);
       setMeta(data.meta || null);
+      setSelectedIds([]);
     } catch (err) {
       setError(err.message || "Unable to load food data.");
     } finally {
@@ -810,6 +814,24 @@ export default function FoodAdminPage({ token, resource }) {
     if (!window.confirm("Delete this food record? This action cannot be undone.")) return;
     await apiRequest(`/admin/resources/${resource}/${id}`, { method: "DELETE", token });
     setRecords((prev) => prev.filter((row) => row.id !== id));
+    setSelectedIds((prev) => toggleSelectedId(prev, id, false));
+  };
+
+  const bulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    if (!window.confirm(`Delete ${ids.length} selected records? This action cannot be undone.`)) return;
+    setBulkDeleting(true);
+    setError("");
+    try {
+      await Promise.all(ids.map((id) => apiRequest(`/admin/resources/${resource}/${id}`, { method: "DELETE", token })));
+      setRecords((prev) => prev.filter((record) => !selectedIds.includes(record.id)));
+      setSelectedIds([]);
+    } catch (err) {
+      setError(err.message || "Bulk delete failed.");
+    } finally {
+      setBulkDeleting(false);
+    }
   };
 
   const renderField = (field) => {
@@ -894,6 +916,8 @@ export default function FoodAdminPage({ token, resource }) {
     return String(value).length > 80 ? `${String(value).slice(0, 80)}...` : String(value);
   };
 
+  const selectionState = visibleSelectionState(records, selectedIds);
+
   return (
     <div className="space-y-5">
       <div className="rounded-[18px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
@@ -917,10 +941,28 @@ export default function FoodAdminPage({ token, resource }) {
 
       {error && <div className="rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
+      <BulkDeleteBar
+        selectedCount={selectedIds.size}
+        deleting={bulkDeleting}
+        onClear={() => setSelectedIds([])}
+        onDelete={bulkDelete}
+      />
+
       <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
         <table className="min-w-[860px] w-full text-sm">
           <thead className="bg-[#f8fafc] text-xs uppercase tracking-wide text-[#53637a]">
             <tr>
+              <th className="w-10 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={selectionState.allVisibleSelected}
+                  ref={(input) => {
+                    if (input) input.indeterminate = selectionState.someVisibleSelected;
+                  }}
+                  onChange={(e) => setSelectedIds((prev) => toggleVisibleIds(prev, records, e.target.checked))}
+                  aria-label="Select all visible records"
+                />
+              </th>
               {visibleColumns.map((col) => (
                 <th key={col} className="px-4 py-3 text-left">
                   {col.replace(/_/g, " ")}
@@ -932,6 +974,14 @@ export default function FoodAdminPage({ token, resource }) {
           <tbody>
             {records.map((record) => (
               <tr key={record.id} className="border-t border-[#edf1f6]">
+                <td className="px-4 py-3 align-middle">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(record.id)}
+                    onChange={(e) => setSelectedIds((prev) => toggleSelectedId(prev, record.id, e.target.checked))}
+                    aria-label={`Select record ${record.id}`}
+                  />
+                </td>
                 {visibleColumns.map((col) => (
                   <td key={`${record.id}-${col}`} className="px-4 py-3 align-middle">
                     {renderValue(record, col)}
@@ -956,7 +1006,7 @@ export default function FoodAdminPage({ token, resource }) {
             ))}
             {!records.length && (
               <tr>
-                <td colSpan={visibleColumns.length + 1} className="px-4 py-8 text-center text-[#64748b]">
+                <td colSpan={visibleColumns.length + 2} className="px-4 py-8 text-center text-[#64748b]">
                   {loading ? "Loading..." : "No food records found."}
                 </td>
               </tr>

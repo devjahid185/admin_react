@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
@@ -30,6 +31,8 @@ export default function HomeBannersPage({ token }) {
   const [form, setForm] = useState(emptyForm);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -39,6 +42,7 @@ export default function HomeBannersPage({ token }) {
       const data = await apiRequest(`/admin/home-banners?${params.toString()}`, { token });
       setRecords(data.data || []);
       setMeta(data.meta || null);
+      setSelectedIds([]);
     } catch (err) {
       setError(err.message || "Unable to load banners.");
     } finally {
@@ -121,7 +125,26 @@ export default function HomeBannersPage({ token }) {
   const remove = async (record) => {
     if (!window.confirm(`Delete "${record.title}" banner?`)) return;
     await apiRequest(`/admin/home-banners/${record.id}`, { method: "DELETE", token });
+    setSelectedIds((prev) => prev.filter((id) => id !== record.id));
     await load();
+  };
+
+  const bulkDelete = async () => {
+    if (!selectedIds.length) return;
+    if (!window.confirm(`Delete ${selectedIds.length} selected banner${selectedIds.length > 1 ? "s" : ""}?`)) return;
+    setBulkDeleting(true);
+    setError("");
+    setStatus("");
+    try {
+      await Promise.all(selectedIds.map((id) => apiRequest(`/admin/home-banners/${id}`, { method: "DELETE", token })));
+      setStatus(`${selectedIds.length} banner${selectedIds.length > 1 ? "s" : ""} deleted.`);
+      setSelectedIds([]);
+      await load();
+    } catch (err) {
+      setError(err.message || "Bulk delete failed.");
+    } finally {
+      setBulkDeleting(false);
+    }
   };
 
   const toggle = async (record) => {
@@ -164,9 +187,32 @@ export default function HomeBannersPage({ token }) {
       {error && <div className="rounded-[12px] border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
       {status && <div className="rounded-[12px] border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{status}</div>}
 
+      <BulkDeleteBar
+        selectedCount={selectedIds.length}
+        totalCount={records.length}
+        noun="banner"
+        onClear={() => setSelectedIds([])}
+        onDelete={bulkDelete}
+        deleting={bulkDeleting}
+      />
+
+      {!!records.length && (
+        <label className="inline-flex items-center gap-2 rounded-[14px] border border-[#dfe6ef] bg-white px-4 py-2 text-xs font-bold text-[#53637a] shadow-sm">
+          <input
+            type="checkbox"
+            checked={records.every((record) => selectedIds.includes(record.id))}
+            ref={(node) => {
+              if (node) node.indeterminate = records.some((record) => selectedIds.includes(record.id)) && !records.every((record) => selectedIds.includes(record.id));
+            }}
+            onChange={() => setSelectedIds((prev) => toggleVisibleIds(prev, records))}
+          />
+          Select visible banners
+        </label>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-2">
         {records.map((record) => (
-          <div key={record.id} className="overflow-hidden rounded-[18px] border border-[#dfe6ef] bg-white shadow-sm">
+          <div key={record.id} className={`overflow-hidden rounded-[18px] border bg-white shadow-sm transition ${selectedIds.includes(record.id) ? "border-[#ee0012] ring-2 ring-red-100" : "border-[#dfe6ef]"}`}>
             <div className="h-36 bg-[#f8fafc]">
               {record.image_url ? (
                 <img src={record.image_url} alt={record.title} className="h-full w-full object-cover" />
@@ -176,6 +222,13 @@ export default function HomeBannersPage({ token }) {
             </div>
             <div className="p-4">
               <div className="flex items-start justify-between gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={selectedIds.includes(record.id)}
+                  onChange={() => setSelectedIds((prev) => toggleSelectedId(prev, record.id))}
+                  aria-label={`Select ${record.title}`}
+                />
                 <div className="min-w-0">
                   <h3 className="truncate text-base font-bold text-[#101827]">{record.title}</h3>
                   <p className="mt-1 line-clamp-2 text-sm text-[#64748b]">{record.subtitle || record.details || "No details"}</p>

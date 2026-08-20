@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
 import { apiRequest } from "../../lib/api.js";
 
@@ -22,6 +23,8 @@ export default function HomeServiceShortcutsPage({ token }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -30,6 +33,7 @@ export default function HomeServiceShortcutsPage({ token }) {
       const params = new URLSearchParams({ search, per_page: "100" });
       const data = await apiRequest(`/admin/home-service-shortcuts?${params.toString()}`, { token });
       setRecords(data.data || []);
+      setSelectedIds([]);
     } catch (err) {
       setError(err.message || "Unable to load shortcuts.");
     } finally {
@@ -107,8 +111,29 @@ export default function HomeServiceShortcutsPage({ token }) {
   const remove = async (record) => {
     if (!window.confirm(`Delete "${record.title}" shortcut?`)) return;
     await apiRequest(`/admin/home-service-shortcuts/${record.id}`, { method: "DELETE", token });
+    setSelectedIds((prev) => prev.filter((id) => id !== record.id));
     await load();
   };
+
+  const bulkDelete = async () => {
+    if (!selectedIds.length) return;
+    if (!window.confirm(`Delete ${selectedIds.length} selected shortcut${selectedIds.length > 1 ? "s" : ""}?`)) return;
+    setBulkDeleting(true);
+    setError("");
+    setStatus("");
+    try {
+      await Promise.all(selectedIds.map((id) => apiRequest(`/admin/home-service-shortcuts/${id}`, { method: "DELETE", token })));
+      setStatus(`${selectedIds.length} shortcut${selectedIds.length > 1 ? "s" : ""} deleted.`);
+      setSelectedIds([]);
+      await load();
+    } catch (err) {
+      setError(err.message || "Bulk delete failed.");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const selectionState = visibleSelectionState(records, selectedIds);
 
   return (
     <div className="space-y-5">
@@ -135,10 +160,30 @@ export default function HomeServiceShortcutsPage({ token }) {
       {error && <div className="rounded-[12px] border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
       {status && <div className="rounded-[12px] border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{status}</div>}
 
+      <BulkDeleteBar
+        selectedCount={selectedIds.length}
+        totalCount={records.length}
+        noun="shortcut"
+        onClear={() => setSelectedIds([])}
+        onDelete={bulkDelete}
+        deleting={bulkDeleting}
+      />
+
       <div className="overflow-x-auto rounded-[18px] border border-[#dfe6ef] bg-white shadow-sm">
         <table className="min-w-[860px] w-full text-sm">
           <thead className="bg-[#f8fafc] text-left text-xs uppercase tracking-[0.14em] text-[#64748b]">
             <tr>
+              <th className="w-12 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={selectionState.checked}
+                  ref={(node) => {
+                    if (node) node.indeterminate = selectionState.indeterminate;
+                  }}
+                  onChange={() => setSelectedIds((prev) => toggleVisibleIds(prev, records))}
+                  aria-label="Select all visible shortcuts"
+                />
+              </th>
               <th className="px-4 py-3">Serial</th>
               <th className="px-4 py-3">Shortcut</th>
               <th className="px-4 py-3">Endpoint</th>
@@ -150,6 +195,14 @@ export default function HomeServiceShortcutsPage({ token }) {
           <tbody>
             {records.map((record) => (
               <tr key={record.id} className="border-t border-[#edf1f6]">
+                <td className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(record.id)}
+                    onChange={() => setSelectedIds((prev) => toggleSelectedId(prev, record.id))}
+                    aria-label={`Select ${record.title}`}
+                  />
+                </td>
                 <td className="px-4 py-3">
                   <input
                     className="w-24 rounded-[12px] border border-[#dfe6ef] px-3 py-2 text-sm font-semibold"
@@ -197,7 +250,7 @@ export default function HomeServiceShortcutsPage({ token }) {
             ))}
             {!records.length && (
               <tr>
-                <td className="px-4 py-5 text-[#64748b]" colSpan={6}>
+                <td className="px-4 py-5 text-[#64748b]" colSpan={7}>
                   {loading ? "Loading shortcuts..." : "No shortcuts found."}
                 </td>
               </tr>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest } from "../../lib/api.js";
@@ -30,6 +31,8 @@ const emptyForm = {
 
 export default function RestaurantsPage({ token }) {
   const [records, setRecords] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -54,6 +57,7 @@ export default function RestaurantsPage({ token }) {
       const data = await apiRequest(`/admin/resources/restaurants?${params.toString()}`, { token });
       setRecords(data.data || []);
       setMeta(data.meta || null);
+      setSelectedIds([]);
     } catch (err) {
       setError(err.message || "Unable to load restaurants.");
     } finally {
@@ -164,8 +168,28 @@ export default function RestaurantsPage({ token }) {
   const deleteRestaurant = async (id) => {
     await apiRequest(`/admin/resources/restaurants/${id}`, { method: "DELETE", token });
     setRecords((prev) => prev.filter((r) => r.id !== id));
+    setSelectedIds((prev) => toggleSelectedId(prev, id, false));
   };
 
+
+  const bulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    if (!window.confirm(`Delete ${ids.length} selected records? This action cannot be undone.`)) return;
+    setBulkDeleting(true);
+    setError("");
+    try {
+      await Promise.all(ids.map((id) => apiRequest(`/admin/resources/restaurants/${id}`, { method: "DELETE", token })));
+      setRecords((prev) => prev.filter((record) => !selectedIds.includes(record.id)));
+      setSelectedIds([]);
+    } catch (err) {
+      setError(err.message || "Bulk delete failed.");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const selectionState = visibleSelectionState(records, selectedIds);
   return (
     <div className="space-y-4">
       {error && <div className="text-sm text-red-600">{error}</div>}
@@ -185,10 +209,27 @@ export default function RestaurantsPage({ token }) {
         </div>
       </div>
 
+      <BulkDeleteBar
+        selectedCount={selectedIds.size}
+        deleting={bulkDeleting}
+        onClear={() => setSelectedIds([])}
+        onDelete={bulkDelete}
+      />
       <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
         <table className="min-w-[960px] w-full text-xs md:text-sm">
           <thead className="bg-[#f8fafc] text-[#53637a]">
             <tr>
+              <th className="w-10 px-3 py-2 md:px-4">
+                <input
+                  type="checkbox"
+                  checked={selectionState.allVisibleSelected}
+                  ref={(input) => {
+                    if (input) input.indeterminate = selectionState.someVisibleSelected;
+                  }}
+                  onChange={(e) => setSelectedIds((prev) => toggleVisibleIds(prev, records, e.target.checked))}
+                  aria-label="Select all visible records"
+                />
+              </th>
               <th className="text-left px-3 py-2 md:px-4">ID</th>
               <th className="text-left px-3 py-2 md:px-4">Name</th>
               <th className="text-left px-3 py-2 md:px-4">Category</th>
@@ -202,6 +243,14 @@ export default function RestaurantsPage({ token }) {
           <tbody>
             {records.map((r) => (
               <tr key={r.id} className="border-t border-[#edf1f6]">
+                <td className="px-3 py-2 md:px-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(r.id)}
+                    onChange={(e) => setSelectedIds((prev) => toggleSelectedId(prev, r.id, e.target.checked))}
+                    aria-label={`Select record ${r.id}`}
+                  />
+                </td>
                 <td className="px-3 py-2 md:px-4">{r.id}</td>
                 <td className="px-3 py-2 md:px-4">{r.name}</td>
                 <td className="px-3 py-2 md:px-4">{r.category_id}</td>
@@ -227,7 +276,7 @@ export default function RestaurantsPage({ token }) {
             ))}
             {!records.length && (
               <tr>
-                <td className="px-4 py-4 text-[#64748b]" colSpan={7}>
+                <td className="px-4 py-4 text-[#64748b]" colSpan={8}>
                   {loading ? "Loading..." : "No restaurants found."}
                 </td>
               </tr>
