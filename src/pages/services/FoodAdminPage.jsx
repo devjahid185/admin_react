@@ -91,7 +91,7 @@ const RESOURCE_CONFIG = {
       { key: "delivery_map_url", label: "Delivery Map URL" },
       { key: "order_type", label: "Order Type", type: "select", options: ["delivery", "pickup"], defaultValue: "delivery" },
       { key: "status", label: "Status", type: "select", options: ["pending", "accepted", "preparing", "picked_up", "on_the_way", "delivered", "cancelled", "rejected"], defaultValue: "pending" },
-      { key: "payment_method", label: "Payment Method", type: "select", options: ["cash_on_delivery", "online"], defaultValue: "cash_on_delivery" },
+      { key: "payment_method", label: "Payment Method", type: "select", options: ["cash_on_delivery", "manual_bkash", "manual_nagad", "online"], defaultValue: "cash_on_delivery" },
       { key: "payment_status", label: "Payment Status", type: "select", options: ["unpaid", "paid", "refunded"], defaultValue: "unpaid" },
       { key: "items_total", label: "Items Total", type: "number", defaultValue: 0 },
       { key: "delivery_fee", label: "Delivery Fee", type: "number", defaultValue: 0 },
@@ -104,7 +104,7 @@ const RESOURCE_CONFIG = {
       { key: "coupon_code", label: "Coupon Code" },
       { key: "order_note", label: "Order Note", type: "textarea" },
     ],
-    columns: ["id", "order_no", "rider_assignment_label", "accepted_rider_name", "route_distance_km", "receiver_name", "receiver_phone", "status", "delivery_fee", "grand_total", "created_at"],
+    columns: ["id", "order_no", "restaurant", "payment_method", "payment_status", "rider_assignment_label", "accepted_rider_name", "route_distance_km", "receiver_name", "status", "delivery_fee", "grand_total", "created_at"],
   },
   riders: {
     title: "রাইডার তালিকা",
@@ -609,6 +609,179 @@ function FoodOrderViewModal({ loading, order, mapSettings, onClose }) {
   );
 }
 
+function FoodOrderFilterBar({ filters, onChange }) {
+  const update = (key, value) => onChange((prev) => ({ ...prev, [key]: value }));
+  const clear = () => onChange({ payment_method: "", payment_status: "", status: "", restaurant_id: "", date_from: "", date_to: "" });
+  return (
+    <div className="rounded-[18px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+        <FilterField label="Payment">
+          <select value={filters.payment_method} onChange={(e) => update("payment_method", e.target.value)} className={filterInputClass}>
+            <option value="">All methods</option>
+            <option value="cash_on_delivery">COD</option>
+            <option value="manual_bkash">Manual bKash</option>
+            <option value="manual_nagad">Manual Nagad</option>
+            <option value="online">Online</option>
+          </select>
+        </FilterField>
+        <FilterField label="Payment Status">
+          <select value={filters.payment_status} onChange={(e) => update("payment_status", e.target.value)} className={filterInputClass}>
+            <option value="">All</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="paid">Paid</option>
+            <option value="refunded">Refunded</option>
+          </select>
+        </FilterField>
+        <FilterField label="Order Status">
+          <select value={filters.status} onChange={(e) => update("status", e.target.value)} className={filterInputClass}>
+            <option value="">All</option>
+            {["pending", "accepted", "preparing", "picked_up", "on_the_way", "delivered", "cancelled", "rejected"].map((status) => (
+              <option key={status} value={status}>{status.replace(/_/g, " ")}</option>
+            ))}
+          </select>
+        </FilterField>
+        <FilterField label="Restaurant ID">
+          <input value={filters.restaurant_id} onChange={(e) => update("restaurant_id", e.target.value)} className={filterInputClass} placeholder="Restaurant ID" />
+        </FilterField>
+        <FilterField label="From">
+          <input type="date" value={filters.date_from} onChange={(e) => update("date_from", e.target.value)} className={filterInputClass} />
+        </FilterField>
+        <FilterField label="To">
+          <input type="date" value={filters.date_to} onChange={(e) => update("date_to", e.target.value)} className={filterInputClass} />
+        </FilterField>
+        <Button variant="ghost" onClick={clear}>Clear filters</Button>
+      </div>
+    </div>
+  );
+}
+
+const filterInputClass = "mt-1 w-full rounded-[12px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm text-[#111827] outline-none focus:border-red-300 focus:ring-4 focus:ring-red-500/10";
+
+function FilterField({ label, children }) {
+  return (
+    <label className="min-w-[150px] flex-1 text-xs font-bold uppercase tracking-wide text-[#64748b]">
+      {label}
+      {children}
+    </label>
+  );
+}
+
+function FoodPaymentSummaryPanel({ summary, loading }) {
+  const totals = summary?.totals || {};
+  const owners = summary?.by_owner || [];
+  const methods = summary?.by_method || [];
+  return (
+    <div className="space-y-4 rounded-[18px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#ee0012]">Payment Reconciliation</p>
+          <h3 className="text-lg font-black text-[#111827]">Owner-wise received money and delivery charge</h3>
+        </div>
+        {loading && <span className="text-xs font-semibold text-[#64748b]">Refreshing...</span>}
+      </div>
+      <div className="grid gap-3 md:grid-cols-5">
+        <SummaryCard label="Orders" value={totals.orders_count || 0} />
+        <SummaryCard label="Grand Total" value={money(totals.grand_total)} />
+        <SummaryCard label="Owner Received" value={money(totals.owner_received_total)} tone="emerald" />
+        <SummaryCard label="COD Collectable" value={money(totals.cod_collectable_total)} tone="amber" />
+        <SummaryCard label="Delivery Charge" value={money(totals.delivery_fee_total)} tone="blue" />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[1fr,0.55fr]">
+        <div className="overflow-x-auto rounded-[14px] border border-[#edf1f6]">
+          <table className="min-w-[760px] w-full text-sm">
+            <thead className="bg-[#f8fafc] text-xs uppercase tracking-wide text-[#53637a]">
+              <tr>
+                <th className="px-3 py-3 text-left">Owner / Restaurant</th>
+                <th className="px-3 py-3 text-right">Orders</th>
+                <th className="px-3 py-3 text-right">Owner Received</th>
+                <th className="px-3 py-3 text-right">COD Collectable</th>
+                <th className="px-3 py-3 text-right">Delivery Charge</th>
+                <th className="px-3 py-3 text-right">Grand Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {owners.map((row) => (
+                <tr key={row.restaurant_id || row.restaurant_name} className="border-t border-[#edf1f6]">
+                  <td className="px-3 py-3">
+                    <div className="font-bold text-[#111827]">{row.restaurant_name}</div>
+                    <div className="mt-1 text-xs text-[#64748b]">Owner ID: {row.owner_user_id || "-"} · bKash: {row.bkash_number || "-"} · Nagad: {row.nagad_number || "-"}</div>
+                  </td>
+                  <td className="px-3 py-3 text-right">{row.orders_count}</td>
+                  <td className="px-3 py-3 text-right font-bold text-emerald-700">{money(row.owner_received_total)}</td>
+                  <td className="px-3 py-3 text-right font-bold text-amber-700">{money(row.cod_collectable_total)}</td>
+                  <td className="px-3 py-3 text-right">{money(row.delivery_fee_total)}</td>
+                  <td className="px-3 py-3 text-right font-bold">{money(row.grand_total)}</td>
+                </tr>
+              ))}
+              {!owners.length && (
+                <tr><td colSpan={6} className="px-3 py-5 text-center text-[#64748b]">No payment data found for selected filters.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="rounded-[14px] border border-[#edf1f6] p-4">
+          <h4 className="font-black text-[#111827]">Payment method breakdown</h4>
+          <div className="mt-3 space-y-3">
+            {methods.map((row) => (
+              <div key={row.payment_method} className="rounded-[12px] bg-[#f8fafc] p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <PaymentMethodBadge method={row.payment_method} />
+                  <span className="text-xs font-bold text-[#64748b]">{row.orders_count} orders</span>
+                </div>
+                <div className="mt-2 flex justify-between text-sm">
+                  <span>Total {money(row.grand_total)}</span>
+                  <span>Delivery {money(row.delivery_fee_total)}</span>
+                </div>
+              </div>
+            ))}
+            {!methods.length && <div className="text-sm text-[#64748b]">No method data.</div>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryCard({ label, value, tone = "slate" }) {
+  const tones = {
+    slate: "border-slate-200 bg-slate-50 text-slate-900",
+    emerald: "border-emerald-200 bg-emerald-50 text-emerald-900",
+    amber: "border-amber-200 bg-amber-50 text-amber-900",
+    blue: "border-sky-200 bg-sky-50 text-sky-900",
+  };
+  return (
+    <div className={`rounded-[14px] border p-3 ${tones[tone] || tones.slate}`}>
+      <div className="text-[11px] font-bold uppercase tracking-wide opacity-70">{label}</div>
+      <div className="mt-1 text-xl font-black">{value}</div>
+    </div>
+  );
+}
+
+function PaymentMethodBadge({ method }) {
+  const map = {
+    cash_on_delivery: ["COD", "border-amber-200 bg-amber-50 text-amber-700"],
+    manual_bkash: ["Owner bKash", "border-pink-200 bg-pink-50 text-pink-700"],
+    manual_nagad: ["Owner Nagad", "border-orange-200 bg-orange-50 text-orange-700"],
+    online: ["Online", "border-sky-200 bg-sky-50 text-sky-700"],
+  };
+  const [label, cls] = map[method] || [method || "-", "border-slate-200 bg-slate-50 text-slate-600"];
+  return <span className={`inline-flex rounded-[10px] border px-2.5 py-1 text-xs font-black ${cls}`}>{label}</span>;
+}
+
+function PaymentStatusBadge({ status }) {
+  const map = {
+    paid: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    unpaid: "border-slate-200 bg-slate-50 text-slate-600",
+    refunded: "border-purple-200 bg-purple-50 text-purple-700",
+  };
+  return <span className={`inline-flex rounded-[10px] border px-2.5 py-1 text-xs font-bold ${map[status] || map.unpaid}`}>{status || "unpaid"}</span>;
+}
+
+function money(value) {
+  const amount = Number(value || 0);
+  return `BDT ${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 function SummaryLine({ label, value, strong = false }) {
   return (
     <div className="flex items-center justify-between gap-4">
@@ -640,12 +813,27 @@ export default function FoodAdminPage({ token, resource }) {
   const [mapSettings, setMapSettings] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [orderFilters, setOrderFilters] = useState({ payment_method: "", payment_status: "", status: "", restaurant_id: "", date_from: "", date_to: "" });
+  const [paymentSummary, setPaymentSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+
+  const orderQueryString = () => {
+    const params = new URLSearchParams();
+    if (search.trim()) params.set("search", search.trim());
+    if (resource === "food-orders") {
+      Object.entries(orderFilters).forEach(([key, value]) => {
+        if (String(value || "").trim()) params.set(key, String(value).trim());
+      });
+    }
+    return params.toString();
+  };
 
   const load = async () => {
     setLoading(true);
     setError("");
     try {
-      const data = await apiRequest(`/admin/resources/${resource}?search=${encodeURIComponent(search)}`, { token });
+      const qs = orderQueryString();
+      const data = await apiRequest(`/admin/resources/${resource}${qs ? `?${qs}` : ""}`, { token });
       setRecords(data.data || []);
       setColumns(data.columns || []);
       setMeta(data.meta || null);
@@ -668,7 +856,26 @@ export default function FoodAdminPage({ token, resource }) {
 
   useEffect(() => {
     load();
-  }, [search, token]);
+  }, [search, token, orderFilters]);
+
+  const loadPaymentSummary = async () => {
+    if (resource !== "food-orders") return;
+    setSummaryLoading(true);
+    try {
+      const qs = orderQueryString();
+      const data = await apiRequest(`/admin/food-orders/payment-summary${qs ? `?${qs}` : ""}`, { token });
+      setPaymentSummary(data);
+    } catch (err) {
+      console.warn("Unable to load food payment summary", err);
+      setPaymentSummary(null);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPaymentSummary();
+  }, [resource, token, search, orderFilters]);
 
   useEffect(() => {
     if (resource !== "food-orders" || mapSettings) return undefined;
@@ -890,6 +1097,15 @@ export default function FoodAdminPage({ token, resource }) {
       return value ? <img src={value} alt="" className="h-12 w-16 rounded-[10px] object-cover" /> : <span className="text-[#94a3b8]">No image</span>;
     }
     if (value === null || value === undefined || value === "") return "-";
+    if (col === "restaurant") {
+      return <span className="font-semibold text-[#111827]">{value?.name || record.restaurant_id || "-"}</span>;
+    }
+    if (col === "payment_method") {
+      return <PaymentMethodBadge method={value} />;
+    }
+    if (col === "payment_status") {
+      return <PaymentStatusBadge status={value} />;
+    }
     if (col === "rider_assignment_label") {
       const waiting = String(value).toLowerCase().includes("waiting");
       const accepted = String(value).toLowerCase().includes("accepted");
@@ -940,6 +1156,13 @@ export default function FoodAdminPage({ token, resource }) {
       </div>
 
       {error && <div className="rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+      {resource === "food-orders" && (
+        <>
+          <FoodOrderFilterBar filters={orderFilters} onChange={setOrderFilters} />
+          <FoodPaymentSummaryPanel summary={paymentSummary} loading={summaryLoading} />
+        </>
+      )}
 
       <BulkDeleteBar
         selectedCount={selectedIds.length}
