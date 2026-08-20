@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./App.css";
 import LoginPage from "./pages/LoginPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
+import PublicPolicyPage from "./pages/PublicPolicyPage.jsx";
 import { API_BASE } from "./lib/config.js";
 
 function useStoredToken() {
@@ -19,6 +20,7 @@ function useStoredToken() {
 
 function App() {
   const [token, setToken] = useStoredToken();
+  const path = window.location.pathname.replace(/\/+$/, "") || "/";
 
   const handleLogout = async () => {
     try {
@@ -29,6 +31,10 @@ function App() {
     } catch (_) {}
     setToken("");
   };
+
+  if (path === "/privacy-policy" || path === "/terms-of-service") {
+    return <PublicPolicyPage />;
+  }
 
   return token ? (
     <DashboardPage token={token} onLogout={handleLogout} />
@@ -42,5 +48,4 @@ function App() {
 }
 
 export default App;
-
 
