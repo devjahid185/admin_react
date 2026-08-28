@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.sohojit.frontend_flutter",
+      "sha256_cert_fingerprints": [
+        "04:CB:C8:B1:D5:23:B2:DF:8A:D8:69:97:DB:83:7F:9E:18:8B:74:1A:B4:0E:DD:26:C8:99:74:F3:C6:A7:BD:0D"
+      ]
+    }
+  }
+]
