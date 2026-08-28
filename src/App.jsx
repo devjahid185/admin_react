@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import PublicPolicyPage from "./pages/PublicPolicyPage.jsx";
 import { API_BASE } from "./lib/config.js";
+import ToastCenter from "./components/ToastCenter.jsx";
 
 function useStoredToken() {
   const [token, setToken] = useState(() => localStorage.getItem("admin_token") || "");
@@ -37,15 +38,20 @@ function App() {
   }
 
   return token ? (
-    <DashboardPage token={token} onLogout={handleLogout} />
+    <>
+      <ToastCenter />
+      <DashboardPage token={token} onLogout={handleLogout} />
+    </>
   ) : (
-    <LoginPage
-      onLogin={(value) => {
-        setToken(value);
-      }}
-    />
+    <>
+      <ToastCenter />
+      <LoginPage
+        onLogin={(value) => {
+          setToken(value);
+        }}
+      />
+    </>
   );
 }
 
 export default App;
-

@@ -1,4 +1,14 @@
 import { API_BASE } from "./config.js";
+import { pushToast } from "../components/ToastCenter.jsx";
+
+function notifySuccess(method, data) {
+  if (method === "GET") return;
+  if (data?.message) pushToast(data.message, "success");
+}
+
+function notifyError(message) {
+  pushToast(message, "error");
+}
 
 export async function apiRequest(path, { method = "GET", token, body } = {}) {
   const headers = { Accept: "application/json" };
@@ -14,7 +24,9 @@ export async function apiRequest(path, { method = "GET", token, body } = {}) {
   const raw = await res.text();
   const trimmed = raw.replace(/^\uFEFF/, "").trimStart();
   if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html")) {
-    throw new Error("Server returned HTML. Check API base URL or server error.");
+    const msg = "Server returned HTML. Check API base URL or server error.";
+    notifyError(msg);
+    throw new Error(msg);
   }
 
   let data = null;
@@ -22,7 +34,9 @@ export async function apiRequest(path, { method = "GET", token, body } = {}) {
     try {
       data = JSON.parse(trimmed);
     } catch (_) {
-      throw new Error("Invalid JSON response from server.");
+      const msg = "Invalid JSON response from server.";
+      notifyError(msg);
+      throw new Error(msg);
     }
   }
 
@@ -31,9 +45,11 @@ export async function apiRequest(path, { method = "GET", token, body } = {}) {
       (data && data.message) ||
       (data && data.error) ||
       "Request failed. Please try again.";
+    notifyError(msg);
     throw new Error(msg);
   }
 
+  notifySuccess(method, data);
   return data;
 }
 
@@ -50,7 +66,9 @@ export async function apiUpload(path, { token, formData } = {}) {
   const raw = await res.text();
   const trimmed = raw.replace(/^\uFEFF/, "").trimStart();
   if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html")) {
-    throw new Error("Server returned HTML. Check API base URL or server error.");
+    const msg = "Server returned HTML. Check API base URL or server error.";
+    notifyError(msg);
+    throw new Error(msg);
   }
 
   let data = null;
@@ -58,7 +76,9 @@ export async function apiUpload(path, { token, formData } = {}) {
     try {
       data = JSON.parse(trimmed);
     } catch (_) {
-      throw new Error("Invalid JSON response from server.");
+      const msg = "Invalid JSON response from server.";
+      notifyError(msg);
+      throw new Error(msg);
     }
   }
 
@@ -67,8 +87,10 @@ export async function apiUpload(path, { token, formData } = {}) {
       (data && data.message) ||
       (data && data.error) ||
       "Upload failed. Please try again.";
+    notifyError(msg);
     throw new Error(msg);
   }
 
+  notifySuccess("POST", data);
   return data;
 }

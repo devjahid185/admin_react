@@ -16,7 +16,6 @@ export default function SupportSettingsPage({ token, onUnauthorized }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -45,7 +44,6 @@ export default function SupportSettingsPage({ token, onUnauthorized }) {
     event.preventDefault();
     setSaving(true);
     setError("");
-    setSuccess("");
     try {
       const data = await apiRequest("/admin/support-settings", {
         method: "PUT",
@@ -53,7 +51,6 @@ export default function SupportSettingsPage({ token, onUnauthorized }) {
         body: form,
       });
       setForm({ ...defaultForm, ...(data.settings || {}) });
-      setSuccess(data.message || "Support settings updated.");
     } catch (err) {
       setError(err.message || "Unable to save support settings.");
     } finally {
@@ -72,8 +69,6 @@ export default function SupportSettingsPage({ token, onUnauthorized }) {
   return (
     <div className="space-y-5">
       {error && <div className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-      {success && <div className="rounded-[14px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
-
       <form onSubmit={save} className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
         <div className="mb-5">
           <h2 className="text-lg font-semibold text-[#101827]">Help & Support Contact</h2>

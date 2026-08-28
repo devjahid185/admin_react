@@ -26,7 +26,6 @@ export default function EmailSettingsPage({ token, onUnauthorized }) {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -69,7 +68,6 @@ export default function EmailSettingsPage({ token, onUnauthorized }) {
     event.preventDefault();
     setSaving(true);
     setError("");
-    setSuccess("");
     try {
       const payload = {
         ...form,
@@ -84,7 +82,6 @@ export default function EmailSettingsPage({ token, onUnauthorized }) {
       });
       setMeta(data.settings || null);
       setForm((prev) => ({ ...prev, password: "" }));
-      setSuccess(data.message || "Email settings updated.");
     } catch (err) {
       setError(err.message || "Unable to save email settings.");
     } finally {
@@ -95,7 +92,6 @@ export default function EmailSettingsPage({ token, onUnauthorized }) {
   const sendTest = async () => {
     setTesting(true);
     setError("");
-    setSuccess("");
     try {
       const data = await apiRequest("/admin/email-settings/test", {
         method: "POST",
@@ -103,7 +99,6 @@ export default function EmailSettingsPage({ token, onUnauthorized }) {
         body: { to: testTo, subject: testSubject, message: testMessage },
       });
       setMeta(data.settings || meta);
-      setSuccess(data.message || "Test email sent.");
     } catch (err) {
       setError(err.message || "Test email failed.");
     } finally {
@@ -120,8 +115,6 @@ export default function EmailSettingsPage({ token, onUnauthorized }) {
   return (
     <div className="space-y-5">
       {error && <div className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-      {success && <div className="rounded-[14px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
-
       <div className="grid gap-4 lg:grid-cols-[1.4fr,0.8fr]">
         <form onSubmit={save} className="rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm p-5">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

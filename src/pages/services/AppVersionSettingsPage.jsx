@@ -28,7 +28,6 @@ export default function AppVersionSettingsPage({ token, onUnauthorized }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const status = useMemo(() => {
     if (form.maintenance_mode) return { label: "Maintenance active", tone: "red" };
@@ -62,7 +61,6 @@ export default function AppVersionSettingsPage({ token, onUnauthorized }) {
     event.preventDefault();
     setSaving(true);
     setError("");
-    setSuccess("");
     try {
       const payload = {
         ...form,
@@ -78,7 +76,6 @@ export default function AppVersionSettingsPage({ token, onUnauthorized }) {
         body: payload,
       });
       setForm({ ...defaultForm, ...(data.settings || {}), platform: form.platform });
-      setSuccess(data.message || "App version settings updated.");
     } catch (err) {
       setError(err.message || "Unable to save app version settings.");
     } finally {
@@ -93,8 +90,6 @@ export default function AppVersionSettingsPage({ token, onUnauthorized }) {
   return (
     <div className="space-y-5">
       {error && <div className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-      {success && <div className="rounded-[14px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
-
       <div className="grid gap-4 xl:grid-cols-[1.35fr,0.65fr]">
         <form onSubmit={save} className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

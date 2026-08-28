@@ -33,7 +33,6 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -62,7 +61,6 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
     event.preventDefault();
     setSaving(true);
     setError("");
-    setSuccess("");
     try {
       const payload = { ...form };
       numericFields.forEach((key) => {
@@ -74,7 +72,6 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
         body: payload,
       });
       setForm({ ...defaultForm, ...(data.settings || {}) });
-      setSuccess(data.message || "Delivery settings updated.");
     } catch (err) {
       setError(err.message || "Unable to save delivery settings.");
     } finally {
@@ -89,8 +86,6 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
   return (
     <div className="space-y-5">
       {error && <div className="rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-      {success && <div className="rounded-[12px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
-
       <div className="grid gap-4 xl:grid-cols-[1.35fr,0.75fr]">
         <form onSubmit={save} className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
