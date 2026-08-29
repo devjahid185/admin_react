@@ -6,6 +6,39 @@ import { apiRequest } from "../../lib/api.js";
 const defaultForm = {
   is_enabled: true,
   charge_mode: "fixed",
+  municipality_rule_enabled: true,
+  municipality_fixed_charge: 50,
+  municipality_extra_per_km_charge: 15,
+  municipality_center_lat: 22.686,
+  municipality_center_lng: 90.644,
+  municipality_radius_km: 1.66,
+  municipality_polygon: [
+    { lat: 22.7044, lng: 90.6179 },
+    { lat: 22.7049, lng: 90.6227 },
+    { lat: 22.6996, lng: 90.6274 },
+    { lat: 22.7016, lng: 90.6373 },
+    { lat: 22.6993, lng: 90.6448 },
+    { lat: 22.699, lng: 90.6511 },
+    { lat: 22.7031, lng: 90.6525 },
+    { lat: 22.705, lng: 90.6558 },
+    { lat: 22.6987, lng: 90.6579 },
+    { lat: 22.6961, lng: 90.6644 },
+    { lat: 22.6901, lng: 90.6617 },
+    { lat: 22.6835, lng: 90.6591 },
+    { lat: 22.6755, lng: 90.6642 },
+    { lat: 22.6603, lng: 90.6665 },
+    { lat: 22.6487, lng: 90.6677 },
+    { lat: 22.6449, lng: 90.6639 },
+    { lat: 22.6465, lng: 90.6571 },
+    { lat: 22.6552, lng: 90.6534 },
+    { lat: 22.6645, lng: 90.65 },
+    { lat: 22.6739, lng: 90.646 },
+    { lat: 22.6746, lng: 90.6389 },
+    { lat: 22.6791, lng: 90.6365 },
+    { lat: 22.6812, lng: 90.6291 },
+    { lat: 22.6852, lng: 90.625 },
+    { lat: 22.688, lng: 90.6172 },
+  ],
   fixed_charge: 40,
   base_charge: 0,
   per_km_charge: 15,
@@ -19,6 +52,11 @@ const defaultForm = {
 
 const numericFields = [
   "fixed_charge",
+  "municipality_fixed_charge",
+  "municipality_extra_per_km_charge",
+  "municipality_center_lat",
+  "municipality_center_lng",
+  "municipality_radius_km",
   "base_charge",
   "per_km_charge",
   "minimum_charge",
@@ -33,13 +71,16 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [polygonText, setPolygonText] = useState("");
 
   const load = async () => {
     setLoading(true);
     setError("");
     try {
       const data = await apiRequest("/admin/food-delivery-settings", { token });
-      setForm({ ...defaultForm, ...(data.settings || {}) });
+      const next = { ...defaultForm, ...(data.settings || {}) };
+      setForm(next);
+      setPolygonText(JSON.stringify(next.municipality_polygon || [], null, 2));
     } catch (err) {
       const msg = err.message || "Unable to load delivery settings.";
       setError(msg);
@@ -66,12 +107,19 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
       numericFields.forEach((key) => {
         payload[key] = payload[key] === "" || payload[key] === null ? null : Number(payload[key]);
       });
+      try {
+        payload.municipality_polygon = polygonText.trim() ? JSON.parse(polygonText) : [];
+      } catch {
+        throw new Error("Municipality polygon must be valid JSON.");
+      }
       const data = await apiRequest("/admin/food-delivery-settings", {
         method: "PUT",
         token,
         body: payload,
       });
-      setForm({ ...defaultForm, ...(data.settings || {}) });
+      const next = { ...defaultForm, ...(data.settings || {}) };
+      setForm(next);
+      setPolygonText(JSON.stringify(next.municipality_polygon || [], null, 2));
     } catch (err) {
       setError(err.message || "Unable to save delivery settings.");
     } finally {
@@ -117,6 +165,37 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
                 <option value="per_km">Per kilometer</option>
               </select>
             </label>
+            <label className="inline-flex cursor-pointer items-center justify-between gap-3 rounded-[12px] border border-emerald-100 bg-emerald-50 px-3 py-2">
+              <span>
+                <span className="block text-sm font-semibold text-[#0f513f]">Bhola Sadar Pourashava Rule</span>
+                <span className="text-xs text-[#4f756b]">Inside fixed, outside fixed + extra per KM</span>
+              </span>
+              <input
+                type="checkbox"
+                className="h-5 w-5 accent-emerald-700"
+                checked={Boolean(form.municipality_rule_enabled)}
+                onChange={(e) => updateField("municipality_rule_enabled", e.target.checked)}
+              />
+            </label>
+            {form.municipality_rule_enabled && (
+              <div className="grid gap-4 rounded-[14px] border border-emerald-100 bg-emerald-50/60 p-4 md:col-span-2 md:grid-cols-3">
+                <Input label="Pourashava Fixed Charge" type="number" value={form.municipality_fixed_charge ?? ""} onChange={(e) => updateField("municipality_fixed_charge", e.target.value)} />
+                <Input label="Outside Extra Per KM" type="number" value={form.municipality_extra_per_km_charge ?? ""} onChange={(e) => updateField("municipality_extra_per_km_charge", e.target.value)} />
+                <Input label="Boundary Radius (KM)" type="number" value={form.municipality_radius_km ?? ""} onChange={(e) => updateField("municipality_radius_km", e.target.value)} placeholder="Optional" />
+                <Input label="Boundary Center Latitude" type="number" value={form.municipality_center_lat ?? ""} onChange={(e) => updateField("municipality_center_lat", e.target.value)} placeholder="Optional" />
+                <Input label="Boundary Center Longitude" type="number" value={form.municipality_center_lng ?? ""} onChange={(e) => updateField("municipality_center_lng", e.target.value)} placeholder="Optional" />
+                <label className="block text-sm font-medium text-[#24324a] md:col-span-3">
+                  Pourashava Polygon JSON
+                  <textarea
+                    className="mt-1 min-h-28 w-full rounded-[12px] border border-emerald-100 px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-emerald-700/15"
+                    value={polygonText}
+                    onChange={(e) => setPolygonText(e.target.value)}
+                    placeholder='[{"lat":22.69,"lng":90.64},{"lat":22.68,"lng":90.66},{"lat":22.66,"lng":90.64}]'
+                  />
+                  <span className="mt-1 block text-xs text-[#4f756b]">Polygon দিলে সেটাই boundary হবে। Polygon খালি থাকলে center + radius দিয়ে হিসাব হবে।</span>
+                </label>
+              </div>
+            )}
             <Input label="Fixed Charge" type="number" value={form.fixed_charge ?? ""} onChange={(e) => updateField("fixed_charge", e.target.value)} />
             <Input label="Base Charge" type="number" value={form.base_charge ?? ""} onChange={(e) => updateField("base_charge", e.target.value)} />
             <Input label="Per KM Charge" type="number" value={form.per_km_charge ?? ""} onChange={(e) => updateField("per_km_charge", e.target.value)} />
@@ -153,9 +232,11 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
 
           <div className="rounded-[16px] border border-red-100 bg-red-50/70 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-red-700">Current Rule</p>
-            <h3 className="mt-2 text-lg font-semibold text-[#101827]">{form.charge_mode === "fixed" ? "Fixed delivery fee" : "Distance based fee"}</h3>
+            <h3 className="mt-2 text-lg font-semibold text-[#101827]">{form.municipality_rule_enabled ? "Bhola Sadar Pourashava rule" : form.charge_mode === "fixed" ? "Fixed delivery fee" : "Distance based fee"}</h3>
             <p className="mt-2 text-sm text-[#53637a]">
-              {form.charge_mode === "fixed"
+              {form.municipality_rule_enabled
+                ? `Inside pourashava BDT ${form.municipality_fixed_charge || 0}. Outside gets extra BDT ${form.municipality_extra_per_km_charge || 0} per KM.`
+                : form.charge_mode === "fixed"
                 ? `Every delivery order gets BDT ${form.fixed_charge || 0} delivery charge.`
                 : `Fee = base ${form.base_charge || 0} + distance x ${form.per_km_charge || 0}, minimum ${form.minimum_charge || 0}.`}
             </p>
