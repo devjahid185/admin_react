@@ -104,7 +104,7 @@ const RESOURCE_CONFIG = {
       { key: "coupon_code", label: "Coupon Code" },
       { key: "order_note", label: "Order Note", type: "textarea" },
     ],
-    columns: ["id", "order_no", "restaurant", "payment_method", "payment_status", "rider_assignment_label", "accepted_rider_name", "route_distance_km", "receiver_name", "status", "delivery_fee", "grand_total", "created_at"],
+    columns: ["id", "order_no", "restaurant", "payment_method", "payment_status", "manual_transaction_id", "payment_proof_photo_url", "rider_assignment_label", "accepted_rider_name", "route_distance_km", "receiver_name", "status", "delivery_fee", "grand_total", "created_at"],
   },
   riders: {
     title: "রাইডার তালিকা",
@@ -436,10 +436,12 @@ function FoodOrderRouteMap({ order }) {
 
 function FoodOrderViewModal({ loading, order, onClose }) {
   const items = order?.items || [];
+  const paymentProofUrl = order?.payment_proof_photo_url || order?.payment_proof_photo;
   const detailRows = [
     ["Order No", order?.order_no],
     ["Status", order?.status],
     ["Payment", `${order?.payment_method || "-"} / ${order?.payment_status || "unpaid"}`],
+    ["Transaction ID", order?.manual_transaction_id],
     ["Customer", `${order?.receiver_name || "-"} (${order?.receiver_phone || "-"})`],
     ["Restaurant", order?.restaurant?.name || order?.restaurant_id],
     ["Rider Status", order?.rider_assignment_label],
@@ -533,6 +535,38 @@ function FoodOrderViewModal({ loading, order, onClose }) {
 
               <div className="space-y-4">
                 <FoodOrderRouteMap order={order} />
+                <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h4 className="text-base font-bold text-[#111827]">Payment Proof</h4>
+                      <p className="mt-1 text-sm text-[#64748b]">
+                        Customer submitted manual payment transaction and optional screenshot.
+                      </p>
+                    </div>
+                    <PaymentMethodBadge method={order?.payment_method} />
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-[12px] bg-[#f8fafc] p-3">
+                      <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">Transaction ID</div>
+                      <div className="mt-1 break-words font-bold text-[#111827]">{order?.manual_transaction_id || "-"}</div>
+                    </div>
+                    <div className="rounded-[12px] bg-[#f8fafc] p-3">
+                      <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">Proof Status</div>
+                      <div className={`mt-1 font-bold ${paymentProofUrl ? "text-emerald-700" : "text-[#64748b]"}`}>
+                        {paymentProofUrl ? "Screenshot submitted" : "No screenshot"}
+                      </div>
+                    </div>
+                  </div>
+                  {paymentProofUrl && (
+                    <a href={paymentProofUrl} target="_blank" rel="noreferrer" className="mt-4 block overflow-hidden rounded-[14px] border border-[#dfe6ef] bg-[#f8fafc]">
+                      <img src={paymentProofUrl} alt="Payment proof" className="h-56 w-full object-cover" />
+                      <div className="flex items-center justify-between px-4 py-3 text-sm font-bold text-red-700">
+                        <span>Open full payment proof</span>
+                        <span>↗</span>
+                      </div>
+                    </a>
+                  )}
+                </div>
                 <div className="rounded-[16px] border border-[#dfe6ef] bg-[#f8fafc] p-4">
                   <h4 className="text-base font-bold text-[#111827]">Delivery & Customer</h4>
                   <div className="mt-4 space-y-3 text-sm">
@@ -1069,6 +1103,14 @@ export default function FoodAdminPage({ token, resource }) {
     const value = record[col];
     if (col === "image_url") {
       return value ? <img src={value} alt="" className="h-12 w-16 rounded-[10px] object-cover" /> : <span className="text-[#94a3b8]">No image</span>;
+    }
+    if (col === "payment_proof_photo_url") {
+      return value ? (
+        <a href={value} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-[10px] border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
+          <img src={value} alt="" className="h-7 w-9 rounded-[6px] object-cover" />
+          Proof
+        </a>
+      ) : <span className="text-[#94a3b8]">No proof</span>;
     }
     if (value === null || value === undefined || value === "") return "-";
     if (col === "restaurant") {
