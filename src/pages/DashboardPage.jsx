@@ -61,6 +61,8 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Food Coupons", slug: "food-coupons", group_name: "Food Delivery", route: "/admin/food-coupons" },
   { name: "Food Reviews", slug: "food-reviews", group_name: "Food Delivery", route: "/admin/food-reviews" },
   { name: "Delivery Settings", slug: "food-delivery-settings", group_name: "Food Delivery", route: "/admin/food-delivery-settings" },
+  { name: "Medicine Items", slug: "medicine-items", group_name: "Medicine Delivery", route: "/admin/medicine-items" },
+  { name: "Medicine Orders", slug: "medicine-orders", group_name: "Medicine Delivery", route: "/admin/medicine-orders" },
   { name: "Rider Management", slug: "riders", group_name: "Rider System", route: "/admin/riders" },
   { name: "Property", slug: "property", group_name: "Services", route: "/admin/property" },
   { name: "Education", slug: "education", group_name: "Services", route: "/admin/education" },
@@ -273,6 +275,8 @@ export default function DashboardPage({ token, onLogout }) {
     "food-coupons",
     "food-reviews",
     "food-addresses",
+    "medicine-items",
+    "medicine-orders",
   ];
 
   return (
@@ -774,7 +778,7 @@ export default function DashboardPage({ token, onLogout }) {
 
       {!ServiceComponent &&
         !["dashboard", "admins", "reports", "reviews"].includes(activeModule) && (
-          activeModule?.startsWith("food-") ? (
+          activeModule?.startsWith("food-") || activeModule?.startsWith("medicine-") ? (
             <FoodAdminPage token={token} resource={activeModule} />
           ) : genericResourceModules.includes(activeModule) ? (
             <ServicePage token={token} resource={activeModule} />
