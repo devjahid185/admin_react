@@ -47,7 +47,7 @@ const RESOURCE_CONFIG = {
       { key: "price", label: "Regular Price", type: "number", required: true },
       { key: "discount_price", label: "Discount Price", type: "number" },
       { key: "preparation_minutes", label: "Preparation Minutes", type: "number", defaultValue: 25 },
-      { key: "size_options", label: "Size Options", type: "tags", placeholder: "Regular, Large, Family" },
+      { key: "size_options", label: "Size & Price Options", type: "size_prices", placeholder: "Regular:120" },
       { key: "spice_options", label: "Spice Options", type: "tags", placeholder: "Normal, Medium, Hot" },
       { key: "add_ons", label: "Add-ons", type: "addons", placeholder: "Extra Sauce:20" },
       { key: "is_available", label: "Available", type: "checkbox", defaultValue: true },
@@ -252,6 +252,27 @@ const parseAddons = (value) =>
 const formatAddons = (value) =>
   Array.isArray(value) ? value.map((item) => `${item.name || ""}:${item.price || 0}`).join("\n") : "";
 
+const parseSizePrices = (value) =>
+  String(value || "")
+    .split("\n")
+    .map((row) => row.trim())
+    .filter(Boolean)
+    .map((row) => {
+      const [name, price = ""] = row.split(":");
+      return { name: name.trim(), price: price === "" ? null : Number(price) || 0 };
+    })
+    .filter((item) => item.name);
+
+const formatSizePrices = (value) =>
+  Array.isArray(value)
+    ? value
+        .map((item) => {
+          if (typeof item === "string") return item;
+          return `${item.name || item.label || ""}:${item.price ?? ""}`;
+        })
+        .join("\n")
+    : "";
+
 const dateFields = new Set([
   "created_at",
   "updated_at",
@@ -280,7 +301,7 @@ function emptyForm(config) {
   return config.fields.reduce((acc, field) => {
     if (field.type === "checkbox") acc[field.key] = Boolean(field.defaultValue);
     else if (field.type === "tags") acc[field.key] = "";
-    else if (field.type === "addons") acc[field.key] = "";
+    else if (field.type === "addons" || field.type === "size_prices") acc[field.key] = "";
     else acc[field.key] = field.defaultValue ?? "";
     return acc;
   }, {});
@@ -293,6 +314,7 @@ function normalizeRecord(record, config) {
     if (field.type === "checkbox") form[field.key] = Boolean(value);
     else if (field.type === "tags") form[field.key] = Array.isArray(value) ? value.join(", ") : value || "";
     else if (field.type === "addons") form[field.key] = formatAddons(value);
+    else if (field.type === "size_prices") form[field.key] = formatSizePrices(value);
     else form[field.key] = value ?? "";
   });
   return form;
@@ -310,6 +332,8 @@ function buildPayload(form, config) {
       value = parseTags(value);
     } else if (field.type === "addons") {
       value = parseAddons(value);
+    } else if (field.type === "size_prices") {
+      value = parseSizePrices(value);
     } else if (field.type === "datetime-local") {
       value = value ? value.replace("T", " ") : null;
     } else if (typeof value === "string") {
@@ -1068,7 +1092,7 @@ export default function FoodAdminPage({ token, resource }) {
         </label>
       );
     }
-    if (field.type === "textarea" || field.type === "addons") {
+    if (field.type === "textarea" || field.type === "addons" || field.type === "size_prices") {
       return (
         <label className="block text-sm font-semibold text-[#24324a]">
           {field.label}
@@ -1285,9 +1309,10 @@ export default function FoodAdminPage({ token, resource }) {
 
               <div className="grid gap-4 md:grid-cols-2">
                 {config.fields.map((field) => (
-                  <div key={field.key} className={field.type === "textarea" || field.type === "addons" ? "md:col-span-2" : ""}>
+                  <div key={field.key} className={field.type === "textarea" || field.type === "addons" || field.type === "size_prices" ? "md:col-span-2" : ""}>
                     {renderField(field)}
                     {field.type === "addons" && <p className="mt-1 text-xs text-[#64748b]">One add-on per line, format: Extra Sauce:20</p>}
+                    {field.type === "size_prices" && <p className="mt-1 text-xs text-[#64748b]">One size per line, format: Regular:120. Keep empty if this item has no size option.</p>}
                     {field.type === "tags" && <p className="mt-1 text-xs text-[#64748b]">Separate values with comma.</p>}
                     {fieldErrors[field.key] && <p className="mt-1 text-xs text-red-600">{fieldErrors[field.key]}</p>}
                   </div>
