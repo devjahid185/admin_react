@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
 import Input from "../../components/Input.jsx";
+import Pagination from "../../components/Pagination.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
 
 const RESOURCE_CONFIG = {
@@ -891,10 +892,14 @@ function SummaryLine({ label, value, strong = false }) {
 
 export default function FoodAdminPage({ token, resource }) {
   const config = RESOURCE_CONFIG[resource] || RESOURCE_CONFIG["food-items"];
+  const resourceGroup = resource.startsWith("medicine") ? "Medicine Delivery" : "Food Delivery";
+  const resourceNoun = resource.startsWith("medicine") ? "medicine records" : "food records";
   const [records, setRecords] = useState([]);
   const [columns, setColumns] = useState([]);
   const [meta, setMeta] = useState(null);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(50);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -916,6 +921,8 @@ export default function FoodAdminPage({ token, resource }) {
 
   const orderQueryString = () => {
     const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("per_page", String(perPage));
     if (search.trim()) params.set("search", search.trim());
     if (resource === "food-orders") {
       Object.entries(orderFilters).forEach(([key, value]) => {
@@ -948,12 +955,16 @@ export default function FoodAdminPage({ token, resource }) {
     setModalOpen(false);
     setImageFile(null);
     setImagePreview("");
-    load();
+    setPage(1);
   }, [resource]);
 
   useEffect(() => {
     load();
-  }, [search, token, orderFilters]);
+  }, [resource, search, token, orderFilters, page, perPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, orderFilters]);
 
   const loadPaymentSummary = async () => {
     if (resource !== "food-orders") return;
@@ -1092,18 +1103,18 @@ export default function FoodAdminPage({ token, resource }) {
         });
         record = update.record;
       }
-      setRecords((prev) => (mode === "create" ? [record, ...prev] : prev.map((row) => (row.id === record.id ? record : row))));
       setModalOpen(false);
+      await load();
     } catch (err) {
       setError(err.message || "Save failed.");
     }
   };
 
   const deleteRow = async (id) => {
-    if (!window.confirm("Delete this food record? This action cannot be undone.")) return;
+    if (!window.confirm(`Delete this ${resourceNoun.slice(0, -1)}? This action cannot be undone.`)) return;
     await apiRequest(`/admin/resources/${resource}/${id}`, { method: "DELETE", token });
-    setRecords((prev) => prev.filter((row) => row.id !== id));
     setSelectedIds((prev) => toggleSelectedId(prev, id, false));
+    await load();
   };
 
   const bulkDelete = async () => {
@@ -1114,8 +1125,8 @@ export default function FoodAdminPage({ token, resource }) {
     setError("");
     try {
       await Promise.all(ids.map((id) => apiRequest(`/admin/resources/${resource}/${id}`, { method: "DELETE", token })));
-      setRecords((prev) => prev.filter((record) => !selectedIds.includes(record.id)));
       setSelectedIds([]);
+      await load();
     } catch (err) {
       setError(err.message || "Bulk delete failed.");
     } finally {
@@ -1229,13 +1240,13 @@ export default function FoodAdminPage({ token, resource }) {
       <div className="rounded-[18px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#ee0012]">Food Delivery</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#ee0012]">{resourceGroup}</p>
             <h2 className="mt-1 text-xl font-bold text-[#111827]">{config.title}</h2>
             <p className="mt-1 text-sm text-[#64748b]">{config.description}</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <input
-              placeholder="Search food records"
+              placeholder={`Search ${resourceNoun}`}
               className="w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm sm:w-72"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -1320,7 +1331,7 @@ export default function FoodAdminPage({ token, resource }) {
             {!records.length && (
               <tr>
                 <td colSpan={visibleColumns.length + 2} className="px-4 py-8 text-center text-[#64748b]">
-                  {loading ? "Loading..." : "No food records found."}
+                  {loading ? "Loading..." : `No ${resourceNoun} found.`}
                 </td>
               </tr>
             )}
@@ -1328,7 +1339,16 @@ export default function FoodAdminPage({ token, resource }) {
         </table>
       </div>
 
-      <div className="text-xs text-[#64748b]">Total records: {meta?.total || records.length}</div>
+      <Pagination
+        meta={meta}
+        page={page}
+        perPage={perPage}
+        onPageChange={setPage}
+        onPerPageChange={(value) => {
+          setPerPage(value);
+          setPage(1);
+        }}
+      />
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3">
