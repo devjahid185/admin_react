@@ -156,7 +156,7 @@ const RESOURCE_CONFIG = {
       { key: "grand_total", label: "Grand Total", type: "number", defaultValue: 0 },
       { key: "order_note", label: "Order Note", type: "textarea" },
     ],
-    columns: ["id", "order_no", "receiver_name", "receiver_phone", "payment_method", "payment_status", "status", "items_total", "delivery_fee", "grand_total", "created_at"],
+    columns: ["id", "order_no", "payment_method", "payment_status", "rider_assignment_label", "accepted_rider_name", "receiver_name", "receiver_phone", "status", "items_total", "delivery_fee", "grand_total", "created_at"],
   },
   riders: {
     title: "রাইডার তালিকা",
@@ -422,6 +422,8 @@ function mapsPointUrl(lat, lng) {
 }
 
 function FoodOrderRouteMap({ order }) {
+  const isMedicine = order?.service_type === "medicine" || order?.order_no?.startsWith?.("MD-");
+  const pickupLabel = isMedicine ? "Pickup" : "Restaurant";
   const restaurantLat = toCoord(order?.restaurant?.lat);
   const restaurantLng = toCoord(order?.restaurant?.lng);
   const deliveryLat = toCoord(order?.delivery_lat);
@@ -438,9 +440,9 @@ function FoodOrderRouteMap({ order }) {
     <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h4 className="text-base font-bold text-[#111827]">Restaurant to Delivery Map</h4>
+          <h4 className="text-base font-bold text-[#111827]">{pickupLabel} to Delivery Map</h4>
           <p className="mt-1 text-sm text-[#64748b]">
-            Restaurant pickup and customer delivery location together
+            {pickupLabel} and customer delivery location together
             {order?.route_distance_km !== null && order?.route_distance_km !== undefined ? ` • ${order.route_distance_km} KM` : ""}.
           </p>
         </div>
@@ -458,8 +460,8 @@ function FoodOrderRouteMap({ order }) {
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] p-3 text-sm">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">Restaurant</div>
-          <div className="mt-1 font-semibold text-[#111827]">{order?.restaurant?.name || "-"}</div>
+          <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">{pickupLabel}</div>
+          <div className="mt-1 font-semibold text-[#111827]">{order?.restaurant?.name || (isMedicine ? "Medicine Store" : "-")}</div>
           <div className="mt-1 text-xs text-[#64748b]">{restaurantLat !== null && restaurantLng !== null ? `${restaurantLat}, ${restaurantLng}` : "Location missing"}</div>
         </div>
         <div className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] p-3 text-sm">
@@ -485,14 +487,14 @@ function FoodOrderRouteMap({ order }) {
         />
       ) : (
         <div className="mt-4 rounded-[14px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          Restaurant and delivery coordinates are both required to show the route map.
+          Pickup and delivery coordinates are both required to show the route map.
         </div>
       )}
 
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         {restaurantUrl && (
           <a href={restaurantUrl} target="_blank" rel="noreferrer" className="rounded-[12px] border border-[#dfe6ef] px-3 py-2 text-center text-sm font-semibold text-[#24324a] hover:bg-[#f8fafc]">
-            Open restaurant
+            Open pickup
           </a>
         )}
         {deliveryUrl && (
@@ -513,13 +515,17 @@ function FoodOrderRouteMap({ order }) {
 function FoodOrderViewModal({ loading, order, onClose }) {
   const items = order?.items || [];
   const paymentProofUrl = order?.payment_proof_photo_url || order?.payment_proof_photo;
+  const deliveryProofUrl = order?.delivery_proof_photo_url || order?.delivery_proof_photo;
+  const isMedicine = order?.service_type === "medicine" || order?.order_no?.startsWith?.("MD-") || items.some((item) => item.brand_name);
+  const serviceLabel = isMedicine ? "Medicine" : "Food";
+  const pickupLabel = isMedicine ? "Medicine Store" : "Restaurant";
   const detailRows = [
     ["Order No", order?.order_no],
     ["Status", order?.status],
     ["Payment", `${order?.payment_method || "-"} / ${order?.payment_status || "unpaid"}`],
     ["Transaction ID", order?.manual_transaction_id],
     ["Customer", `${order?.receiver_name || "-"} (${order?.receiver_phone || "-"})`],
-    ["Restaurant", order?.restaurant?.name || order?.restaurant_id],
+    [pickupLabel, order?.restaurant?.name || order?.restaurant_id || (isMedicine ? "Medicine Store" : "-")],
     ["Rider Status", order?.rider_assignment_label],
     ["Accepted Rider", order?.accepted_rider_name ? `${order.accepted_rider_name} (${order.accepted_rider_phone || "-"})` : "-"],
     ["Rider Last Location", order?.rider?.last_lat && order?.rider?.last_lng ? `${order.rider.last_lat}, ${order.rider.last_lng}` : "-"],
@@ -534,6 +540,7 @@ function FoodOrderViewModal({ loading, order, onClose }) {
     ["Created", formatDateTime(order?.created_at)],
     ["Estimated Delivery", formatDateTime(order?.estimated_delivery_at)],
     ["Accepted", formatDateTime(order?.accepted_at)],
+    ["Picked Up", formatDateTime(order?.picked_up_at)],
     ["Delivered", formatDateTime(order?.delivered_at)],
     ["Order Note", order?.order_note],
   ];
@@ -545,7 +552,7 @@ function FoodOrderViewModal({ loading, order, onClose }) {
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#ee0012]">Order Details</p>
             <h3 className="mt-1 text-xl font-bold text-[#111827]">{order?.order_no || "Loading order"}</h3>
-            <p className="mt-1 text-sm text-[#64748b]">Food items, customer delivery location, payment and totals.</p>
+            <p className="mt-1 text-sm text-[#64748b]">{serviceLabel} items, customer delivery location, rider requests, payment and totals.</p>
           </div>
           <button className="rounded-[12px] border border-[#dfe6ef] px-3 py-2 text-sm" onClick={onClose}>
             Close
@@ -559,7 +566,7 @@ function FoodOrderViewModal({ loading, order, onClose }) {
             <div className="grid gap-5 xl:grid-cols-[1fr,0.85fr]">
               <div className="space-y-4">
                 <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
-                  <h4 className="text-base font-bold text-[#111827]">Ordered Items</h4>
+                  <h4 className="text-base font-bold text-[#111827]">Ordered {serviceLabel} Items</h4>
                   <div className="mt-4 overflow-hidden rounded-[14px] border border-[#edf1f6]">
                     <table className="w-full text-sm">
                       <thead className="bg-[#f8fafc] text-xs uppercase tracking-wide text-[#53637a]">
@@ -574,7 +581,12 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                         {items.map((item) => (
                           <tr key={item.id} className="border-t border-[#edf1f6]">
                             <td className="px-3 py-3">
-                              <div className="font-semibold text-[#111827]">{item.name}</div>
+                              <div className="font-semibold text-[#111827]">{item.name || item.brand_name || "Medicine"}</div>
+                              {(item.generic_name || item.strength || item.company) && (
+                                <div className="mt-1 text-xs text-[#64748b]">
+                                  {[item.generic_name, item.strength, item.company].filter(Boolean).join(" · ")}
+                                </div>
+                              )}
                               {item.note && (
                                 <div className="mt-1 text-xs text-[#64748b]">
                                   Note: {item.note}
@@ -638,6 +650,15 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                       <img src={paymentProofUrl} alt="Payment proof" className="h-56 w-full object-cover" />
                       <div className="flex items-center justify-between px-4 py-3 text-sm font-bold text-red-700">
                         <span>Open full payment proof</span>
+                        <span>↗</span>
+                      </div>
+                    </a>
+                  )}
+                  {deliveryProofUrl && (
+                    <a href={deliveryProofUrl} target="_blank" rel="noreferrer" className="mt-4 block overflow-hidden rounded-[14px] border border-[#dfe6ef] bg-[#f8fafc]">
+                      <img src={deliveryProofUrl} alt="Delivery proof" className="h-56 w-full object-cover" />
+                      <div className="flex items-center justify-between px-4 py-3 text-sm font-bold text-emerald-700">
+                        <span>Open full delivery proof</span>
                         <span>↗</span>
                       </div>
                     </a>
@@ -1314,7 +1335,7 @@ export default function FoodAdminPage({ token, resource }) {
                 ))}
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
-                    {resource === "food-orders" && (
+                    {(resource === "food-orders" || resource === "medicine-orders") && (
                       <Button variant="ghost" onClick={() => openViewOrder(record)}>
                         View
                       </Button>
