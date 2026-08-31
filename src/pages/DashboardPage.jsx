@@ -35,6 +35,7 @@ import ProfilePage from "./ProfilePage.jsx";
 import ServicePage from "./services/ServicePage.jsx";
 import FoodAdminPage from "./services/FoodAdminPage.jsx";
 import FoodDeliverySettingsPage from "./services/FoodDeliverySettingsPage.jsx";
+import MedicinePaymentSettingsPage from "./services/MedicinePaymentSettingsPage.jsx";
 import RiderAdminPage from "./services/RiderAdminPage.jsx";
 import SupportSettingsPage from "./services/SupportSettingsPage.jsx";
 import MapSettingsPage from "./services/MapSettingsPage.jsx";
@@ -63,6 +64,7 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Delivery Settings", slug: "food-delivery-settings", group_name: "Food Delivery", route: "/admin/food-delivery-settings" },
   { name: "Medicine Items", slug: "medicine-items", group_name: "Medicine Delivery", route: "/admin/medicine-items" },
   { name: "Medicine Orders", slug: "medicine-orders", group_name: "Medicine Delivery", route: "/admin/medicine-orders" },
+  { name: "Medicine Payments", slug: "medicine-payment-settings", group_name: "Medicine Delivery", route: "/admin/medicine-payment-settings" },
   { name: "Rider Management", slug: "riders", group_name: "Rider System", route: "/admin/riders" },
   { name: "Property", slug: "property", group_name: "Services", route: "/admin/property" },
   { name: "Education", slug: "education", group_name: "Services", route: "/admin/education" },
@@ -261,6 +263,7 @@ export default function DashboardPage({ token, onLogout }) {
     "sms-settings": SmsSettingsPage,
     "email-settings": EmailSettingsPage,
     "food-delivery-settings": FoodDeliverySettingsPage,
+    "medicine-payment-settings": MedicinePaymentSettingsPage,
     "map-settings": MapSettingsPage,
     "support-settings": SupportSettingsPage,
     "app-version-settings": AppVersionSettingsPage,

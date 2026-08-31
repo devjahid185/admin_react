@@ -31,6 +31,7 @@ const ICONS = {
   reports: "RP",
   messages: "MS",
   payments: "PY",
+  "medicine-payment-settings": "MP",
   "sms-settings": "SM",
   "email-settings": "EM",
   riders: "RD",
