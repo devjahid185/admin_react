@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
+import ImageUploadPreview from "../../components/ImageUploadPreview.jsx";
 import Input from "../../components/Input.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
@@ -1369,8 +1370,17 @@ export default function FoodAdminPage({ token, resource }) {
                   <p className="text-sm font-bold text-[#24324a]">Image Upload</p>
                   <p className="mt-1 text-xs text-[#64748b]">Upload a real image for this record. It will be saved after the record is created/updated.</p>
                   <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <div className="h-28 w-36 overflow-hidden rounded-[14px] border border-[#dfe6ef] bg-white">
-                      {imagePreview ? <img src={imagePreview} className="h-full w-full object-cover" alt="" /> : <div className="grid h-full place-items-center text-xs text-[#94a3b8]">No image</div>}
+                    <div className="w-full sm:w-48">
+                      <ImageUploadPreview
+                        file={imageFile}
+                        url={imageFile ? "" : imagePreview}
+                        heightClass="h-32"
+                        hint="No image selected"
+                        onClear={() => {
+                          setImageFile(null);
+                          setImagePreview(mode === "edit" ? form.image_url || "" : "");
+                        }}
+                      />
                     </div>
                     <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} className="text-sm" />
                   </div>

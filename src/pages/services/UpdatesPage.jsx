@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
+import ImageUploadPreview from "../../components/ImageUploadPreview.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import QuillEditor from "../../components/QuillEditor.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
@@ -462,11 +463,18 @@ export default function UpdatesPage({ token }) {
                 />
                 {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
                 {uploading && <p className="text-xs text-[#64748b]">Uploading image...</p>}
-                {coverImage && (
-                  <div className="mt-2 overflow-hidden rounded-[14px] border border-[#dfe6ef]">
-                    <img src={coverImage} alt="Preview" className="h-40 w-full object-cover" />
-                  </div>
-                )}
+                <div className="mt-3">
+                  <ImageUploadPreview
+                    file={coverFile}
+                    url={coverFile ? "" : coverImage || ""}
+                    label="Update cover preview"
+                    hint="Update cover preview"
+                    onClear={() => {
+                      setCoverFile(null);
+                      setForm({ ...form, cover_url: "" });
+                    }}
+                  />
+                </div>
               </div>
               <div className="md:col-span-2">
                 <label className="text-xs text-[#64748b]">Body</label>
@@ -549,6 +557,5 @@ export default function UpdatesPage({ token }) {
     </div>
   );
 }
-
 
 

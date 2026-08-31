@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiRequest, apiUpload } from "../../lib/api.js";
 import Button from "../../components/Button.jsx";
+import ImageUploadPreview from "../../components/ImageUploadPreview.jsx";
 
 export default function NotificationsPage({ token, onUnauthorized }) {
   const [target, setTarget] = useState("all");
@@ -186,7 +187,13 @@ export default function NotificationsPage({ token, onUnauthorized }) {
               onChange={(e) => setImageFile(e.target.files?.[0] || null)}
               className="w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
             />
-            {imageFile && <p className="text-xs text-[#64748b]">Selected image: {imageFile.name}</p>}
+            <ImageUploadPreview
+              file={imageFile}
+              label="Notification image preview"
+              hint="Notification image preview"
+              heightClass="h-36"
+              onClear={() => setImageFile(null)}
+            />
           </div>
         </div>
 
@@ -244,6 +251,5 @@ export default function NotificationsPage({ token, onUnauthorized }) {
     </div>
   );
 }
-
 
 

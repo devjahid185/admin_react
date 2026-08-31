@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
+import ImageUploadPreview from "../../components/ImageUploadPreview.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
 
@@ -156,7 +157,7 @@ export default function HomeBannersPage({ token }) {
 
   const handleImage = (file) => {
     setImageFile(file || null);
-    setImagePreview(file ? URL.createObjectURL(file) : "");
+    if (!file) setImagePreview("");
   };
 
   return (
@@ -280,7 +281,19 @@ export default function HomeBannersPage({ token }) {
               <div className="md:col-span-2">
                 <label className="text-xs font-semibold text-[#64748b]">Banner Image</label>
                 <input className="mt-1 w-full rounded-[12px] border border-[#dfe6ef] px-3 py-2 text-sm" type="file" accept="image/*" onChange={(e) => handleImage(e.target.files?.[0])} />
-                {imagePreview && <img src={imagePreview} alt="Preview" className="mt-3 h-36 w-full rounded-[14px] object-cover" />}
+                <div className="mt-3">
+                  <ImageUploadPreview
+                    file={imageFile}
+                    url={imageFile ? "" : imagePreview}
+                    label="Banner preview"
+                    hint="Banner preview will appear here"
+                    heightClass="h-36"
+                    onClear={() => {
+                      setImageFile(null);
+                      setImagePreview("");
+                    }}
+                  />
+                </div>
               </div>
               <Field label="Title" value={form.title} onChange={(value) => setForm({ ...form, title: value })} />
               <Field label="Subtitle" value={form.subtitle} onChange={(value) => setForm({ ...form, subtitle: value })} />
