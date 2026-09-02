@@ -53,6 +53,12 @@ function RiderDetails({ rider, token, onClose, onSaved }) {
     payment_cycle: rider.payment_cycle || "weekly",
     admin_note: rider.admin_note || "",
     kyc_note: rider.kyc_note || "",
+    bkash_number: rider.bkash_number || "",
+    nagad_number: rider.nagad_number || "",
+    bank_account_name: rider.bank_account_name || "",
+    bank_account_number: rider.bank_account_number || "",
+    bank_name: rider.bank_name || "",
+    bank_branch: rider.bank_branch || "",
   });
   const [saving, setSaving] = useState(false);
   const docs = rider.documents || [];
@@ -118,6 +124,7 @@ function RiderDetails({ rider, token, onClose, onSaved }) {
                   <p><b>ঠিকানা:</b> {[rider.district, rider.upazila, rider.address].filter(Boolean).join(", ") || "-"}</p>
                   <p className="mt-2"><b>যানবাহন:</b> {vehicleBn[rider.vehicle_type] || "-"} • {rider.vehicle_number || "নম্বর নেই"}</p>
                   <p className="mt-2"><b>জরুরি যোগাযোগ:</b> {rider.emergency_contact_name || "-"} • {rider.emergency_contact_phone || "-"}</p>
+                  <p className="mt-2"><b>bKash/Nagad:</b> {rider.bkash_number || "-"} • {rider.nagad_number || "-"}</p>
                 </div>
               </div>
 
@@ -168,22 +175,60 @@ function RiderDetails({ rider, token, onClose, onSaved }) {
                 <h4 className="text-lg font-black text-[#101827]">KYC ডকুমেন্ট যাচাই</h4>
                 <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {docs.map((doc) => (
-                    <div key={doc.id} className="rounded-[16px] border border-[#edf1f6] bg-[#f8fafc] p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-bold text-[#101827]">{doc.type_bn || doc.title}</p>
-                          <p className="mt-1 text-xs text-[#64748b]">{doc.title}</p>
-                        </div>
-                        <StatusBadge value={doc.status} />
-                      </div>
-                      {doc.file_url && (
-                        <a className="mt-4 inline-flex rounded-[12px] border border-red-100 bg-white px-3 py-2 text-sm font-bold text-red-700" href={doc.file_url} target="_blank" rel="noreferrer">
-                          ডকুমেন্ট দেখুন
+                    <div key={doc.id} className="overflow-hidden rounded-[16px] border border-[#edf1f6] bg-[#f8fafc]">
+                      {doc.file_url && /\.(jpg|jpeg|png|webp)$/i.test(doc.file_url) && (
+                        <a href={doc.file_url} target="_blank" rel="noreferrer" className="block bg-white">
+                          <img src={doc.file_url} alt={doc.title || doc.type} className="h-44 w-full object-cover" />
                         </a>
                       )}
+                      {doc.file_url && !/\.(jpg|jpeg|png|webp)$/i.test(doc.file_url) && (
+                        <a href={doc.file_url} target="_blank" rel="noreferrer" className="flex h-44 items-center justify-center bg-white text-sm font-bold text-red-700">
+                          PDF ডকুমেন্ট খুলুন
+                        </a>
+                      )}
+                      <div className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-bold text-[#101827]">{doc.type_bn || doc.title}</p>
+                            <p className="mt-1 text-xs text-[#64748b]">{doc.title}</p>
+                          </div>
+                          <StatusBadge value={doc.status} />
+                        </div>
+                        {doc.file_url && (
+                          <a className="mt-4 inline-flex rounded-[12px] border border-red-100 bg-white px-3 py-2 text-sm font-bold text-red-700" href={doc.file_url} target="_blank" rel="noreferrer">
+                            ডকুমেন্ট দেখুন
+                          </a>
+                        )}
+                      </div>
                     </div>
                   ))}
                   {!docs.length && <div className="rounded-[16px] border border-dashed border-[#cbd5e1] p-6 text-sm text-[#64748b]">এখনো KYC ডকুমেন্ট আপলোড হয়নি।</div>}
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-[#dfe6ef] bg-white p-5">
+                <h4 className="text-lg font-black text-[#101827]">রাইডার পেমেন্ট তথ্য</h4>
+                <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <Field label="bKash Number">
+                    <input className={inputClass()} value={form.bkash_number} onChange={(e) => setForm({ ...form, bkash_number: e.target.value })} />
+                  </Field>
+                  <Field label="Nagad Number">
+                    <input className={inputClass()} value={form.nagad_number} onChange={(e) => setForm({ ...form, nagad_number: e.target.value })} />
+                  </Field>
+                  <Field label="Bank Account Name">
+                    <input className={inputClass()} value={form.bank_account_name} onChange={(e) => setForm({ ...form, bank_account_name: e.target.value })} />
+                  </Field>
+                  <Field label="Bank Account Number">
+                    <input className={inputClass()} value={form.bank_account_number} onChange={(e) => setForm({ ...form, bank_account_number: e.target.value })} />
+                  </Field>
+                  <Field label="Bank Name">
+                    <input className={inputClass()} value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} />
+                  </Field>
+                  <Field label="Branch">
+                    <input className={inputClass()} value={form.bank_branch} onChange={(e) => setForm({ ...form, bank_branch: e.target.value })} />
+                  </Field>
+                </div>
+                <div className="mt-4">
+                  <Button onClick={() => save()} disabled={saving}>{saving ? "Saving..." : "Save Payment Info"}</Button>
                 </div>
               </div>
               <div className="rounded-[18px] border border-[#dfe6ef] bg-white p-5">

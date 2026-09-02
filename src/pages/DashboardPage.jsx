@@ -37,6 +37,7 @@ import FoodAdminPage from "./services/FoodAdminPage.jsx";
 import FoodDeliverySettingsPage from "./services/FoodDeliverySettingsPage.jsx";
 import MedicinePaymentSettingsPage from "./services/MedicinePaymentSettingsPage.jsx";
 import RiderAdminPage from "./services/RiderAdminPage.jsx";
+import RiderSettingsPage from "./services/RiderSettingsPage.jsx";
 import SupportSettingsPage from "./services/SupportSettingsPage.jsx";
 import MapSettingsPage from "./services/MapSettingsPage.jsx";
 import AppVersionSettingsPage from "./services/AppVersionSettingsPage.jsx";
@@ -67,6 +68,7 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Medicine Orders", slug: "medicine-orders", group_name: "Medicine Delivery", route: "/admin/medicine-orders" },
   { name: "Medicine Payments", slug: "medicine-payment-settings", group_name: "Medicine Delivery", route: "/admin/medicine-payment-settings" },
   { name: "Rider Management", slug: "riders", group_name: "Rider System", route: "/admin/riders" },
+  { name: "Rider Settings", slug: "rider-settings", group_name: "Rider System", route: "/admin/rider-settings" },
   { name: "Admin Income", slug: "delivery-income", group_name: "Finance", route: "/admin/delivery-income" },
   { name: "Property", slug: "property", group_name: "Services", route: "/admin/property" },
   { name: "Education", slug: "education", group_name: "Services", route: "/admin/education" },
@@ -270,6 +272,7 @@ export default function DashboardPage({ token, onLogout }) {
     "support-settings": SupportSettingsPage,
     "app-version-settings": AppVersionSettingsPage,
     "delivery-income": DeliveryIncomePage,
+    "rider-settings": RiderSettingsPage,
     riders: RiderAdminPage,
   };
   const ServiceComponent = servicePageMap[activeModule] || null;
