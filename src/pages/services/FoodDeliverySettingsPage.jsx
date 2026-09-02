@@ -8,7 +8,9 @@ const defaultForm = {
   charge_mode: "fixed",
   municipality_rule_enabled: true,
   municipality_fixed_charge: 50,
+  rider_fixed_earning: 50,
   municipality_extra_per_km_charge: 15,
+  rider_per_km_earning: 15,
   municipality_center_lat: 22.686,
   municipality_center_lng: 90.644,
   municipality_radius_km: 1.66,
@@ -53,7 +55,9 @@ const defaultForm = {
 const numericFields = [
   "fixed_charge",
   "municipality_fixed_charge",
+  "rider_fixed_earning",
   "municipality_extra_per_km_charge",
+  "rider_per_km_earning",
   "municipality_center_lat",
   "municipality_center_lng",
   "municipality_radius_km",
@@ -180,7 +184,9 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
             {form.municipality_rule_enabled && (
               <div className="grid gap-4 rounded-[14px] border border-emerald-100 bg-emerald-50/60 p-4 md:col-span-2 md:grid-cols-3">
                 <Input label="Pourashava Fixed Charge" type="number" value={form.municipality_fixed_charge ?? ""} onChange={(e) => updateField("municipality_fixed_charge", e.target.value)} />
+                <Input label="Rider Gets From Fixed" type="number" value={form.rider_fixed_earning ?? ""} onChange={(e) => updateField("rider_fixed_earning", e.target.value)} />
                 <Input label="Outside Extra Per KM" type="number" value={form.municipality_extra_per_km_charge ?? ""} onChange={(e) => updateField("municipality_extra_per_km_charge", e.target.value)} />
+                <Input label="Rider Gets Per KM" type="number" value={form.rider_per_km_earning ?? ""} onChange={(e) => updateField("rider_per_km_earning", e.target.value)} />
                 <Input label="Boundary Radius (KM)" type="number" value={form.municipality_radius_km ?? ""} onChange={(e) => updateField("municipality_radius_km", e.target.value)} placeholder="Optional" />
                 <Input label="Boundary Center Latitude" type="number" value={form.municipality_center_lat ?? ""} onChange={(e) => updateField("municipality_center_lat", e.target.value)} placeholder="Optional" />
                 <Input label="Boundary Center Longitude" type="number" value={form.municipality_center_lng ?? ""} onChange={(e) => updateField("municipality_center_lng", e.target.value)} placeholder="Optional" />
@@ -197,8 +203,14 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
               </div>
             )}
             <Input label="Fixed Charge" type="number" value={form.fixed_charge ?? ""} onChange={(e) => updateField("fixed_charge", e.target.value)} />
+            {!form.municipality_rule_enabled && (
+              <Input label="Rider Fixed Earning" type="number" value={form.rider_fixed_earning ?? ""} onChange={(e) => updateField("rider_fixed_earning", e.target.value)} />
+            )}
             <Input label="Base Charge" type="number" value={form.base_charge ?? ""} onChange={(e) => updateField("base_charge", e.target.value)} />
             <Input label="Per KM Charge" type="number" value={form.per_km_charge ?? ""} onChange={(e) => updateField("per_km_charge", e.target.value)} />
+            {!form.municipality_rule_enabled && (
+              <Input label="Rider Per KM Earning" type="number" value={form.rider_per_km_earning ?? ""} onChange={(e) => updateField("rider_per_km_earning", e.target.value)} />
+            )}
             <Input label="Minimum Charge" type="number" value={form.minimum_charge ?? ""} onChange={(e) => updateField("minimum_charge", e.target.value)} />
             <Input label="Free Delivery Minimum Order" type="number" value={form.free_delivery_min_order ?? ""} onChange={(e) => updateField("free_delivery_min_order", e.target.value)} placeholder="Optional" />
             <Input label="Max Delivery Distance (KM)" type="number" value={form.max_delivery_distance_km ?? ""} onChange={(e) => updateField("max_delivery_distance_km", e.target.value)} placeholder="Optional" />
@@ -227,6 +239,7 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
               <p>User must tap current location before placing a delivery order.</p>
               <p>Admin receives saved latitude, longitude and a Google Maps link in the order record.</p>
               <p>Per-KM mode uses restaurant coordinates first. If missing, fallback store coordinates are used.</p>
+              <p>Rider earning is calculated from the rider fixed/per-KM values. The remaining delivery fee becomes admin delivery income.</p>
             </div>
           </div>
 
@@ -235,10 +248,10 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
             <h3 className="mt-2 text-lg font-semibold text-[#101827]">{form.municipality_rule_enabled ? "Bhola Sadar Pourashava rule" : form.charge_mode === "fixed" ? "Fixed delivery fee" : "Distance based fee"}</h3>
             <p className="mt-2 text-sm text-[#53637a]">
               {form.municipality_rule_enabled
-                ? `Inside pourashava BDT ${form.municipality_fixed_charge || 0}. Outside gets extra BDT ${form.municipality_extra_per_km_charge || 0} per KM.`
+                ? `Inside pourashava BDT ${form.municipality_fixed_charge || 0}; rider gets BDT ${form.rider_fixed_earning || 0}. Outside extra BDT ${form.municipality_extra_per_km_charge || 0}/KM; rider gets BDT ${form.rider_per_km_earning || 0}/KM.`
                 : form.charge_mode === "fixed"
-                ? `Every delivery order gets BDT ${form.fixed_charge || 0} delivery charge.`
-                : `Fee = base ${form.base_charge || 0} + distance x ${form.per_km_charge || 0}, minimum ${form.minimum_charge || 0}.`}
+                ? `Every delivery order gets BDT ${form.fixed_charge || 0}; rider gets BDT ${form.rider_fixed_earning || 0}.`
+                : `Fee = base ${form.base_charge || 0} + distance x ${form.per_km_charge || 0}; rider gets fixed BDT ${form.rider_fixed_earning || 0} + BDT ${form.rider_per_km_earning || 0}/KM.`}
             </p>
           </div>
         </div>

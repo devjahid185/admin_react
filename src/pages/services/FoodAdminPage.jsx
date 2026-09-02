@@ -99,6 +99,7 @@ const RESOURCE_CONFIG = {
       { key: "items_total", label: "Items Total", type: "number", defaultValue: 0 },
       { key: "delivery_fee", label: "Delivery Fee", type: "number", defaultValue: 0 },
       { key: "rider_earning", label: "Rider Earning", type: "number", defaultValue: 0 },
+      { key: "admin_delivery_income", label: "Admin Delivery Income", type: "number", defaultValue: 0 },
       { key: "cash_collected", label: "Cash Collected", type: "number", defaultValue: 0 },
       { key: "delivery_distance_km", label: "Delivery Distance KM", type: "number" },
       { key: "delivery_charge_mode", label: "Delivery Charge Mode" },
@@ -107,7 +108,7 @@ const RESOURCE_CONFIG = {
       { key: "coupon_code", label: "Coupon Code" },
       { key: "order_note", label: "Order Note", type: "textarea" },
     ],
-    columns: ["id", "order_no", "restaurant", "payment_method", "payment_status", "manual_transaction_id", "payment_proof_photo_url", "rider_assignment_label", "accepted_rider_name", "route_distance_km", "receiver_name", "status", "delivery_fee", "grand_total", "created_at"],
+    columns: ["id", "order_no", "restaurant", "payment_method", "payment_status", "manual_transaction_id", "payment_proof_photo_url", "rider_assignment_label", "accepted_rider_name", "route_distance_km", "receiver_name", "status", "delivery_fee", "rider_earning", "admin_delivery_income", "grand_total", "created_at"],
   },
   "medicine-items": {
     title: "Medicine Items",
@@ -153,10 +154,12 @@ const RESOURCE_CONFIG = {
       { key: "payment_status", label: "Payment Status", type: "select", options: ["unpaid", "paid", "refunded"], defaultValue: "unpaid" },
       { key: "items_total", label: "Items Total", type: "number", defaultValue: 0 },
       { key: "delivery_fee", label: "Delivery Fee", type: "number", defaultValue: 0 },
+      { key: "rider_earning", label: "Rider Earning", type: "number", defaultValue: 0 },
+      { key: "admin_delivery_income", label: "Admin Delivery Income", type: "number", defaultValue: 0 },
       { key: "grand_total", label: "Grand Total", type: "number", defaultValue: 0 },
       { key: "order_note", label: "Order Note", type: "textarea" },
     ],
-    columns: ["id", "order_no", "payment_method", "payment_status", "rider_assignment_label", "accepted_rider_name", "receiver_name", "receiver_phone", "status", "items_total", "delivery_fee", "grand_total", "created_at"],
+    columns: ["id", "order_no", "payment_method", "payment_status", "rider_assignment_label", "accepted_rider_name", "receiver_name", "receiver_phone", "status", "items_total", "delivery_fee", "rider_earning", "admin_delivery_income", "grand_total", "created_at"],
   },
   riders: {
     title: "রাইডার তালিকা",
@@ -613,6 +616,8 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                   <div className="mt-4 space-y-2 text-sm">
                     <SummaryLine label="Items Total" value={`BDT ${order?.items_total || 0}`} />
                     <SummaryLine label="Delivery Fee" value={`BDT ${order?.delivery_fee || 0}`} />
+                    <SummaryLine label="Rider Payout" value={`BDT ${order?.rider_earning || 0}`} />
+                    <SummaryLine label="Admin Delivery Income" value={`BDT ${order?.admin_delivery_income || 0}`} />
                     <SummaryLine label="Discount" value={`BDT ${order?.discount_amount || 0}`} />
                     <div className="border-t border-[#edf1f6] pt-2">
                       <SummaryLine label="Grand Total" value={`BDT ${order?.grand_total || 0}`} strong />
@@ -730,7 +735,7 @@ function FoodOrderViewModal({ loading, order, onClose }) {
   );
 }
 
-function FoodOrderFilterBar({ filters, onChange }) {
+function FoodOrderFilterBar({ filters, onChange, hideRestaurant = false }) {
   const update = (key, value) => onChange((prev) => ({ ...prev, [key]: value }));
   const clear = () => onChange({ payment_method: "", payment_status: "", status: "", restaurant_id: "", date_from: "", date_to: "" });
   return (
@@ -761,9 +766,11 @@ function FoodOrderFilterBar({ filters, onChange }) {
             ))}
           </select>
         </FilterField>
-        <FilterField label="Restaurant ID">
-          <input value={filters.restaurant_id} onChange={(e) => update("restaurant_id", e.target.value)} className={filterInputClass} placeholder="Restaurant ID" />
-        </FilterField>
+        {!hideRestaurant && (
+          <FilterField label="Restaurant ID">
+            <input value={filters.restaurant_id} onChange={(e) => update("restaurant_id", e.target.value)} className={filterInputClass} placeholder="Restaurant ID" />
+          </FilterField>
+        )}
         <FilterField label="From">
           <input type="date" value={filters.date_from} onChange={(e) => update("date_from", e.target.value)} className={filterInputClass} />
         </FilterField>
@@ -791,22 +798,47 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
   const totals = summary?.totals || {};
   const owners = summary?.by_owner || [];
   const methods = summary?.by_method || [];
+  const services = summary?.by_service || [];
+  const settings = summary?.settings || {};
   return (
     <div className="space-y-4 rounded-[18px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#ee0012]">Payment Reconciliation</p>
-          <h3 className="text-lg font-black text-[#111827]">Owner-wise received money and delivery charge</h3>
+          <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#ee0012]">Income Reconciliation</p>
+          <h3 className="text-lg font-black text-[#111827]">Admin income, rider payout and delivery charge</h3>
         </div>
         {loading && <span className="text-xs font-semibold text-[#64748b]">Refreshing...</span>}
       </div>
-      <div className="grid gap-3 md:grid-cols-5">
+      <div className="grid gap-3 md:grid-cols-6">
         <SummaryCard label="Orders" value={totals.orders_count || 0} />
         <SummaryCard label="Grand Total" value={money(totals.grand_total)} />
         <SummaryCard label="Owner Received" value={money(totals.owner_received_total)} tone="emerald" />
         <SummaryCard label="COD Collectable" value={money(totals.cod_collectable_total)} tone="amber" />
         <SummaryCard label="Delivery Charge" value={money(totals.delivery_fee_total)} tone="blue" />
+        <SummaryCard label="Admin Income" value={money(totals.admin_delivery_income_total)} tone="red" />
       </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <SummaryCard label="Rider Payout" value={money(totals.rider_payout_total)} tone="indigo" />
+        <SummaryCard label="Delivered Orders" value={totals.delivered_orders_count ?? "-"} />
+        <SummaryCard label="Current Rider Rule" value={`Fixed ${money(settings.rider_fixed_earning)} • KM ${money(settings.rider_per_km_earning)}`} tone="emerald" />
+      </div>
+      {services.length > 0 && (
+        <div className="grid gap-3 md:grid-cols-2">
+          {services.map((row) => (
+            <div key={row.service_type} className="rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="text-base font-black capitalize text-[#111827]">{row.service_type} Delivery</h4>
+                <span className="rounded-[10px] border border-slate-200 bg-white px-2.5 py-1 text-xs font-black text-[#53637a]">{row.orders_count} orders</span>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                <MiniMetric label="Fee" value={money(row.delivery_fee_total)} />
+                <MiniMetric label="Rider" value={money(row.rider_payout_total)} />
+                <MiniMetric label="Admin" value={money(row.admin_delivery_income_total)} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="grid gap-4 xl:grid-cols-[1fr,0.55fr]">
         <div className="overflow-x-auto rounded-[14px] border border-[#edf1f6]">
           <table className="min-w-[760px] w-full text-sm">
@@ -817,6 +849,8 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
                 <th className="px-3 py-3 text-right">Owner Received</th>
                 <th className="px-3 py-3 text-right">COD Collectable</th>
                 <th className="px-3 py-3 text-right">Delivery Charge</th>
+                <th className="px-3 py-3 text-right">Rider Payout</th>
+                <th className="px-3 py-3 text-right">Admin Income</th>
                 <th className="px-3 py-3 text-right">Grand Total</th>
               </tr>
             </thead>
@@ -831,11 +865,13 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
                   <td className="px-3 py-3 text-right font-bold text-emerald-700">{money(row.owner_received_total)}</td>
                   <td className="px-3 py-3 text-right font-bold text-amber-700">{money(row.cod_collectable_total)}</td>
                   <td className="px-3 py-3 text-right">{money(row.delivery_fee_total)}</td>
+                  <td className="px-3 py-3 text-right">{money(row.rider_payout_total)}</td>
+                  <td className="px-3 py-3 text-right font-bold text-red-700">{money(row.admin_delivery_income_total)}</td>
                   <td className="px-3 py-3 text-right font-bold">{money(row.grand_total)}</td>
                 </tr>
               ))}
               {!owners.length && (
-                <tr><td colSpan={6} className="px-3 py-5 text-center text-[#64748b]">No payment data found for selected filters.</td></tr>
+                <tr><td colSpan={8} className="px-3 py-5 text-center text-[#64748b]">No payment data found for selected filters.</td></tr>
               )}
             </tbody>
           </table>
@@ -851,7 +887,11 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
                 </div>
                 <div className="mt-2 flex justify-between text-sm">
                   <span>Total {money(row.grand_total)}</span>
+                  <span>Admin {money(row.admin_delivery_income_total)}</span>
+                </div>
+                <div className="mt-1 flex justify-between text-xs text-[#64748b]">
                   <span>Delivery {money(row.delivery_fee_total)}</span>
+                  <span>Rider {money(row.rider_payout_total)}</span>
                 </div>
               </div>
             ))}
@@ -869,11 +909,22 @@ function SummaryCard({ label, value, tone = "slate" }) {
     emerald: "border-emerald-200 bg-emerald-50 text-emerald-900",
     amber: "border-amber-200 bg-amber-50 text-amber-900",
     blue: "border-sky-200 bg-sky-50 text-sky-900",
+    indigo: "border-indigo-200 bg-indigo-50 text-indigo-900",
+    red: "border-red-200 bg-red-50 text-red-900",
   };
   return (
     <div className={`rounded-[14px] border p-3 ${tones[tone] || tones.slate}`}>
       <div className="text-[11px] font-bold uppercase tracking-wide opacity-70">{label}</div>
       <div className="mt-1 text-xl font-black">{value}</div>
+    </div>
+  );
+}
+
+function MiniMetric({ label, value }) {
+  return (
+    <div className="rounded-[12px] bg-white p-3">
+      <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">{label}</div>
+      <div className="mt-1 text-base font-black text-[#111827]">{value}</div>
     </div>
   );
 }
@@ -946,8 +997,9 @@ export default function FoodAdminPage({ token, resource }) {
     params.set("page", String(page));
     params.set("per_page", String(perPage));
     if (search.trim()) params.set("search", search.trim());
-    if (resource === "food-orders") {
+    if (resource === "food-orders" || resource === "medicine-orders") {
       Object.entries(orderFilters).forEach(([key, value]) => {
+        if (resource === "medicine-orders" && key === "restaurant_id") return;
         if (String(value || "").trim()) params.set(key, String(value).trim());
       });
     }
@@ -989,14 +1041,17 @@ export default function FoodAdminPage({ token, resource }) {
   }, [search, orderFilters]);
 
   const loadPaymentSummary = async () => {
-    if (resource !== "food-orders") return;
+    if (resource !== "food-orders" && resource !== "medicine-orders") return;
     setSummaryLoading(true);
     try {
       const qs = orderQueryString();
-      const data = await apiRequest(`/admin/food-orders/payment-summary${qs ? `?${qs}` : ""}`, { token });
+      const data =
+        resource === "food-orders"
+          ? await apiRequest(`/admin/food-orders/payment-summary${qs ? `?${qs}` : ""}`, { token })
+          : await apiRequest(`/admin/delivery-income-summary${qs ? `?${qs}` : ""}`, { token });
       setPaymentSummary(data);
     } catch (err) {
-      console.warn("Unable to load food payment summary", err);
+      console.warn("Unable to load delivery payment summary", err);
       setPaymentSummary(null);
     } finally {
       setSummaryLoading(false);
@@ -1024,7 +1079,7 @@ export default function FoodAdminPage({ token, resource }) {
   }, [form.name, form.slug, resource]);
 
   useEffect(() => {
-    if (!viewOpen || resource !== "food-orders" || !viewOrder?.id) return undefined;
+    if (!viewOpen || (resource !== "food-orders" && resource !== "medicine-orders") || !viewOrder?.id) return undefined;
     const timer = window.setInterval(async () => {
       try {
         const data = await apiRequest(`/admin/resources/${resource}/${viewOrder.id}`, { token });
@@ -1280,9 +1335,9 @@ export default function FoodAdminPage({ token, resource }) {
 
       {error && <div className="rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-      {resource === "food-orders" && (
+      {(resource === "food-orders" || resource === "medicine-orders") && (
         <>
-          <FoodOrderFilterBar filters={orderFilters} onChange={setOrderFilters} />
+          <FoodOrderFilterBar filters={orderFilters} onChange={setOrderFilters} hideRestaurant={resource === "medicine-orders"} />
           <FoodPaymentSummaryPanel summary={paymentSummary} loading={summaryLoading} />
         </>
       )}

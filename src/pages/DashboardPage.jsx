@@ -40,6 +40,7 @@ import RiderAdminPage from "./services/RiderAdminPage.jsx";
 import SupportSettingsPage from "./services/SupportSettingsPage.jsx";
 import MapSettingsPage from "./services/MapSettingsPage.jsx";
 import AppVersionSettingsPage from "./services/AppVersionSettingsPage.jsx";
+import DeliveryIncomePage from "./services/DeliveryIncomePage.jsx";
 
 const DEFAULT_ADMIN_MODULES = [
   { name: "Dashboard", slug: "dashboard", group_name: "Core", route: "/admin" },
@@ -66,6 +67,7 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Medicine Orders", slug: "medicine-orders", group_name: "Medicine Delivery", route: "/admin/medicine-orders" },
   { name: "Medicine Payments", slug: "medicine-payment-settings", group_name: "Medicine Delivery", route: "/admin/medicine-payment-settings" },
   { name: "Rider Management", slug: "riders", group_name: "Rider System", route: "/admin/riders" },
+  { name: "Admin Income", slug: "delivery-income", group_name: "Finance", route: "/admin/delivery-income" },
   { name: "Property", slug: "property", group_name: "Services", route: "/admin/property" },
   { name: "Education", slug: "education", group_name: "Services", route: "/admin/education" },
   { name: "Blood Donation", slug: "blood", group_name: "Services", route: "/admin/blood" },
@@ -267,6 +269,7 @@ export default function DashboardPage({ token, onLogout }) {
     "map-settings": MapSettingsPage,
     "support-settings": SupportSettingsPage,
     "app-version-settings": AppVersionSettingsPage,
+    "delivery-income": DeliveryIncomePage,
     riders: RiderAdminPage,
   };
   const ServiceComponent = servicePageMap[activeModule] || null;
