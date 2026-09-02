@@ -18,6 +18,19 @@ const statusBn = {
 
 const vehicleBn = { cycle: "সাইকেল", bike: "মোটরসাইকেল", car: "গাড়ি" };
 const money = (value) => `৳${Number(value || 0).toLocaleString("bn-BD")}`;
+const toCoord = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+};
+const mapsPointUrl = (lat, lng) => {
+  if (lat === null || lng === null) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+};
+const mapsEmbedPointUrl = (lat, lng) => {
+  if (lat === null || lng === null) return null;
+  return `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+};
 
 function Field({ label, children }) {
   return (
@@ -38,6 +51,51 @@ function InfoCard({ label, value, tone = "default" }) {
     <div className={`rounded-[14px] border p-4 ${toneClass}`}>
       <p className="text-xs font-semibold opacity-70">{label}</p>
       <p className="mt-1 text-xl font-black">{value}</p>
+    </div>
+  );
+}
+
+function RiderLiveMapCard({ rider }) {
+  const lat = toCoord(rider.last_lat);
+  const lng = toCoord(rider.last_lng);
+  const pointUrl = mapsPointUrl(lat, lng);
+  const embedUrl = mapsEmbedPointUrl(lat, lng);
+
+  return (
+    <div className="rounded-[18px] border border-[#dfe6ef] bg-white p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h4 className="text-lg font-black text-[#101827]">লাইভ লোকেশন</h4>
+          <p className="mt-1 text-sm text-[#64748b]">
+            {lat !== null && lng !== null
+              ? `${lat}, ${lng}${rider.last_location_at ? ` • Updated ${rider.last_location_at}` : ""}`
+              : "রাইডার এখনো live location পাঠায়নি।"}
+          </p>
+        </div>
+        {pointUrl && (
+          <a
+            href={pointUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center rounded-[12px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-100"
+          >
+            Open Map
+          </a>
+        )}
+      </div>
+      {embedUrl ? (
+        <iframe
+          title={`Rider live map ${rider.id}`}
+          src={embedUrl}
+          className="mt-4 h-72 w-full rounded-[14px] border border-[#dfe6ef]"
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      ) : (
+        <div className="mt-4 rounded-[14px] border border-dashed border-[#cbd5e1] bg-[#f8fafc] p-5 text-sm text-[#64748b]">
+          Location available হলে এখানে map preview দেখা যাবে।
+        </div>
+      )}
     </div>
   );
 }
@@ -165,6 +223,9 @@ function RiderDetails({ rider, token, onClose, onSaved }) {
                   <Button variant="ghost" onClick={() => save({ kyc_status: "approved", account_status: "active", agreement_status: "active" })}>Approve Rider</Button>
                   <Button variant="ghost" onClick={() => save({ account_status: "blocked", availability_status: "offline" })}>Block</Button>
                 </div>
+              </div>
+              <div className="xl:col-span-2">
+                <RiderLiveMapCard rider={rider} />
               </div>
             </div>
           )}
@@ -385,7 +446,7 @@ export default function RiderAdminPage({ token }) {
             <div className="mt-4 flex flex-wrap gap-2">
               <Button onClick={() => openRider(rider)} disabled={detailLoading}>Manage Rider</Button>
               {rider.last_lat && rider.last_lng && (
-                <a className="inline-flex items-center rounded-[14px] border border-[#dfe6ef] bg-white px-4 py-2.5 text-sm font-semibold text-[#24324a]" href={`https://www.google.com/maps/search/?api=1&query=${rider.last_lat},${rider.last_lng}`} target="_blank" rel="noreferrer">
+                <a className="inline-flex items-center rounded-[14px] border border-[#dfe6ef] bg-white px-4 py-2.5 text-sm font-semibold text-[#24324a]" href={mapsPointUrl(rider.last_lat, rider.last_lng)} target="_blank" rel="noreferrer">
                   Live Map
                 </a>
               )}
