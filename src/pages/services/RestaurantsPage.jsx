@@ -18,6 +18,11 @@ const emptyForm = {
   features: "",
   delivery_available: false,
   accepts_food_orders: true,
+  commission_enabled: true,
+  commission_type: "percentage",
+  commission_rate: "10",
+  commission_fixed_fee: "0",
+  settlement_cycle: "weekly",
   takeaway_available: false,
   dine_in_available: false,
   opening_hours: "",
@@ -104,6 +109,11 @@ export default function RestaurantsPage({ token }) {
       features: Array.isArray(r.features) ? r.features.join(", ") : r.features || "",
       delivery_available: Boolean(r.delivery_available),
       accepts_food_orders: r.accepts_food_orders === undefined ? true : Boolean(r.accepts_food_orders),
+      commission_enabled: r.commission_enabled === undefined ? true : Boolean(r.commission_enabled),
+      commission_type: r.commission_type || "percentage",
+      commission_rate: r.commission_rate ?? "10",
+      commission_fixed_fee: r.commission_fixed_fee ?? "0",
+      settlement_cycle: r.settlement_cycle || "weekly",
       takeaway_available: Boolean(r.takeaway_available),
       dine_in_available: Boolean(r.dine_in_available),
       opening_hours: r.opening_hours || "",
@@ -133,6 +143,11 @@ export default function RestaurantsPage({ token }) {
       features: form.features ? form.features.split(",").map((s) => s.trim()).filter(Boolean) : [],
       delivery_available: Boolean(form.delivery_available),
       accepts_food_orders: Boolean(form.accepts_food_orders),
+      commission_enabled: Boolean(form.commission_enabled),
+      commission_type: form.commission_type || "percentage",
+      commission_rate: form.commission_rate ? Number(form.commission_rate) : 0,
+      commission_fixed_fee: form.commission_fixed_fee ? Number(form.commission_fixed_fee) : 0,
+      settlement_cycle: form.settlement_cycle || "weekly",
       takeaway_available: Boolean(form.takeaway_available),
       dine_in_available: Boolean(form.dine_in_available),
       opening_hours: form.opening_hours || null,
@@ -235,6 +250,7 @@ export default function RestaurantsPage({ token }) {
               <th className="text-left px-3 py-2 md:px-4">Category</th>
               <th className="text-left px-3 py-2 md:px-4">Phone</th>
               <th className="text-left px-3 py-2 md:px-4">Food Orders</th>
+              <th className="text-left px-3 py-2 md:px-4">Commission</th>
               <th className="text-left px-3 py-2 md:px-4">Prep</th>
               <th className="text-left px-3 py-2 md:px-4">Status</th>
               <th className="text-right px-3 py-2 md:px-4">Actions</th>
@@ -256,6 +272,15 @@ export default function RestaurantsPage({ token }) {
                 <td className="px-3 py-2 md:px-4">{r.category_id}</td>
                 <td className="px-3 py-2 md:px-4">{r.phone || "-"}</td>
                 <td className="px-3 py-2 md:px-4">{r.accepts_food_orders ? "Enabled" : "Disabled"}</td>
+                <td className="px-3 py-2 md:px-4">
+                  {r.commission_enabled === false
+                    ? "None"
+                    : r.commission_type === "fixed"
+                      ? `BDT ${r.commission_fixed_fee || 0}`
+                      : r.commission_type === "percentage_plus_fixed"
+                        ? `${r.commission_rate || 0}% + BDT ${r.commission_fixed_fee || 0}`
+                        : `${r.commission_rate || 0}%`}
+                </td>
                 <td className="px-3 py-2 md:px-4">{r.average_prep_minutes ? `${r.average_prep_minutes} min` : "-"}</td>
                 <td className="px-3 py-2 md:px-4">
                   <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${r.status === "active" ? "bg-emerald-50 text-emerald-700" : r.status === "pending" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
@@ -276,7 +301,7 @@ export default function RestaurantsPage({ token }) {
             ))}
             {!records.length && (
               <tr>
-                <td className="px-4 py-4 text-[#64748b]" colSpan={8}>
+                <td className="px-4 py-4 text-[#64748b]" colSpan={9}>
                   {loading ? "Loading..." : "No restaurants found."}
                 </td>
               </tr>
@@ -463,6 +488,69 @@ export default function RestaurantsPage({ token }) {
                 />
                 <span className="text-sm">Accept Food Orders</span>
               </div>
+              <div className="md:col-span-2 rounded-[16px] border border-emerald-100 bg-emerald-50/60 p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-800">Owner Commission</p>
+                    <h4 className="mt-1 text-base font-black text-[#101827]">Restaurant settlement rule</h4>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-[#24324a]">
+                    <input
+                      type="checkbox"
+                      checked={form.commission_enabled}
+                      onChange={(e) => setForm({ ...form, commission_enabled: e.target.checked })}
+                    />
+                    Enabled
+                  </label>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-4">
+                  <label className="text-xs font-bold text-[#64748b]">
+                    Commission Type
+                    <select
+                      className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm"
+                      value={form.commission_type}
+                      onChange={(e) => setForm({ ...form, commission_type: e.target.value })}
+                    >
+                      <option value="percentage">Percentage</option>
+                      <option value="fixed">Fixed</option>
+                      <option value="percentage_plus_fixed">Percentage + Fixed</option>
+                      <option value="none">None</option>
+                    </select>
+                  </label>
+                  <label className="text-xs font-bold text-[#64748b]">
+                    Percentage Rate
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm"
+                      value={form.commission_rate}
+                      onChange={(e) => setForm({ ...form, commission_rate: e.target.value })}
+                    />
+                  </label>
+                  <label className="text-xs font-bold text-[#64748b]">
+                    Fixed Fee
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm"
+                      value={form.commission_fixed_fee}
+                      onChange={(e) => setForm({ ...form, commission_fixed_fee: e.target.value })}
+                    />
+                  </label>
+                  <label className="text-xs font-bold text-[#64748b]">
+                    Settlement Cycle
+                    <select
+                      className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm"
+                      value={form.settlement_cycle}
+                      onChange={(e) => setForm({ ...form, settlement_cycle: e.target.value })}
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -514,6 +602,3 @@ export default function RestaurantsPage({ token }) {
     </div>
   );
 }
-
-
-

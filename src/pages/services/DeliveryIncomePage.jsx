@@ -23,6 +23,7 @@ function StatCard({ label, value, tone = "slate" }) {
     amber: "border-amber-200 bg-amber-50 text-amber-900",
     blue: "border-sky-200 bg-sky-50 text-sky-900",
     indigo: "border-indigo-200 bg-indigo-50 text-indigo-900",
+    violet: "border-violet-200 bg-violet-50 text-violet-900",
   };
   return (
     <div className={`rounded-[16px] border p-4 shadow-sm ${tones[tone] || tones.slate}`}>
@@ -47,7 +48,9 @@ function ServiceCard({ row }) {
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <StatCard label="Delivery Fee" value={money(row.delivery_fee_total)} tone="blue" />
         <StatCard label="Rider Payout" value={money(row.rider_payout_total)} tone="indigo" />
-        <StatCard label="Admin Income" value={money(row.admin_delivery_income_total)} tone="red" />
+        <StatCard label="Restaurant Commission" value={money(row.restaurant_commission_total)} tone="violet" />
+        <StatCard label="Owner Payable" value={money(row.restaurant_owner_payable_total)} tone="emerald" />
+        <StatCard label="Admin Income" value={money(row.admin_total_income)} tone="red" />
       </div>
     </div>
   );
@@ -140,13 +143,21 @@ export default function DeliveryIncomePage({ token }) {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-8">
         <StatCard label="Orders" value={totals.orders_count || 0} />
         <StatCard label="Delivered" value={totals.delivered_orders_count || 0} tone="emerald" />
         <StatCard label="Grand Total" value={money(totals.grand_total)} />
         <StatCard label="Delivery Fee" value={money(totals.delivery_fee_total)} tone="blue" />
         <StatCard label="Rider Payout" value={money(totals.rider_payout_total)} tone="indigo" />
-        <StatCard label="Admin Income" value={money(totals.admin_delivery_income_total)} tone="red" />
+        <StatCard label="Delivery Income" value={money(totals.admin_delivery_income_total)} tone="red" />
+        <StatCard label="Restaurant Commission" value={money(totals.restaurant_commission_total)} tone="violet" />
+        <StatCard label="Total Admin Income" value={money(totals.admin_total_income)} tone="red" />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <StatCard label="Restaurant Owner Payable" value={money(totals.restaurant_owner_payable_total)} tone="emerald" />
+        <StatCard label="COD Owner Due" value={money(totals.owner_settlement_due_total)} tone="amber" />
+        <StatCard label="Manual Net Balance" value={money(totals.owner_payable_after_manual_total)} />
       </div>
 
       <div className="rounded-[18px] border border-emerald-100 bg-emerald-50 p-5">
@@ -171,6 +182,7 @@ export default function DeliveryIncomePage({ token }) {
                 <th className="px-3 py-3 text-right">Grand Total</th>
                 <th className="px-3 py-3 text-right">Delivery Fee</th>
                 <th className="px-3 py-3 text-right">Rider Payout</th>
+                <th className="px-3 py-3 text-right">Restaurant Commission</th>
                 <th className="px-3 py-3 text-right">Admin Income</th>
               </tr>
             </thead>
@@ -182,7 +194,8 @@ export default function DeliveryIncomePage({ token }) {
                   <td className="px-3 py-3 text-right">{money(row.grand_total)}</td>
                   <td className="px-3 py-3 text-right">{money(row.delivery_fee_total)}</td>
                   <td className="px-3 py-3 text-right">{money(row.rider_payout_total)}</td>
-                  <td className="px-3 py-3 text-right font-black text-red-700">{money(row.admin_delivery_income_total)}</td>
+                  <td className="px-3 py-3 text-right">{money(row.restaurant_commission_total)}</td>
+                  <td className="px-3 py-3 text-right font-black text-red-700">{money(row.admin_total_income)}</td>
                 </tr>
               ))}
               {!methods.length && <tr><td colSpan={6} className="px-3 py-6 text-center text-[#64748b]">No income data found.</td></tr>}

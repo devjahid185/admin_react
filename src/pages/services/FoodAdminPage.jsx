@@ -97,6 +97,11 @@ const RESOURCE_CONFIG = {
       { key: "payment_method", label: "Payment Method", type: "select", options: ["cash_on_delivery", "manual_bkash", "manual_nagad", "online"], defaultValue: "cash_on_delivery" },
       { key: "payment_status", label: "Payment Status", type: "select", options: ["unpaid", "paid", "refunded"], defaultValue: "unpaid" },
       { key: "items_total", label: "Items Total", type: "number", defaultValue: 0 },
+      { key: "restaurant_commission_type", label: "Restaurant Commission Type", type: "select", options: ["percentage", "fixed", "percentage_plus_fixed", "none"], defaultValue: "percentage" },
+      { key: "restaurant_commission_rate", label: "Restaurant Commission Rate", type: "number", defaultValue: 0 },
+      { key: "restaurant_commission_fixed_fee", label: "Restaurant Commission Fixed Fee", type: "number", defaultValue: 0 },
+      { key: "restaurant_commission_amount", label: "Restaurant Commission Amount", type: "number", defaultValue: 0 },
+      { key: "restaurant_owner_payable", label: "Restaurant Owner Payable", type: "number", defaultValue: 0 },
       { key: "delivery_fee", label: "Delivery Fee", type: "number", defaultValue: 0 },
       { key: "rider_earning", label: "Rider Earning", type: "number", defaultValue: 0 },
       { key: "admin_delivery_income", label: "Admin Delivery Income", type: "number", defaultValue: 0 },
@@ -108,7 +113,7 @@ const RESOURCE_CONFIG = {
       { key: "coupon_code", label: "Coupon Code" },
       { key: "order_note", label: "Order Note", type: "textarea" },
     ],
-    columns: ["id", "order_no", "restaurant", "payment_method", "payment_status", "manual_transaction_id", "payment_proof_photo_url", "rider_assignment_label", "accepted_rider_name", "route_distance_km", "receiver_name", "status", "delivery_fee", "rider_earning", "admin_delivery_income", "grand_total", "created_at"],
+    columns: ["id", "order_no", "restaurant", "payment_method", "payment_status", "manual_transaction_id", "payment_proof_photo_url", "rider_assignment_label", "accepted_rider_name", "route_distance_km", "receiver_name", "status", "delivery_fee", "rider_earning", "admin_delivery_income", "restaurant_commission_amount", "restaurant_owner_payable", "admin_total_income", "grand_total", "created_at"],
   },
   "medicine-items": {
     title: "Medicine Items",
@@ -615,6 +620,13 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                   <h4 className="text-base font-bold text-[#111827]">Billing Summary</h4>
                   <div className="mt-4 space-y-2 text-sm">
                     <SummaryLine label="Items Total" value={`BDT ${order?.items_total || 0}`} />
+                    {order?.service_type !== "medicine" && (
+                      <>
+                        <SummaryLine label="Restaurant Commission" value={`BDT ${order?.restaurant_commission_amount || 0}`} />
+                        <SummaryLine label="Restaurant Owner Payable" value={`BDT ${order?.restaurant_owner_payable || 0}`} />
+                        <SummaryLine label="Admin Total Income" value={`BDT ${order?.admin_total_income || 0}`} />
+                      </>
+                    )}
                     <SummaryLine label="Delivery Fee" value={`BDT ${order?.delivery_fee || 0}`} />
                     <SummaryLine label="Rider Payout" value={`BDT ${order?.rider_earning || 0}`} />
                     <SummaryLine label="Admin Delivery Income" value={`BDT ${order?.admin_delivery_income || 0}`} />
@@ -809,16 +821,20 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
         </div>
         {loading && <span className="text-xs font-semibold text-[#64748b]">Refreshing...</span>}
       </div>
-      <div className="grid gap-3 md:grid-cols-6">
+      <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-8">
         <SummaryCard label="Orders" value={totals.orders_count || 0} />
         <SummaryCard label="Grand Total" value={money(totals.grand_total)} />
         <SummaryCard label="Owner Received" value={money(totals.owner_received_total)} tone="emerald" />
         <SummaryCard label="COD Collectable" value={money(totals.cod_collectable_total)} tone="amber" />
         <SummaryCard label="Delivery Charge" value={money(totals.delivery_fee_total)} tone="blue" />
         <SummaryCard label="Admin Income" value={money(totals.admin_delivery_income_total)} tone="red" />
+        <SummaryCard label="Restaurant Commission" value={money(totals.restaurant_commission_total)} tone="violet" />
+        <SummaryCard label="Total Admin Income" value={money(totals.admin_total_income)} tone="red" />
       </div>
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-5">
         <SummaryCard label="Rider Payout" value={money(totals.rider_payout_total)} tone="indigo" />
+        <SummaryCard label="Owner Payable" value={money(totals.restaurant_owner_payable_total)} tone="emerald" />
+        <SummaryCard label="COD Owner Due" value={money(totals.owner_settlement_due_total)} tone="amber" />
         <SummaryCard label="Delivered Orders" value={totals.delivered_orders_count ?? "-"} />
         <SummaryCard label="Current Rider Rule" value={`Fixed ${money(settings.rider_fixed_earning)} • KM ${money(settings.rider_per_km_earning)}`} tone="emerald" />
       </div>
@@ -833,7 +849,7 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
               <div className="mt-3 grid gap-2 sm:grid-cols-3">
                 <MiniMetric label="Fee" value={money(row.delivery_fee_total)} />
                 <MiniMetric label="Rider" value={money(row.rider_payout_total)} />
-                <MiniMetric label="Admin" value={money(row.admin_delivery_income_total)} />
+                <MiniMetric label="Admin" value={money(row.admin_total_income)} />
               </div>
             </div>
           ))}
@@ -851,6 +867,8 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
                 <th className="px-3 py-3 text-right">Delivery Charge</th>
                 <th className="px-3 py-3 text-right">Rider Payout</th>
                 <th className="px-3 py-3 text-right">Admin Income</th>
+                <th className="px-3 py-3 text-right">Restaurant Commission</th>
+                <th className="px-3 py-3 text-right">Owner Payable</th>
                 <th className="px-3 py-3 text-right">Grand Total</th>
               </tr>
             </thead>
@@ -866,12 +884,14 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
                   <td className="px-3 py-3 text-right font-bold text-amber-700">{money(row.cod_collectable_total)}</td>
                   <td className="px-3 py-3 text-right">{money(row.delivery_fee_total)}</td>
                   <td className="px-3 py-3 text-right">{money(row.rider_payout_total)}</td>
-                  <td className="px-3 py-3 text-right font-bold text-red-700">{money(row.admin_delivery_income_total)}</td>
+                  <td className="px-3 py-3 text-right font-bold text-red-700">{money(row.admin_total_income)}</td>
+                  <td className="px-3 py-3 text-right">{money(row.restaurant_commission_total)}</td>
+                  <td className="px-3 py-3 text-right font-bold text-emerald-700">{money(row.restaurant_owner_payable_total)}</td>
                   <td className="px-3 py-3 text-right font-bold">{money(row.grand_total)}</td>
                 </tr>
               ))}
               {!owners.length && (
-                <tr><td colSpan={8} className="px-3 py-5 text-center text-[#64748b]">No payment data found for selected filters.</td></tr>
+                <tr><td colSpan={10} className="px-3 py-5 text-center text-[#64748b]">No payment data found for selected filters.</td></tr>
               )}
             </tbody>
           </table>
@@ -887,11 +907,11 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
                 </div>
                 <div className="mt-2 flex justify-between text-sm">
                   <span>Total {money(row.grand_total)}</span>
-                  <span>Admin {money(row.admin_delivery_income_total)}</span>
+                  <span>Admin {money(row.admin_total_income)}</span>
                 </div>
                 <div className="mt-1 flex justify-between text-xs text-[#64748b]">
                   <span>Delivery {money(row.delivery_fee_total)}</span>
-                  <span>Rider {money(row.rider_payout_total)}</span>
+                  <span>Commission {money(row.restaurant_commission_total)}</span>
                 </div>
               </div>
             ))}
@@ -911,6 +931,7 @@ function SummaryCard({ label, value, tone = "slate" }) {
     blue: "border-sky-200 bg-sky-50 text-sky-900",
     indigo: "border-indigo-200 bg-indigo-50 text-indigo-900",
     red: "border-red-200 bg-red-50 text-red-900",
+    violet: "border-violet-200 bg-violet-50 text-violet-900",
   };
   return (
     <div className={`rounded-[14px] border p-3 ${tones[tone] || tones.slate}`}>
