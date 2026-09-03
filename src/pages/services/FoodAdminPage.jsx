@@ -113,7 +113,7 @@ const RESOURCE_CONFIG = {
       { key: "coupon_code", label: "Coupon Code" },
       { key: "order_note", label: "Order Note", type: "textarea" },
     ],
-    columns: ["id", "order_no", "restaurant", "payment_method", "payment_status", "manual_transaction_id", "payment_proof_photo_url", "rider_assignment_label", "accepted_rider_name", "route_distance_km", "receiver_name", "status", "delivery_fee", "rider_earning", "admin_delivery_income", "restaurant_commission_amount", "restaurant_owner_payable", "admin_total_income", "grand_total", "created_at"],
+    columns: ["id", "order_no", "restaurant", "payment_method", "payment_status", "manual_transaction_id", "payment_proof_photo_url", "rider_assignment_label", "accepted_rider_name", "route_distance_km", "receiver_name", "status", "grand_total", "created_at"],
   },
   "medicine-items": {
     title: "Medicine Items",
@@ -164,7 +164,7 @@ const RESOURCE_CONFIG = {
       { key: "grand_total", label: "Grand Total", type: "number", defaultValue: 0 },
       { key: "order_note", label: "Order Note", type: "textarea" },
     ],
-    columns: ["id", "order_no", "payment_method", "payment_status", "rider_assignment_label", "accepted_rider_name", "receiver_name", "receiver_phone", "status", "items_total", "delivery_fee", "rider_earning", "admin_delivery_income", "grand_total", "created_at"],
+    columns: ["id", "order_no", "payment_method", "payment_status", "rider_assignment_label", "accepted_rider_name", "receiver_name", "receiver_phone", "status", "items_total", "grand_total", "created_at"],
   },
   riders: {
     title: "রাইডার তালিকা",
@@ -1010,8 +1010,6 @@ export default function FoodAdminPage({ token, resource }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [orderFilters, setOrderFilters] = useState({ payment_method: "", payment_status: "", status: "", restaurant_id: "", date_from: "", date_to: "" });
-  const [paymentSummary, setPaymentSummary] = useState(null);
-  const [summaryLoading, setSummaryLoading] = useState(false);
 
   const orderQueryString = () => {
     const params = new URLSearchParams();
@@ -1060,28 +1058,6 @@ export default function FoodAdminPage({ token, resource }) {
   useEffect(() => {
     setPage(1);
   }, [search, orderFilters]);
-
-  const loadPaymentSummary = async () => {
-    if (resource !== "food-orders" && resource !== "medicine-orders") return;
-    setSummaryLoading(true);
-    try {
-      const qs = orderQueryString();
-      const data =
-        resource === "food-orders"
-          ? await apiRequest(`/admin/food-orders/payment-summary${qs ? `?${qs}` : ""}`, { token })
-          : await apiRequest(`/admin/delivery-income-summary${qs ? `?${qs}` : ""}`, { token });
-      setPaymentSummary(data);
-    } catch (err) {
-      console.warn("Unable to load delivery payment summary", err);
-      setPaymentSummary(null);
-    } finally {
-      setSummaryLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadPaymentSummary();
-  }, [resource, token, search, orderFilters]);
 
   useEffect(() => {
     if (!imageFile) {
@@ -1357,10 +1333,7 @@ export default function FoodAdminPage({ token, resource }) {
       {error && <div className="rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       {(resource === "food-orders" || resource === "medicine-orders") && (
-        <>
-          <FoodOrderFilterBar filters={orderFilters} onChange={setOrderFilters} hideRestaurant={resource === "medicine-orders"} />
-          <FoodPaymentSummaryPanel summary={paymentSummary} loading={summaryLoading} />
-        </>
+        <FoodOrderFilterBar filters={orderFilters} onChange={setOrderFilters} hideRestaurant={resource === "medicine-orders"} />
       )}
 
       <BulkDeleteBar

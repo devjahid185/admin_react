@@ -69,7 +69,7 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Medicine Payments", slug: "medicine-payment-settings", group_name: "Medicine Delivery", route: "/admin/medicine-payment-settings" },
   { name: "Rider Management", slug: "riders", group_name: "Rider System", route: "/admin/riders" },
   { name: "Rider Settings", slug: "rider-settings", group_name: "Rider System", route: "/admin/rider-settings" },
-  { name: "Admin Income", slug: "delivery-income", group_name: "Finance", route: "/admin/delivery-income" },
+  { name: "Income Reconciliation", slug: "delivery-income", group_name: "Finance", route: "/admin/delivery-income" },
   { name: "Property", slug: "property", group_name: "Services", route: "/admin/property" },
   { name: "Education", slug: "education", group_name: "Services", route: "/admin/education" },
   { name: "Blood Donation", slug: "blood", group_name: "Services", route: "/admin/blood" },
