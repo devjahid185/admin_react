@@ -19,7 +19,6 @@ const defaultForm = {
   bkash_number: "",
   nagad_number: "",
   bkash_tokenized_base_url: "https://tokenized.sandbox.bka.sh/v1.2.0-beta/tokenized/checkout",
-  bkash_tokenized_callback_url: "",
   bkash_tokenized_app_key: "",
   bkash_tokenized_app_secret: "",
   bkash_tokenized_username: "",
@@ -227,7 +226,12 @@ export default function MedicinePaymentSettingsPage({ token, onUnauthorized }) {
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <Input label="Base URL" value={form.bkash_tokenized_base_url || ""} onChange={(e) => updateField("bkash_tokenized_base_url", e.target.value)} />
-                <Input label="Callback URL" value={form.bkash_tokenized_callback_url || ""} onChange={(e) => updateField("bkash_tokenized_callback_url", e.target.value)} placeholder="https://api.bholavashi.site/api/medicine/bkash/callback" />
+                <label className="block text-sm font-semibold text-[#24324a]">
+                  Callback URL
+                  <div className="mt-1.5 rounded-[14px] border border-[#dfe6ef] bg-white px-3.5 py-2.5 text-sm text-[#64748b] shadow-sm">
+                    {form.bkash_tokenized_callback_url || "Server will generate automatically"}
+                  </div>
+                </label>
                 <Input label="App Key" value={form.bkash_tokenized_app_key || ""} onChange={(e) => updateField("bkash_tokenized_app_key", e.target.value)} placeholder="bKash app key" />
                 <Input label="App Secret" value={form.bkash_tokenized_app_secret || ""} onChange={(e) => updateField("bkash_tokenized_app_secret", e.target.value)} placeholder="bKash app secret" />
                 <Input label="Username" value={form.bkash_tokenized_username || ""} onChange={(e) => updateField("bkash_tokenized_username", e.target.value)} placeholder="bKash username" />
