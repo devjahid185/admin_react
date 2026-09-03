@@ -8,17 +8,28 @@ const defaultForm = {
   manual_bkash_enabled: false,
   manual_nagad_enabled: false,
   online_enabled: false,
+  bkash_tokenized_enabled: false,
+  bkash_tokenized_sandbox: true,
   require_manual_payment_proof: false,
   cod_title: "Cash on Delivery",
   manual_bkash_title: "Manual bKash",
   manual_nagad_title: "Manual Nagad",
   online_title: "Online Payment",
+  bkash_tokenized_title: "bKash Checkout",
   bkash_number: "",
   nagad_number: "",
+  bkash_tokenized_base_url: "https://tokenized.sandbox.bka.sh/v1.2.0-beta/tokenized/checkout",
+  bkash_tokenized_callback_url: "",
+  bkash_tokenized_app_key: "",
+  bkash_tokenized_app_secret: "",
+  bkash_tokenized_username: "",
+  bkash_tokenized_password: "",
+  bkash_tokenized_credentials_ready: false,
   cod_instructions: "মেডিসিন হাতে পেয়ে টাকা দিন।",
   manual_bkash_instructions: "Send Money করে transaction ID দিন।",
   manual_nagad_instructions: "Send Money করে transaction ID দিন।",
   online_instructions: "",
+  bkash_tokenized_instructions: "bKash checkout পেজে নিরাপদে পেমেন্ট সম্পন্ন করুন।",
   payment_notice: "",
 };
 
@@ -50,6 +61,14 @@ const methodConfigs = [
     tone: "orange",
   },
   {
+    key: "bkash_tokenized",
+    enabled: "bkash_tokenized_enabled",
+    title: "bkash_tokenized_title",
+    instructions: "bkash_tokenized_instructions",
+    heading: "bKash Tokenized Checkout",
+    tone: "rose",
+  },
+  {
     key: "online",
     enabled: "online_enabled",
     title: "online_title",
@@ -62,6 +81,7 @@ const methodConfigs = [
 const toneClasses = {
   amber: "border-amber-200 bg-amber-50 text-amber-800",
   pink: "border-pink-200 bg-pink-50 text-pink-800",
+  rose: "border-rose-200 bg-rose-50 text-rose-800",
   orange: "border-orange-200 bg-orange-50 text-orange-800",
   emerald: "border-emerald-200 bg-emerald-50 text-emerald-800",
 };
@@ -178,6 +198,43 @@ export default function MedicinePaymentSettingsPage({ token, onUnauthorized }) {
               </section>
             ))}
 
+            <section className="rounded-[14px] border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+              <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <h3 className="font-semibold text-[#101827]">bKash Tokenized Credentials</h3>
+                  <p className="mt-1 text-xs text-[#64748b]">
+                    {form.bkash_tokenized_credentials_ready ? "Credentials are saved. Enter a new value only when you want to replace it." : "Add credentials before enabling bKash checkout for users."}
+                  </p>
+                </div>
+                <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#24324a]">
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5 accent-red-700"
+                    checked={Boolean(form.bkash_tokenized_sandbox)}
+                    onChange={(e) => {
+                      const sandbox = e.target.checked;
+                      updateField("bkash_tokenized_sandbox", sandbox);
+                      updateField(
+                        "bkash_tokenized_base_url",
+                        sandbox
+                          ? "https://tokenized.sandbox.bka.sh/v1.2.0-beta/tokenized/checkout"
+                          : "https://tokenized.pay.bka.sh/v1.2.0-beta/tokenized/checkout",
+                      );
+                    }}
+                  />
+                  Sandbox mode
+                </label>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <Input label="Base URL" value={form.bkash_tokenized_base_url || ""} onChange={(e) => updateField("bkash_tokenized_base_url", e.target.value)} />
+                <Input label="Callback URL" value={form.bkash_tokenized_callback_url || ""} onChange={(e) => updateField("bkash_tokenized_callback_url", e.target.value)} placeholder="https://api.bholavashi.site/api/medicine/bkash/callback" />
+                <Input label="App Key" value={form.bkash_tokenized_app_key || ""} onChange={(e) => updateField("bkash_tokenized_app_key", e.target.value)} placeholder="bKash app key" />
+                <Input label="App Secret" value={form.bkash_tokenized_app_secret || ""} onChange={(e) => updateField("bkash_tokenized_app_secret", e.target.value)} placeholder="bKash app secret" />
+                <Input label="Username" value={form.bkash_tokenized_username || ""} onChange={(e) => updateField("bkash_tokenized_username", e.target.value)} placeholder="bKash username" />
+                <Input label="Password" type="password" value={form.bkash_tokenized_password || ""} onChange={(e) => updateField("bkash_tokenized_password", e.target.value)} placeholder="bKash password" />
+              </div>
+            </section>
+
             <label className="block text-sm font-semibold text-[#24324a] md:col-span-2">
               Checkout Notice
               <textarea
@@ -208,6 +265,7 @@ export default function MedicinePaymentSettingsPage({ token, onUnauthorized }) {
                         <p className="mt-1 text-xs text-[#64748b]">{option.number || option.subtitle || "No number required"}</p>
                       </div>
                       {option.requires_proof && <span className="rounded-full bg-red-100 px-2 py-1 text-[11px] font-semibold text-red-700">Proof</span>}
+                      {option.opens_url && <span className="rounded-full bg-pink-100 px-2 py-1 text-[11px] font-semibold text-pink-700">URL</span>}
                     </div>
                     {option.instructions && <p className="mt-2 text-xs text-[#53637a]">{option.instructions}</p>}
                   </div>
