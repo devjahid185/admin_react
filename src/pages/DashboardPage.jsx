@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout.jsx";
 import { apiRequest } from "../lib/api.js";
+import { API_BASE } from "../lib/config.js";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../components/BulkDeleteBar.jsx";
 import Button from "../components/Button.jsx";
 import UsersPage from "./UsersPage.jsx";
@@ -107,6 +108,30 @@ function mergeAdminModules(apiModules = []) {
 
 const compact = (value) => Number(value || 0).toLocaleString();
 const money = (value) => `BDT ${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+const ADMIN_ALERT_STORAGE_KEY = "bv_admin_alert_counters";
+
+const MONITORED_COUNTERS = [
+  { key: "food_orders", label: "New food order", slug: "food-orders", type: "Order" },
+  { key: "medicine_orders", label: "New medicine order", slug: "medicine-orders", type: "Order" },
+  { key: "rider_requests", label: "New delivery request", slug: "delivery-income", type: "Delivery" },
+  { key: "food_items", label: "New food item", slug: "food-items", type: "Food" },
+  { key: "medicine_items", label: "New medicine item", slug: "medicine-items", type: "Medicine" },
+  { key: "restaurants", label: "New restaurant", slug: "restaurants", type: "Food" },
+  { key: "workers", label: "New worker service", slug: "workers", type: "Service" },
+  { key: "businesses", label: "New business", slug: "businesses", type: "Service" },
+  { key: "marketplace_items", label: "New marketplace item", slug: "marketplace", type: "Service" },
+  { key: "jobs", label: "New job post", slug: "jobs", type: "Service" },
+  { key: "doctors", label: "New doctor listing", slug: "doctors", type: "Service" },
+  { key: "hospitals", label: "New hospital listing", slug: "hospitals", type: "Service" },
+  { key: "hotels", label: "New hotel listing", slug: "hotels", type: "Service" },
+  { key: "properties", label: "New property listing", slug: "property", type: "Service" },
+  { key: "education", label: "New education listing", slug: "education", type: "Service" },
+  { key: "car_rentals", label: "New car rental", slug: "car-rental", type: "Service" },
+  { key: "launches", label: "New launch service", slug: "launches", type: "Service" },
+  { key: "couriers", label: "New courier office", slug: "courier", type: "Service" },
+  { key: "messages_total", label: "New message", slug: "messages", type: "Support" },
+  { key: "reports_pending", label: "New pending report", slug: "reports", type: "Moderation" },
+];
 
 function formatDate(value) {
   if (!value) return "-";
@@ -118,6 +143,61 @@ function formatDate(value) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function readStoredCounters() {
+  try {
+    return JSON.parse(localStorage.getItem(ADMIN_ALERT_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveStoredCounters(counters) {
+  try {
+    localStorage.setItem(ADMIN_ALERT_STORAGE_KEY, JSON.stringify(counters));
+  } catch {}
+}
+
+function countersFromStats(stats = {}) {
+  return MONITORED_COUNTERS.reduce((acc, item) => {
+    acc[item.key] = Number(stats?.[item.key] || 0);
+    return acc;
+  }, {});
+}
+
+function createAlertTone(ctx) {
+  const now = ctx.currentTime;
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.exponentialRampToValueAtTime(0.2, now + 0.08);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + 5);
+  master.connect(ctx.destination);
+
+  [0, 0.45, 0.9, 1.35, 1.8, 2.35, 2.9, 3.45, 4].forEach((offset, index) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(index % 2 ? 740 : 520, now + offset);
+    gain.gain.setValueAtTime(0.0001, now + offset);
+    gain.gain.exponentialRampToValueAtTime(0.55, now + offset + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.34);
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start(now + offset);
+    osc.stop(now + offset + 0.38);
+  });
+}
+
+async function fetchAdminStatsSilently(token) {
+  const res = await fetch(`${API_BASE}/admin/stats`, {
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error("Unable to poll admin stats");
+  return res.json();
 }
 
 function StatTile({ item, onOpen }) {
@@ -450,6 +530,127 @@ export default function DashboardPage({ token, onLogout }) {
   const [dashboardRecent, setDashboardRecent] = useState(null);
   const [coreSelectedIds, setCoreSelectedIds] = useState([]);
   const [coreBulkDeleting, setCoreBulkDeleting] = useState(false);
+  const [liveAlert, setLiveAlert] = useState(null);
+  const [soundReady, setSoundReady] = useState(false);
+  const [notificationReady, setNotificationReady] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
+  const alertCountersRef = useRef(readStoredCounters());
+  const audioRef = useRef(null);
+  const titleTimerRef = useRef(null);
+  const originalTitleRef = useRef(document.title);
+
+  const unlockAudio = async () => {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      if (!audioRef.current) audioRef.current = new AudioContextClass();
+      if (audioRef.current.state === "suspended") await audioRef.current.resume();
+      setSoundReady(audioRef.current.state === "running");
+    } catch {}
+  };
+
+  const requestNotifications = async () => {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "default") {
+      try {
+        const result = await Notification.requestPermission();
+        setNotificationReady(result === "granted");
+      } catch {}
+    } else {
+      setNotificationReady(Notification.permission === "granted");
+    }
+  };
+
+  const armAlerts = () => {
+    unlockAudio();
+    requestNotifications();
+  };
+
+  useEffect(() => {
+    const handler = () => armAlerts();
+    window.addEventListener("pointerdown", handler, { once: true });
+    window.addEventListener("keydown", handler, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", handler);
+      window.removeEventListener("keydown", handler);
+    };
+  }, []);
+
+  useEffect(() => () => {
+    if (titleTimerRef.current) clearInterval(titleTimerRef.current);
+    document.title = originalTitleRef.current;
+  }, []);
+
+  const fireLiveAlert = (changes) => {
+    const primary = changes[0];
+    const total = changes.reduce((sum, item) => sum + item.delta, 0);
+    const title = changes.length === 1 ? primary.label : `${changes.length} new admin updates`;
+    const message = changes.length === 1
+      ? `${primary.delta} new ${primary.type.toLowerCase()} item detected.`
+      : `${total} new records detected across orders, delivery and services.`;
+
+    setLiveAlert({
+      title,
+      message,
+      changes,
+      createdAt: new Date().toISOString(),
+    });
+
+    if (audioRef.current?.state === "running") {
+      createAlertTone(audioRef.current);
+    }
+
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      try {
+        const notification = new Notification(title, {
+          body: message,
+          icon: "/favicon_bholavashi.png",
+          tag: `bholavashi-admin-${primary.key}`,
+          requireInteraction: true,
+        });
+        notification.onclick = () => {
+          window.focus();
+          if (primary.slug) setActiveModule(primary.slug);
+          notification.close();
+        };
+      } catch {}
+    }
+
+    if (titleTimerRef.current) clearInterval(titleTimerRef.current);
+    let flip = false;
+    titleTimerRef.current = setInterval(() => {
+      flip = !flip;
+      document.title = flip ? `(${total}) New update` : originalTitleRef.current;
+    }, 900);
+    setTimeout(() => {
+      if (titleTimerRef.current) clearInterval(titleTimerRef.current);
+      titleTimerRef.current = null;
+      document.title = originalTitleRef.current;
+    }, 15000);
+  };
+
+  const applyStatsPayload = (data, shouldDetectAlerts = false) => {
+    const nextStats = { ...(data.stats || {}), charts: data.charts || {} };
+    setDashboardStats(nextStats);
+    setDashboardRecent(data.recent || null);
+
+    const nextCounters = countersFromStats(nextStats);
+    const previousCounters = alertCountersRef.current || {};
+    const hasPrevious = MONITORED_COUNTERS.some((item) => previousCounters[item.key] !== undefined);
+    const changes = shouldDetectAlerts && hasPrevious
+      ? MONITORED_COUNTERS
+          .map((item) => ({
+            ...item,
+            previous: Number(previousCounters[item.key] || 0),
+            current: Number(nextCounters[item.key] || 0),
+            delta: Number(nextCounters[item.key] || 0) - Number(previousCounters[item.key] || 0),
+          }))
+          .filter((item) => item.delta > 0)
+      : [];
+
+    alertCountersRef.current = nextCounters;
+    saveStoredCounters(nextCounters);
+    if (changes.length) fireLiveAlert(changes);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -480,6 +681,22 @@ export default function DashboardPage({ token, onLogout }) {
     };
     loadStats();
   }, [activeModule, token]);
+
+  useEffect(() => {
+    let stopped = false;
+    const poll = async () => {
+      try {
+        const data = await fetchAdminStatsSilently(token);
+        if (!stopped) applyStatsPayload(data, true);
+      } catch (_) {}
+    };
+    poll();
+    const timer = setInterval(poll, 5000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [token]);
 
   useEffect(() => {
     const loadModules = async () => {
@@ -631,6 +848,75 @@ export default function DashboardPage({ token, onLogout }) {
       onSelectModule={(item) => setActiveModule(item.slug)}
     >
       {error && <div className="mb-4 text-red-600">{error}</div>}
+      {!soundReady && (
+        <div className="mb-4 flex flex-col gap-3 rounded-[16px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 shadow-sm md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="font-black">Live alert sound is waiting for browser permission.</p>
+            <p className="mt-1 text-amber-800">Click enable once so new order, delivery and service alerts can play the 5 second tone.</p>
+          </div>
+          <Button type="button" variant="ghost" onClick={armAlerts}>Enable live alerts</Button>
+        </div>
+      )}
+      {liveAlert && (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-[22px] border border-red-100 bg-white shadow-2xl">
+            <div className="bg-gradient-to-r from-[#ee0012] to-[#ff5664] p-5 text-white">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/75">Live admin alert</p>
+                  <h3 className="mt-2 text-2xl font-black">{liveAlert.title}</h3>
+                  <p className="mt-1 text-sm text-white/85">{liveAlert.message}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLiveAlert(null)}
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-white/15 text-xl font-black hover:bg-white/25"
+                  aria-label="Close alert"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="space-y-2">
+                {liveAlert.changes.slice(0, 6).map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      setLiveAlert(null);
+                      if (item.slug) setActiveModule(item.slug);
+                    }}
+                    className="flex w-full items-center justify-between gap-3 rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] px-4 py-3 text-left transition hover:border-red-200 hover:bg-white"
+                  >
+                    <div>
+                      <p className="font-black text-[#101827]">{item.label}</p>
+                      <p className="text-xs font-semibold text-[#64748b]">{item.type} update detected</p>
+                    </div>
+                    <span className="rounded-full bg-red-50 px-3 py-1 text-sm font-black text-[#ee0012]">+{item.delta}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <Button type="button" variant="ghost" onClick={() => setLiveAlert(null)}>Close</Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const first = liveAlert.changes[0];
+                    setLiveAlert(null);
+                    if (first?.slug) setActiveModule(first.slug);
+                  }}
+                >
+                  Open latest
+                </Button>
+              </div>
+              <p className="mt-3 text-xs font-semibold text-[#8b98ab]">
+                Browser notification: {notificationReady ? "enabled" : "not enabled"} · Sound: {soundReady ? "enabled" : "needs one click"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {["admins", "reports", "reviews"].includes(activeModule) && (
         <div className="mb-4">
           <BulkDeleteBar
