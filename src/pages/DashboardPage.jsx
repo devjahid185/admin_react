@@ -5,6 +5,7 @@ import { API_BASE } from "../lib/config.js";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../components/BulkDeleteBar.jsx";
 import Button from "../components/Button.jsx";
 import UsersPage from "./UsersPage.jsx";
+import StaffManagementPage from "./StaffManagementPage.jsx";
 import WorkersPage from "./services/WorkersPage.jsx";
 import BusinessesPage from "./services/BusinessesPage.jsx";
 import MarketplacePage from "./services/MarketplacePage.jsx";
@@ -48,6 +49,7 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Dashboard", slug: "dashboard", group_name: "Core", route: "/admin" },
   { name: "Profile", slug: "profile", group_name: "Core", route: "/admin/profile" },
   { name: "Users", slug: "users", group_name: "Core", route: "/admin/users" },
+  { name: "Staff Management", slug: "staff-management", group_name: "Core", route: "/admin/staff-management" },
   { name: "Home Banners", slug: "home-banners", group_name: "Engagement", route: "/admin/home-banners" },
   { name: "Home Services", slug: "home-service-shortcuts", group_name: "Engagement", route: "/admin/home-service-shortcuts" },
   { name: "Workers", slug: "workers", group_name: "Services", route: "/admin/workers" },
@@ -97,13 +99,16 @@ const DEFAULT_ADMIN_MODULES = [
 
 function mergeAdminModules(apiModules = []) {
   const hidden = new Set(["rider-documents", "rider-wallet", "rider-support-tickets", "rider-ratings", "rider-locations"]);
-  const merged = new Map(DEFAULT_ADMIN_MODULES.map((item) => [item.slug, item]));
-  apiModules.forEach((item) => {
+  if (!apiModules.length) {
+    return DEFAULT_ADMIN_MODULES.filter((item) => !hidden.has(item.slug));
+  }
+  const defaults = new Map(DEFAULT_ADMIN_MODULES.map((item) => [item.slug, item]));
+  return apiModules.map((item) => {
     if (item?.slug && !hidden.has(item.slug)) {
-      merged.set(item.slug, { ...merged.get(item.slug), ...item });
+      return { ...defaults.get(item.slug), ...item };
     }
-  });
-  return Array.from(merged.values()).filter((item) => !hidden.has(item.slug));
+    return null;
+  }).filter(Boolean);
 }
 
 const compact = (value) => Number(value || 0).toLocaleString();
@@ -748,7 +753,7 @@ export default function DashboardPage({ token, onLogout }) {
 
   const moduleTitle = useMemo(() => {
     if (activeModule === "users") return "Users";
-    if (activeModule === "admins") return "Admins";
+    if (activeModule === "staff-management") return "Staff / User Management";
     if (activeModule === "reports") return "Reports";
     if (activeModule === "reviews") return "Reviews";
     if (activeModule === "dashboard") return "Dashboard";
@@ -788,6 +793,7 @@ export default function DashboardPage({ token, onLogout }) {
 
   const servicePageMap = {
     users: UsersPage,
+    "staff-management": StaffManagementPage,
     profile: ProfilePage,
     workers: WorkersPage,
     businesses: BusinessesPage,
