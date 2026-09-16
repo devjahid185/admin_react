@@ -283,24 +283,6 @@ function DashboardOverview({ stats, recent, onOpen }) {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[18px] border border-[#101827] bg-[#08111f] p-5 text-white shadow-sm md:p-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300">A to Z Operations Summary</p>
-            <h2 className="mt-3 text-2xl font-black md:text-3xl">Bholavashi full command dashboard</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/70">
-              Users, traffic, food, medicine, riders, finance, SMS, content, moderation and local services in one professional overview.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <MiniMetric label="Visits today" value={stats?.visits_today} note={`${compact(stats?.unique_visitors_today)} unique`} />
-            <MiniMetric label="Orders today" value={Number(stats?.food_orders_today || 0) + Number(stats?.medicine_orders_today || 0)} note="Food + medicine" />
-            <MiniMetric label="Total revenue" value={money(Number(stats?.food_revenue_total || 0) + Number(stats?.medicine_revenue_total || 0))} note="Delivered only" />
-            <MiniMetric label="Payout due" value={money(stats?.rider_pending_payout)} note="Rider pending" />
-          </div>
-        </div>
-      </section>
-
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {topKpis.map((item) => <StatTile key={item.label} item={item} onOpen={onOpen} />)}
       </section>
