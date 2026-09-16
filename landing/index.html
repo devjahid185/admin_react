@@ -1,28 +1,37 @@
 <!doctype html>
-<html lang="bn">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Bholavashi is Bhola's digital service app for food, medicine, local services, delivery, riders and everyday support."
+      content="Bholavashi is Bhola's local digital service ecosystem for food delivery, medicine delivery, riders, restaurants, local services and everyday support."
     />
-    <title>Bholavashi | Bhola's Digital Service App</title>
+    <title>Bholavashi | Bhola's Everyday Digital Ecosystem</title>
     <link rel="icon" type="image/png" href="/favicon_bholavashi.png" />
     <style>
       :root {
         color-scheme: light;
-        --ink: #14201b;
-        --muted: #66736e;
-        --line: #dfe7e2;
+        --ink: #101915;
+        --muted: #66746d;
+        --soft: #eef7f2;
+        --paper: #f8fbf8;
+        --line: rgba(16, 25, 21, 0.12);
         --green: #08745c;
-        --red: #c9192e;
-        --blue: #1f5e9d;
-        --paper: #f7faf8;
+        --green-2: #13a176;
+        --red: #d82036;
+        --amber: #f2a51b;
+        --blue: #2563eb;
+        --violet: #7c3aed;
+        --shadow: 0 28px 85px rgba(16, 25, 21, 0.13);
       }
 
       * {
         box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
       }
 
       body {
@@ -37,24 +46,47 @@
         text-decoration: none;
       }
 
+      img {
+        max-width: 100%;
+        display: block;
+      }
+
       .shell {
+        position: relative;
         min-height: 100vh;
         overflow: hidden;
+        background:
+          radial-gradient(circle at 10% 4%, rgba(19, 161, 118, 0.18), transparent 26rem),
+          radial-gradient(circle at 88% 12%, rgba(216, 32, 54, 0.13), transparent 24rem),
+          linear-gradient(180deg, #ffffff 0%, #f7fbf8 44%, #ffffff 100%);
+      }
+
+      .noise {
+        pointer-events: none;
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        opacity: 0.38;
+        background-image:
+          linear-gradient(rgba(16, 25, 21, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(16, 25, 21, 0.025) 1px, transparent 1px);
+        background-size: 34px 34px;
+        mask-image: linear-gradient(to bottom, #000, transparent 78%);
+      }
+
+      .section,
+      .nav-inner {
+        width: min(1180px, calc(100% - 34px));
+        margin: 0 auto;
       }
 
       .nav {
         position: sticky;
         top: 0;
-        z-index: 10;
-        border-bottom: 1px solid rgba(223, 231, 226, 0.86);
-        background: rgba(247, 250, 248, 0.92);
-        backdrop-filter: blur(18px);
-      }
-
-      .nav-inner,
-      .section {
-        width: min(1160px, calc(100% - 32px));
-        margin: 0 auto;
+        z-index: 20;
+        border-bottom: 1px solid rgba(16, 25, 21, 0.08);
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(20px);
       }
 
       .nav-inner {
@@ -66,83 +98,122 @@
       }
 
       .brand {
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 12px;
-        font-weight: 850;
+        gap: 11px;
+        font-weight: 900;
         letter-spacing: 0;
       }
 
-      .brand img {
-        width: 42px;
-        height: 42px;
-        border-radius: 12px;
+      .brand-mark {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: #ffffff;
+        box-shadow: 0 10px 28px rgba(8, 116, 92, 0.16);
+        padding: 4px;
       }
 
       .nav-links {
         display: flex;
         align-items: center;
-        gap: 14px;
-        color: var(--muted);
+        gap: 18px;
+        color: #53625b;
         font-size: 14px;
+        font-weight: 760;
       }
 
-      .pill {
+      .button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 42px;
-        padding: 0 18px;
-        border-radius: 999px;
+        min-height: 46px;
+        padding: 0 19px;
         border: 1px solid var(--line);
-        background: #ffffff;
-        font-weight: 750;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.82);
+        color: var(--ink);
+        font-weight: 850;
+        box-shadow: 0 12px 28px rgba(16, 25, 21, 0.06);
+        transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
       }
 
-      .pill.primary {
-        border-color: var(--green);
-        background: var(--green);
+      .button:hover {
+        transform: translateY(-2px);
+        border-color: rgba(8, 116, 92, 0.35);
+        box-shadow: 0 16px 34px rgba(16, 25, 21, 0.11);
+      }
+
+      .button.primary {
+        border: 0;
         color: #ffffff;
+        background: linear-gradient(135deg, var(--green), var(--green-2));
       }
 
       .hero {
         position: relative;
-        padding: 72px 0 56px;
-        background:
-          linear-gradient(90deg, rgba(247, 250, 248, 0.94), rgba(247, 250, 248, 0.74)),
-          url("/logo_bholavashi_landscape.png") right 8% center / min(46vw, 520px) auto no-repeat;
+        z-index: 1;
+        padding: 74px 0 54px;
       }
 
       .hero-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 430px;
-        gap: 44px;
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 460px);
+        gap: 54px;
         align-items: center;
       }
 
       .eyebrow {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        color: var(--green);
+        gap: 10px;
+        min-height: 36px;
+        padding: 0 14px;
+        border: 1px solid rgba(8, 116, 92, 0.18);
+        border-radius: 999px;
+        background: rgba(232, 247, 239, 0.82);
+        color: #07664f;
         font-size: 13px;
-        font-weight: 850;
-        text-transform: uppercase;
+        font-weight: 900;
+      }
+
+      .pulse {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--green-2);
+        box-shadow: 0 0 0 0 rgba(19, 161, 118, 0.36);
+        animation: pulse 1.8s ease-out infinite;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
       }
 
       h1 {
-        margin: 18px 0 16px;
-        max-width: 680px;
-        font-size: clamp(42px, 7vw, 76px);
+        max-width: 780px;
+        margin-bottom: 20px;
+        margin-top: 18px;
+        font-size: clamp(44px, 7vw, 86px);
         line-height: 0.98;
         letter-spacing: 0;
       }
 
+      .grad {
+        color: transparent;
+        background: linear-gradient(120deg, var(--green), var(--red) 56%, var(--amber));
+        -webkit-background-clip: text;
+        background-clip: text;
+      }
+
       .lead {
-        max-width: 620px;
-        color: #45524d;
+        max-width: 660px;
+        color: #4d5c55;
         font-size: clamp(17px, 2vw, 21px);
-        line-height: 1.62;
+        line-height: 1.68;
       }
 
       .hero-actions {
@@ -152,251 +223,685 @@
         margin-top: 28px;
       }
 
-      .phone {
-        justify-self: end;
-        width: min(100%, 390px);
-        border-radius: 34px;
-        border: 1px solid rgba(20, 32, 27, 0.12);
-        background: #ffffff;
-        box-shadow: 0 28px 70px rgba(24, 41, 36, 0.16);
+      .trust-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 30px;
+      }
+
+      .trust {
+        min-height: 90px;
         padding: 16px;
+        border: 1px solid rgba(16, 25, 21, 0.08);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: 0 14px 38px rgba(16, 25, 21, 0.06);
+      }
+
+      .trust strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 22px;
+      }
+
+      .trust span {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .app-stage {
+        position: relative;
+        min-height: 640px;
+      }
+
+      .phone {
+        position: absolute;
+        top: 0;
+        right: 16px;
+        width: min(100%, 365px);
+        border: 1px solid rgba(16, 25, 21, 0.11);
+        border-radius: 38px;
+        background: #ffffff;
+        box-shadow: var(--shadow);
+        padding: 14px;
+        animation: float 5.5s ease-in-out infinite;
       }
 
       .phone-screen {
-        min-height: 560px;
-        border-radius: 26px;
-        background: #f8faf8;
-        border: 1px solid var(--line);
+        min-height: 590px;
         overflow: hidden;
+        border: 1px solid rgba(16, 25, 21, 0.08);
+        border-radius: 28px;
+        background: linear-gradient(180deg, #fbfffc, #eff8f2);
       }
 
-      .app-top {
-        padding: 22px;
-        background: #ffffff;
-        border-bottom: 1px solid var(--line);
+      .phone-top {
+        padding: 20px 18px 16px;
+        background:
+          linear-gradient(135deg, rgba(8, 116, 92, 0.96), rgba(19, 161, 118, 0.88)),
+          url("/logo_bholavashi_square.png") right -16px top -26px / 150px auto no-repeat;
+        color: #ffffff;
+      }
+
+      .phone-top img {
+        height: 38px;
+        width: auto;
+        padding: 6px 9px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.94);
+      }
+
+      .location {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 22px;
+        font-size: 13px;
+        opacity: 0.92;
       }
 
       .search {
-        margin-top: 18px;
-        height: 44px;
+        margin-top: 14px;
+        height: 45px;
         border-radius: 16px;
-        background: #eef5f1;
-      }
-
-      .service-list {
-        padding: 18px;
-        display: grid;
-        gap: 12px;
-      }
-
-      .service-row {
-        display: grid;
-        grid-template-columns: 48px 1fr auto;
-        gap: 12px;
+        background: rgba(255, 255, 255, 0.96);
+        color: #7a8780;
+        display: flex;
         align-items: center;
-        padding: 14px;
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid var(--line);
+        padding: 0 14px;
+        font-size: 13px;
       }
 
-      .service-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 16px;
+      .service-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 11px;
+        padding: 16px;
+      }
+
+      .mini-card {
+        min-height: 108px;
+        padding: 14px;
+        border: 1px solid rgba(16, 25, 21, 0.08);
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      .mini-icon {
+        width: 38px;
+        height: 38px;
         display: grid;
         place-items: center;
+        margin-bottom: 12px;
+        border-radius: 14px;
         color: #ffffff;
-        font-weight: 900;
+        font-size: 12px;
+        font-weight: 950;
       }
 
-      .service-title {
-        font-weight: 850;
+      .mini-card b {
+        display: block;
+        font-size: 14px;
       }
 
-      .service-copy {
-        margin-top: 3px;
+      .mini-card span {
+        display: block;
+        margin-top: 4px;
         color: var(--muted);
-        font-size: 13px;
+        font-size: 12px;
+        line-height: 1.35;
       }
 
-      .arrow {
-        color: var(--muted);
-        font-weight: 900;
+      .order-card {
+        margin: 0 16px 16px;
+        padding: 16px;
+        border-radius: 8px;
+        background: #111a16;
+        color: #ffffff;
+        box-shadow: 0 22px 44px rgba(16, 25, 21, 0.17);
       }
 
-      .stats {
+      .progress {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 14px;
-        margin-top: 26px;
+        gap: 6px;
+        margin-top: 14px;
       }
 
-      .stat {
-        padding: 18px;
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid var(--line);
+      .progress i {
+        height: 6px;
+        border-radius: 99px;
+        background: rgba(255, 255, 255, 0.25);
       }
 
-      .stat strong {
+      .progress i:nth-child(-n + 3) {
+        background: #24d495;
+      }
+
+      .float-card {
+        position: absolute;
+        z-index: 3;
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        gap: 12px;
+        align-items: center;
+        width: 242px;
+        padding: 14px;
+        border: 1px solid rgba(16, 25, 21, 0.08);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 18px 52px rgba(16, 25, 21, 0.14);
+        backdrop-filter: blur(18px);
+      }
+
+      .float-card.one {
+        top: 84px;
+        left: 0;
+      }
+
+      .float-card.two {
+        right: 0;
+        bottom: 72px;
+      }
+
+      .float-card i {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border-radius: 15px;
+        color: #ffffff;
+        font-style: normal;
+        font-weight: 950;
+      }
+
+      .float-card b {
         display: block;
-        font-size: 24px;
+        font-size: 14px;
       }
 
-      .stat span {
+      .float-card span {
         color: var(--muted);
-        font-size: 13px;
+        font-size: 12px;
       }
 
       .band {
-        padding: 62px 0;
-        background: #ffffff;
+        position: relative;
+        z-index: 1;
+        padding: 72px 0;
         border-top: 1px solid var(--line);
         border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.78);
       }
 
       .section-head {
-        max-width: 680px;
-        margin-bottom: 26px;
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 28px;
+        margin-bottom: 28px;
       }
 
-      h2 {
-        margin: 0 0 10px;
-        font-size: clamp(30px, 4vw, 46px);
+      .section-head h2 {
+        max-width: 610px;
+        margin-bottom: 0;
+        font-size: clamp(31px, 4vw, 54px);
+        line-height: 1.05;
         letter-spacing: 0;
       }
 
       .section-head p {
-        margin: 0;
+        max-width: 470px;
+        margin-bottom: 0;
         color: var(--muted);
         line-height: 1.7;
       }
 
-      .cards {
+      .ecosystem {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 14px;
       }
 
-      .card {
-        padding: 22px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #ffffff;
-      }
-
-      .card b {
-        display: block;
-        margin-bottom: 8px;
-        font-size: 17px;
-      }
-
-      .card p {
-        margin: 0;
-        color: var(--muted);
-        line-height: 1.6;
-      }
-
-      .split {
-        display: grid;
-        grid-template-columns: 0.95fr 1.05fr;
-        gap: 30px;
-        align-items: center;
-        padding: 62px 0;
-      }
-
-      .panel {
-        background: #ffffff;
-        border: 1px solid var(--line);
-        border-radius: 8px;
+      .eco-card {
+        position: relative;
+        min-height: 272px;
+        overflow: hidden;
         padding: 24px;
+        border: 1px solid rgba(16, 25, 21, 0.09);
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 18px 42px rgba(16, 25, 21, 0.06);
+        transition: transform 200ms ease, box-shadow 200ms ease;
+      }
+
+      .eco-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 28px 70px rgba(16, 25, 21, 0.1);
+      }
+
+      .eco-card::after {
+        content: "";
+        position: absolute;
+        right: -42px;
+        bottom: -48px;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: var(--tint);
+        opacity: 0.18;
+      }
+
+      .number {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .eco-icon {
+        width: 58px;
+        height: 58px;
+        display: grid;
+        place-items: center;
+        margin: 22px 0 24px;
+        border-radius: 20px;
+        background: var(--tint);
+        color: #ffffff;
+        font-weight: 950;
+      }
+
+      .eco-card h3 {
+        margin-bottom: 10px;
+        font-size: 22px;
+        letter-spacing: 0;
+      }
+
+      .eco-card p {
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .learn {
+        position: absolute;
+        left: 24px;
+        bottom: 22px;
+        color: var(--green);
+        font-weight: 900;
+        font-size: 14px;
+      }
+
+      .flow {
+        padding: 78px 0;
+      }
+
+      .flow-grid {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 44px;
+        align-items: center;
+      }
+
+      .map-panel {
+        position: relative;
+        min-height: 440px;
+        overflow: hidden;
+        border: 1px solid rgba(16, 25, 21, 0.09);
+        border-radius: 8px;
+        background:
+          linear-gradient(135deg, rgba(8, 116, 92, 0.95), rgba(15, 24, 20, 0.95)),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+          linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+        background-size: auto, 42px 42px, 42px 42px;
+        box-shadow: var(--shadow);
+        color: #ffffff;
+        padding: 28px;
+      }
+
+      .map-panel h2 {
+        max-width: 460px;
+        margin-bottom: 14px;
+        font-size: clamp(30px, 4vw, 48px);
+        line-height: 1.08;
+      }
+
+      .route {
+        position: absolute;
+        left: 28px;
+        right: 28px;
+        bottom: 34px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .route-step {
+        display: grid;
+        grid-template-columns: 44px 1fr auto;
+        gap: 12px;
+        align-items: center;
+        padding: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(16px);
+      }
+
+      .route-step i {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.18);
+        font-style: normal;
+        font-weight: 950;
+      }
+
+      .route-step b,
+      .route-step span {
+        display: block;
+      }
+
+      .route-step span {
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 13px;
       }
 
       .steps {
         display: grid;
-        gap: 12px;
+        gap: 14px;
       }
 
       .step {
         display: grid;
-        grid-template-columns: 34px 1fr;
-        gap: 12px;
-        align-items: start;
+        grid-template-columns: 54px 1fr;
+        gap: 16px;
+        padding: 18px;
+        border: 1px solid rgba(16, 25, 21, 0.09);
+        border-radius: 8px;
+        background: #ffffff;
       }
 
       .step-num {
-        height: 34px;
-        border-radius: 999px;
+        width: 54px;
+        height: 54px;
         display: grid;
         place-items: center;
-        background: #e9f4ef;
+        border-radius: 18px;
+        background: var(--soft);
         color: var(--green);
-        font-weight: 900;
+        font-weight: 950;
+      }
+
+      .step b {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 18px;
+      }
+
+      .step p {
+        margin-bottom: 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .metrics {
+        padding: 66px 0;
+        background: #101915;
+        color: #ffffff;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .metric {
+        padding: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.055);
+      }
+
+      .metric strong {
+        display: block;
+        font-size: clamp(30px, 4vw, 48px);
+        letter-spacing: 0;
+      }
+
+      .metric span {
+        color: rgba(255, 255, 255, 0.68);
+        line-height: 1.45;
+      }
+
+      .cta {
+        padding: 76px 0;
+      }
+
+      .cta-box {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 24px;
+        align-items: center;
+        padding: 38px;
+        border: 1px solid rgba(8, 116, 92, 0.16);
+        border-radius: 8px;
+        background:
+          linear-gradient(135deg, rgba(232, 247, 239, 0.94), rgba(255, 255, 255, 0.92)),
+          url("/logo_bholavashi_landscape.png") right 36px center / 280px auto no-repeat;
+        box-shadow: 0 24px 70px rgba(16, 25, 21, 0.09);
+      }
+
+      .cta-box h2 {
+        max-width: 620px;
+        margin-bottom: 12px;
+        font-size: clamp(31px, 4vw, 52px);
+        line-height: 1.06;
+      }
+
+      .cta-box p {
+        max-width: 610px;
+        margin-bottom: 0;
+        color: var(--muted);
+        line-height: 1.65;
       }
 
       .footer {
-        padding: 34px 0;
-        color: var(--muted);
+        padding: 44px 0;
+        border-top: 1px solid var(--line);
+        background: #ffffff;
       }
 
-      @media (max-width: 900px) {
+      .footer-grid {
+        display: grid;
+        grid-template-columns: 1.4fr repeat(3, 1fr);
+        gap: 24px;
+      }
+
+      .footer p,
+      .footer a {
+        color: var(--muted);
+        line-height: 1.75;
+      }
+
+      .footer b {
+        display: block;
+        margin-bottom: 12px;
+      }
+
+      .footer-links {
+        display: grid;
+        gap: 7px;
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(18px);
+        transition: opacity 620ms ease, transform 620ms ease;
+      }
+
+      .reveal.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(19, 161, 118, 0.38); }
+        70% { box-shadow: 0 0 0 12px rgba(19, 161, 118, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(19, 161, 118, 0); }
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-12px); }
+      }
+
+      @media (max-width: 980px) {
         .hero {
-          padding-top: 46px;
-          background:
-            linear-gradient(180deg, rgba(247, 250, 248, 0.98), rgba(247, 250, 248, 0.86)),
-            url("/logo_bholavashi_landscape.png") center 18px / 280px auto no-repeat;
+          padding-top: 52px;
         }
 
         .hero-grid,
-        .split,
-        .cards,
-        .stats {
+        .flow-grid,
+        .cta-box,
+        .footer-grid {
           grid-template-columns: 1fr;
         }
 
+        .app-stage {
+          min-height: 650px;
+        }
+
         .phone {
-          justify-self: center;
+          left: 50%;
+          right: auto;
+          transform: translateX(-50%);
+          animation: none;
         }
 
-        .nav-links a:not(.pill) {
-          display: none;
-        }
-      }
-
-      @media (max-width: 520px) {
-        .nav-inner,
-        .section {
-          width: min(100% - 22px, 1160px);
+        .float-card.one {
+          left: 0;
+          top: 22px;
         }
 
-        .hero-actions {
+        .float-card.two {
+          right: 0;
+          bottom: 10px;
+        }
+
+        .section-head {
+          align-items: start;
           flex-direction: column;
         }
 
-        .pill {
+        .ecosystem,
+        .trust-row,
+        .metric-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 620px) {
+        .section,
+        .nav-inner {
+          width: min(100% - 22px, 1180px);
+        }
+
+        .nav-links a:not(.button) {
+          display: none;
+        }
+
+        .brand span {
+          display: none;
+        }
+
+        h1 {
+          font-size: clamp(42px, 14vw, 60px);
+        }
+
+        .hero-actions,
+        .button {
           width: 100%;
         }
 
-        .phone-screen {
-          min-height: 470px;
+        .trust-row,
+        .ecosystem,
+        .metric-grid,
+        .service-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .app-stage {
+          min-height: 760px;
+        }
+
+        .phone {
+          width: 100%;
+          top: 70px;
+        }
+
+        .float-card {
+          width: calc(100% - 20px);
+        }
+
+        .float-card.one {
+          top: 0;
+        }
+
+        .float-card.two {
+          bottom: 0;
+        }
+
+        .map-panel {
+          min-height: 560px;
+          padding: 22px;
+        }
+
+        .route {
+          left: 18px;
+          right: 18px;
+        }
+
+        .cta-box {
+          padding: 26px;
+          background:
+            linear-gradient(135deg, rgba(232, 247, 239, 0.97), rgba(255, 255, 255, 0.95)),
+            url("/logo_bholavashi_landscape.png") right 18px bottom 18px / 190px auto no-repeat;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 1ms !important;
+          scroll-behavior: auto !important;
+          transition-duration: 1ms !important;
         }
       }
     </style>
   </head>
   <body>
     <div class="shell">
+      <div class="noise"></div>
+
       <header class="nav">
         <div class="nav-inner">
-          <a class="brand" href="/">
-            <img src="/favicon_bholavashi.png" alt="Bholavashi" />
+          <a class="brand" href="/" aria-label="Bholavashi home">
+            <img class="brand-mark" src="/favicon_bholavashi.png" alt="Bholavashi" />
             <span>Bholavashi</span>
           </a>
-          <nav class="nav-links" aria-label="Primary">
+          <nav class="nav-links" aria-label="Primary navigation">
             <a href="#services">Services</a>
-            <a href="#partners">Partners</a>
+            <a href="#ecosystem">Ecosystem</a>
+            <a href="#workflow">Workflow</a>
             <a href="/privacy-policy/">Privacy</a>
-            <a class="pill" href="/admin/">Admin</a>
+            <a class="button" href="/admin/">Admin</a>
           </nav>
         </div>
       </header>
@@ -404,53 +909,53 @@
       <main>
         <section class="hero">
           <div class="section hero-grid">
-            <div>
-              <span class="eyebrow">Bhola district digital platform</span>
-              <h1>Everyday services for Bhola, in one trusted app.</h1>
+            <div class="reveal">
+              <span class="eyebrow"><i class="pulse"></i> Built for Bhola's everyday services</span>
+              <h1>One local app for <span class="grad">food, medicine, riders and services.</span></h1>
               <p class="lead">
-                Bholavashi connects local people with food delivery, medicine delivery, doctors,
-                teachers, properties, transport, local businesses and rider-powered services.
+                Bholavashi connects customers, restaurants, medicine shops, riders and local service providers
+                through a fast digital platform made for Bhola.
               </p>
               <div class="hero-actions">
-                <a class="pill primary" href="#services">Explore services</a>
-                <a class="pill" href="/delete-account/">Account deletion</a>
+                <a class="button primary" href="#services">Explore Bholavashi</a>
+                <a class="button" href="/delete-account/">Account deletion</a>
               </div>
-              <div class="stats">
-                <div class="stat"><strong>24/7</strong><span>digital access</span></div>
-                <div class="stat"><strong>OTP</strong><span>secure login</span></div>
-                <div class="stat"><strong>Live</strong><span>delivery flow</span></div>
-                <div class="stat"><strong>Local</strong><span>Bhola focused</span></div>
+              <div class="trust-row">
+                <div class="trust"><strong>OTP</strong><span>Password-free mobile login</span></div>
+                <div class="trust"><strong>Live</strong><span>Order and rider workflow</span></div>
+                <div class="trust"><strong>Local</strong><span>Bhola-focused directory</span></div>
+                <div class="trust"><strong>Admin</strong><span>Managed business operations</span></div>
               </div>
             </div>
 
-            <aside class="phone" aria-label="Bholavashi app preview">
-              <div class="phone-screen">
-                <div class="app-top">
-                  <img src="/logo_bholavashi_landscape.png" alt="Bholavashi logo" style="height: 46px" />
-                  <div class="search"></div>
-                </div>
-                <div class="service-list">
-                  <div class="service-row">
-                    <div class="service-icon" style="background: var(--red)">FD</div>
-                    <div><div class="service-title">Food delivery</div><div class="service-copy">Restaurants, cart, checkout and riders</div></div>
-                    <div class="arrow">›</div>
+            <aside class="app-stage reveal" aria-label="Bholavashi app preview">
+              <div class="float-card one">
+                <i style="background: var(--red)">FD</i>
+                <div><b>Food order placed</b><span>Restaurant confirmation ready</span></div>
+              </div>
+              <div class="phone">
+                <div class="phone-screen">
+                  <div class="phone-top">
+                    <img src="/logo_bholavashi_landscape.png" alt="Bholavashi logo" />
+                    <div class="location"><span>Delivering in Bhola</span><b>12 min</b></div>
+                    <div class="search">Search food, medicine, doctors, services</div>
                   </div>
-                  <div class="service-row">
-                    <div class="service-icon" style="background: var(--green)">MD</div>
-                    <div><div class="service-title">Medicine delivery</div><div class="service-copy">Search medicines and order fast</div></div>
-                    <div class="arrow">›</div>
+                  <div class="service-grid">
+                    <div class="mini-card"><i class="mini-icon" style="background: var(--red)">FD</i><b>Food</b><span>Restaurant menu, cart and checkout.</span></div>
+                    <div class="mini-card"><i class="mini-icon" style="background: var(--green)">MD</i><b>Medicine</b><span>Fast catalog search and delivery.</span></div>
+                    <div class="mini-card"><i class="mini-icon" style="background: var(--blue)">DR</i><b>Doctors</b><span>Healthcare and local contacts.</span></div>
+                    <div class="mini-card"><i class="mini-icon" style="background: var(--violet)">LC</i><b>Local</b><span>Property, transport and services.</span></div>
                   </div>
-                  <div class="service-row">
-                    <div class="service-icon" style="background: var(--blue)">DR</div>
-                    <div><div class="service-title">Doctors & hospitals</div><div class="service-copy">Healthcare contacts and bookings</div></div>
-                    <div class="arrow">›</div>
-                  </div>
-                  <div class="service-row">
-                    <div class="service-icon" style="background: #7b4ab8">LC</div>
-                    <div><div class="service-title">Local services</div><div class="service-copy">Business, launch, rental, property</div></div>
-                    <div class="arrow">›</div>
+                  <div class="order-card">
+                    <b>Medicine delivery</b>
+                    <p style="margin: 8px 0 0; color: rgba(255,255,255,0.72); line-height: 1.5">Order accepted, rider request broadcasting to delivery partners.</p>
+                    <div class="progress"><i></i><i></i><i></i><i></i></div>
                   </div>
                 </div>
+              </div>
+              <div class="float-card two">
+                <i style="background: var(--green)">RX</i>
+                <div><b>Medicine request</b><span>Nearest rider can accept</span></div>
               </div>
             </aside>
           </div>
@@ -458,44 +963,185 @@
 
         <section id="services" class="band">
           <div class="section">
-            <div class="section-head">
-              <h2>Built for daily needs, not just browsing.</h2>
+            <div class="section-head reveal">
+              <h2>Daily services arranged into one clean ecosystem.</h2>
               <p>
-                The platform focuses on practical local workflows: ordering, checkout, rider assignment,
-                notifications, saved addresses and support.
+                The homepage mirrors the app's real functions only: discovery, ordering, checkout,
+                rider delivery, service listings and admin-supported operations.
               </p>
             </div>
-            <div class="cards">
-              <article class="card"><b>Food & medicine</b><p>Fast catalog browsing, cart, payment options and delivery tracking for high-frequency local orders.</p></article>
-              <article class="card"><b>Local directory</b><p>Doctors, teachers, hospitals, hotels, launches, electricity offices and businesses in one organized place.</p></article>
-              <article class="card"><b>Rider network</b><p>Rider dashboard, order requests, OTP delivery confirmation and wallet-ready delivery operations.</p></article>
+            <div class="ecosystem" id="ecosystem">
+              <article class="eco-card reveal" style="--tint: var(--red)">
+                <span class="number">001</span>
+                <div class="eco-icon">FD</div>
+                <h3>Food Delivery</h3>
+                <p>Restaurant browsing, item details, cart, checkout and delivery flow designed for repeat local orders.</p>
+                <span class="learn">Order workflow</span>
+              </article>
+              <article class="eco-card reveal" style="--tint: var(--green)">
+                <span class="number">002</span>
+                <div class="eco-icon">MD</div>
+                <h3>Medicine Delivery</h3>
+                <p>Medicine home, search, details, cart, checkout and order status built for quick access.</p>
+                <span class="learn">Pharmacy flow</span>
+              </article>
+              <article class="eco-card reveal" style="--tint: var(--blue)">
+                <span class="number">003</span>
+                <div class="eco-icon">RD</div>
+                <h3>Rider Portal</h3>
+                <p>Food and medicine orders can reach riders with clear status, pickup and delivery updates.</p>
+                <span class="learn">Delivery network</span>
+              </article>
+              <article class="eco-card reveal" style="--tint: var(--violet)">
+                <span class="number">004</span>
+                <div class="eco-icon">LC</div>
+                <h3>Local Directory</h3>
+                <p>Doctors, teachers, hospitals, hotels, properties, transport and public information in one place.</p>
+                <span class="learn">Local discovery</span>
+              </article>
+              <article class="eco-card reveal" style="--tint: var(--amber)">
+                <span class="number">005</span>
+                <div class="eco-icon">MG</div>
+                <h3>Merchant Tools</h3>
+                <p>Restaurant and shop management screens support orders, menu items and operational visibility.</p>
+                <span class="learn">Partner tools</span>
+              </article>
+              <article class="eco-card reveal" style="--tint: #0f172a">
+                <span class="number">006</span>
+                <div class="eco-icon">AD</div>
+                <h3>Admin Control</h3>
+                <p>Central dashboard support for content, SMS logs, orders, users and service management.</p>
+                <span class="learn">Managed platform</span>
+              </article>
             </div>
           </div>
         </section>
 
-        <section id="partners" class="section split">
-          <div>
-            <h2>For customers, sellers, riders and admins.</h2>
-            <p class="lead">
-              Bholavashi is designed as a local operating system for Bhola: simple for users,
-              structured for businesses, and manageable for the admin team.
-            </p>
-          </div>
-          <div class="panel">
-            <div class="steps">
-              <div class="step"><div class="step-num">1</div><div><b>Users order from the app</b><br /><span class="service-copy">Food, medicine and local services stay easy to discover.</span></div></div>
-              <div class="step"><div class="step-num">2</div><div><b>Partners manage requests</b><br /><span class="service-copy">Restaurant, delivery and admin workflows stay connected.</span></div></div>
-              <div class="step"><div class="step-num">3</div><div><b>Riders complete delivery</b><br /><span class="service-copy">Notifications, status updates and OTP proof keep orders traceable.</span></div></div>
+        <section id="workflow" class="section flow">
+          <div class="flow-grid">
+            <div class="map-panel reveal">
+              <span class="eyebrow" style="background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.18)"><i class="pulse"></i> Delivery operations</span>
+              <h2>From local order to doorstep delivery.</h2>
+              <p style="max-width: 500px; color: rgba(255,255,255,0.72); line-height: 1.7">
+                Bholavashi keeps the journey simple for users and structured for businesses: request, confirmation,
+                rider assignment, delivery and support.
+              </p>
+              <div class="route">
+                <div class="route-step"><i>1</i><div><b>User places order</b><span>Food or medicine checkout completed</span></div><b>Now</b></div>
+                <div class="route-step"><i>2</i><div><b>Partner confirms</b><span>Restaurant or pharmacy prepares request</span></div><b>Live</b></div>
+                <div class="route-step"><i>3</i><div><b>Rider delivers</b><span>Pickup, delivery and OTP confirmation</span></div><b>Done</b></div>
+              </div>
             </div>
+
+            <div class="steps">
+              <div class="section-head reveal" style="display: block; margin-bottom: 8px">
+                <h2>Professional flows for every role.</h2>
+                <p>Bholavashi is not only a public page. It is a full service operation for customers, sellers, riders and admins.</p>
+              </div>
+              <div class="step reveal"><div class="step-num">01</div><div><b>Customer app</b><p>Users discover services, search items, place orders and track delivery from mobile.</p></div></div>
+              <div class="step reveal"><div class="step-num">02</div><div><b>Restaurant and medicine partners</b><p>Partners receive and manage orders with a clean workflow.</p></div></div>
+              <div class="step reveal"><div class="step-num">03</div><div><b>Rider network</b><p>Delivery requests are visible in rider portal and notifications support fast response.</p></div></div>
+              <div class="step reveal"><div class="step-num">04</div><div><b>Admin management</b><p>Admins can manage content, logs, service data and platform operations from /admin.</p></div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="metrics">
+          <div class="section metric-grid">
+            <div class="metric reveal"><strong data-count="6">0</strong><span>Core service groups</span></div>
+            <div class="metric reveal"><strong data-count="24">0</strong><span>Hour digital access</span></div>
+            <div class="metric reveal"><strong data-count="3">0</strong><span>Connected order roles</span></div>
+            <div class="metric reveal"><strong data-count="1">0</strong><span>Local platform for Bhola</span></div>
+          </div>
+        </section>
+
+        <section class="section cta">
+          <div class="cta-box reveal">
+            <div>
+              <h2>Bhola's services, organized for the people who use them every day.</h2>
+              <p>
+                Food delivery, medicine delivery, rider operations, local directory and support tools stay together
+                under one trusted Bholavashi ecosystem.
+              </p>
+            </div>
+            <a class="button primary" href="/admin/">Go to Admin</a>
           </div>
         </section>
       </main>
 
       <footer class="footer">
-        <div class="section">
-          © 2026 Bholavashi. Built for Bhola's people, businesses and services.
+        <div class="section footer-grid">
+          <div>
+            <a class="brand" href="/">
+              <img class="brand-mark" src="/favicon_bholavashi.png" alt="Bholavashi" />
+              <span>Bholavashi</span>
+            </a>
+            <p>Bhola's local digital service ecosystem, built for everyday needs and managed operations.</p>
+          </div>
+          <div>
+            <b>Services</b>
+            <div class="footer-links">
+              <a href="#services">Food delivery</a>
+              <a href="#services">Medicine delivery</a>
+              <a href="#services">Local services</a>
+            </div>
+          </div>
+          <div>
+            <b>Company</b>
+            <div class="footer-links">
+              <a href="/privacy-policy/">Privacy Policy</a>
+              <a href="/terms-of-service/">Terms of Service</a>
+              <a href="/delete-account/">Delete Account</a>
+            </div>
+          </div>
+          <div>
+            <b>Access</b>
+            <div class="footer-links">
+              <a href="/admin/">Admin Panel</a>
+              <a href="#workflow">Workflow</a>
+              <a href="#ecosystem">Ecosystem</a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
+
+    <script>
+      const revealItems = document.querySelectorAll(".reveal");
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("show");
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.16 }
+      );
+      revealItems.forEach((item) => observer.observe(item));
+
+      const counters = document.querySelectorAll("[data-count]");
+      const counterObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            const element = entry.target;
+            const target = Number(element.dataset.count || 0);
+            const duration = 900;
+            const started = performance.now();
+            const tick = (now) => {
+              const progress = Math.min((now - started) / duration, 1);
+              element.textContent = Math.round(target * progress).toString();
+              if (progress < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+            counterObserver.unobserve(element);
+          });
+        },
+        { threshold: 0.35 }
+      );
+      counters.forEach((counter) => counterObserver.observe(counter));
+    </script>
   </body>
 </html>
