@@ -8,6 +8,9 @@
       content="Bholavashi is Bhola's local digital service ecosystem for food delivery, medicine delivery, riders, restaurants, local services and everyday support."
     />
     <title>Bholavashi | Bhola's Everyday Digital Ecosystem</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/png" href="/favicon_bholavashi.png" />
     <style>
       :root {
@@ -681,6 +684,33 @@
         padding: 76px 0;
       }
 
+      .support-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .support-card {
+        min-height: 190px;
+        padding: 24px;
+        border: 1px solid rgba(16, 25, 21, 0.09);
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 18px 42px rgba(16, 25, 21, 0.055);
+      }
+
+      .support-card b {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 19px;
+      }
+
+      .support-card p {
+        margin-bottom: 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
       .cta-box {
         position: relative;
         overflow: hidden;
@@ -800,6 +830,7 @@
         }
 
         .ecosystem,
+        .support-grid,
         .trust-row,
         .metric-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -831,6 +862,7 @@
 
         .trust-row,
         .ecosystem,
+        .support-grid,
         .metric-grid,
         .service-grid {
           grid-template-columns: 1fr;
@@ -901,7 +933,7 @@
             <a href="#ecosystem">Ecosystem</a>
             <a href="#workflow">Workflow</a>
             <a href="/privacy-policy/">Privacy</a>
-            <a class="button" href="/admin/">Admin</a>
+            <a class="button" href="#contact">Contact</a>
           </nav>
         </div>
       </header>
@@ -924,7 +956,7 @@
                 <div class="trust"><strong>OTP</strong><span>Password-free mobile login</span></div>
                 <div class="trust"><strong>Live</strong><span>Order and rider workflow</span></div>
                 <div class="trust"><strong>Local</strong><span>Bhola-focused directory</span></div>
-                <div class="trust"><strong>Admin</strong><span>Managed business operations</span></div>
+                <div class="trust"><strong>Care</strong><span>Support and managed operations</span></div>
               </div>
             </div>
 
@@ -967,7 +999,7 @@
               <h2>Daily services arranged into one clean ecosystem.</h2>
               <p>
                 The homepage mirrors the app's real functions only: discovery, ordering, checkout,
-                rider delivery, service listings and admin-supported operations.
+                rider delivery, service listings and support-backed operations.
               </p>
             </div>
             <div class="ecosystem" id="ecosystem">
@@ -1008,9 +1040,9 @@
               </article>
               <article class="eco-card reveal" style="--tint: #0f172a">
                 <span class="number">006</span>
-                <div class="eco-icon">AD</div>
-                <h3>Admin Control</h3>
-                <p>Central dashboard support for content, SMS logs, orders, users and service management.</p>
+                <div class="eco-icon">OP</div>
+                <h3>Support Operations</h3>
+                <p>Organized support for content, orders, users, SMS communication and service management.</p>
                 <span class="learn">Managed platform</span>
               </article>
             </div>
@@ -1036,12 +1068,12 @@
             <div class="steps">
               <div class="section-head reveal" style="display: block; margin-bottom: 8px">
                 <h2>Professional flows for every role.</h2>
-                <p>Bholavashi is not only a public page. It is a full service operation for customers, sellers, riders and admins.</p>
+                <p>Bholavashi is not only a public page. It is a full service operation for customers, sellers, riders and support teams.</p>
               </div>
               <div class="step reveal"><div class="step-num">01</div><div><b>Customer app</b><p>Users discover services, search items, place orders and track delivery from mobile.</p></div></div>
               <div class="step reveal"><div class="step-num">02</div><div><b>Restaurant and medicine partners</b><p>Partners receive and manage orders with a clean workflow.</p></div></div>
               <div class="step reveal"><div class="step-num">03</div><div><b>Rider network</b><p>Delivery requests are visible in rider portal and notifications support fast response.</p></div></div>
-              <div class="step reveal"><div class="step-num">04</div><div><b>Admin management</b><p>Admins can manage content, logs, service data and platform operations from /admin.</p></div></div>
+              <div class="step reveal"><div class="step-num">04</div><div><b>Support management</b><p>The operations team can keep content, logs, service data and order support organized.</p></div></div>
             </div>
           </div>
         </section>
@@ -1055,7 +1087,33 @@
           </div>
         </section>
 
-        <section class="section cta">
+        <section class="band">
+          <div class="section">
+            <div class="section-head reveal">
+              <h2>Clear information before users install or order.</h2>
+              <p>
+                A professional landing page should answer the first questions quickly:
+                what the app does, who it is for, and how support works.
+              </p>
+            </div>
+            <div class="support-grid">
+              <article class="support-card reveal">
+                <b>For customers</b>
+                <p>Find food, medicine, local contacts and everyday services without searching across many places.</p>
+              </article>
+              <article class="support-card reveal">
+                <b>For local businesses</b>
+                <p>Restaurants, medicine shops and service providers can receive digital orders and requests.</p>
+              </article>
+              <article class="support-card reveal">
+                <b>For riders</b>
+                <p>Delivery partners get a structured flow for pickup, delivery updates and order completion.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section id="contact" class="section cta">
           <div class="cta-box reveal">
             <div>
               <h2>Bhola's services, organized for the people who use them every day.</h2>
@@ -1064,7 +1122,7 @@
                 under one trusted Bholavashi ecosystem.
               </p>
             </div>
-            <a class="button primary" href="/admin/">Go to Admin</a>
+            <a class="button primary" href="mailto:support@bholavashi.site">Contact Support</a>
           </div>
         </section>
       </main>
@@ -1095,9 +1153,9 @@
             </div>
           </div>
           <div>
-            <b>Access</b>
+            <b>Explore</b>
             <div class="footer-links">
-              <a href="/admin/">Admin Panel</a>
+              <a href="#contact">Contact</a>
               <a href="#workflow">Workflow</a>
               <a href="#ecosystem">Ecosystem</a>
             </div>
