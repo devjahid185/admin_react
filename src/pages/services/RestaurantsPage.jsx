@@ -18,6 +18,12 @@ const emptyForm = {
   features: "",
   delivery_available: false,
   accepts_food_orders: true,
+  is_promoted: false,
+  promotion_priority: "0",
+  promotion_badge: "Featured",
+  promotion_starts_at: "",
+  promotion_ends_at: "",
+  promotion_note: "",
   commission_enabled: true,
   commission_type: "percentage",
   commission_rate: "10",
@@ -109,6 +115,12 @@ export default function RestaurantsPage({ token }) {
       features: Array.isArray(r.features) ? r.features.join(", ") : r.features || "",
       delivery_available: Boolean(r.delivery_available),
       accepts_food_orders: r.accepts_food_orders === undefined ? true : Boolean(r.accepts_food_orders),
+      is_promoted: Boolean(r.is_promoted),
+      promotion_priority: r.promotion_priority ?? "0",
+      promotion_badge: r.promotion_badge || "Featured",
+      promotion_starts_at: r.promotion_starts_at ? String(r.promotion_starts_at).replace(" ", "T").slice(0, 16) : "",
+      promotion_ends_at: r.promotion_ends_at ? String(r.promotion_ends_at).replace(" ", "T").slice(0, 16) : "",
+      promotion_note: r.promotion_note || "",
       commission_enabled: r.commission_enabled === undefined ? true : Boolean(r.commission_enabled),
       commission_type: r.commission_type || "percentage",
       commission_rate: r.commission_rate ?? "10",
@@ -143,6 +155,12 @@ export default function RestaurantsPage({ token }) {
       features: form.features ? form.features.split(",").map((s) => s.trim()).filter(Boolean) : [],
       delivery_available: Boolean(form.delivery_available),
       accepts_food_orders: Boolean(form.accepts_food_orders),
+      is_promoted: Boolean(form.is_promoted),
+      promotion_priority: form.promotion_priority ? Number(form.promotion_priority) : 0,
+      promotion_badge: form.promotion_badge || null,
+      promotion_starts_at: form.promotion_starts_at ? form.promotion_starts_at.replace("T", " ") : null,
+      promotion_ends_at: form.promotion_ends_at ? form.promotion_ends_at.replace("T", " ") : null,
+      promotion_note: form.promotion_note || null,
       commission_enabled: Boolean(form.commission_enabled),
       commission_type: form.commission_type || "percentage",
       commission_rate: form.commission_rate ? Number(form.commission_rate) : 0,
@@ -231,7 +249,7 @@ export default function RestaurantsPage({ token }) {
         onDelete={bulkDelete}
       />
       <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
-        <table className="min-w-[960px] w-full text-xs md:text-sm">
+        <table className="min-w-[1120px] w-full text-xs md:text-sm">
           <thead className="bg-[#f8fafc] text-[#53637a]">
             <tr>
               <th className="w-10 px-3 py-2 md:px-4">
@@ -250,6 +268,7 @@ export default function RestaurantsPage({ token }) {
               <th className="text-left px-3 py-2 md:px-4">Category</th>
               <th className="text-left px-3 py-2 md:px-4">Phone</th>
               <th className="text-left px-3 py-2 md:px-4">Food Orders</th>
+              <th className="text-left px-3 py-2 md:px-4">Promotion</th>
               <th className="text-left px-3 py-2 md:px-4">Commission</th>
               <th className="text-left px-3 py-2 md:px-4">Prep</th>
               <th className="text-left px-3 py-2 md:px-4">Status</th>
@@ -272,6 +291,22 @@ export default function RestaurantsPage({ token }) {
                 <td className="px-3 py-2 md:px-4">{r.category_id}</td>
                 <td className="px-3 py-2 md:px-4">{r.phone || "-"}</td>
                 <td className="px-3 py-2 md:px-4">{r.accepts_food_orders ? "Enabled" : "Disabled"}</td>
+                <td className="px-3 py-2 md:px-4">
+                  {r.is_promoted ? (
+                    <div className="space-y-1">
+                      <span className="inline-flex rounded-full bg-red-50 px-2 py-1 text-[11px] font-black text-red-700">
+                        {r.promotion_badge || "Featured"} · #{r.promotion_priority || 0}
+                      </span>
+                      {(r.promotion_starts_at || r.promotion_ends_at) && (
+                        <p className="text-[11px] text-[#64748b]">
+                          {r.promotion_starts_at ? String(r.promotion_starts_at).slice(0, 10) : "Now"} - {r.promotion_ends_at ? String(r.promotion_ends_at).slice(0, 10) : "Open"}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-[#94a3b8]">Not promoted</span>
+                  )}
+                </td>
                 <td className="px-3 py-2 md:px-4">
                   {r.commission_enabled === false
                     ? "None"
@@ -301,7 +336,7 @@ export default function RestaurantsPage({ token }) {
             ))}
             {!records.length && (
               <tr>
-                <td className="px-4 py-4 text-[#64748b]" colSpan={9}>
+                <td className="px-4 py-4 text-[#64748b]" colSpan={10}>
                   {loading ? "Loading..." : "No restaurants found."}
                 </td>
               </tr>
@@ -487,6 +522,71 @@ export default function RestaurantsPage({ token }) {
                   onChange={(e) => setForm({ ...form, accepts_food_orders: e.target.checked })}
                 />
                 <span className="text-sm">Accept Food Orders</span>
+              </div>
+              <div className="md:col-span-2 rounded-[16px] border border-red-100 bg-red-50/60 p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-700">Food Promotion</p>
+                    <h4 className="mt-1 text-base font-black text-[#101827]">Featured restaurant placement</h4>
+                    <p className="mt-1 text-xs text-[#64748b]">Active campaigns appear above normal restaurants and inside the app featured section.</p>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-[#24324a]">
+                    <input
+                      type="checkbox"
+                      checked={form.is_promoted}
+                      onChange={(e) => setForm({ ...form, is_promoted: e.target.checked })}
+                    />
+                    Promote
+                  </label>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-4">
+                  <label className="text-xs font-bold text-[#64748b]">
+                    Priority
+                    <input
+                      type="number"
+                      className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm"
+                      value={form.promotion_priority}
+                      onChange={(e) => setForm({ ...form, promotion_priority: e.target.value })}
+                    />
+                  </label>
+                  <label className="text-xs font-bold text-[#64748b]">
+                    Badge
+                    <input
+                      className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm"
+                      value={form.promotion_badge}
+                      onChange={(e) => setForm({ ...form, promotion_badge: e.target.value })}
+                      placeholder="Featured"
+                    />
+                  </label>
+                  <label className="text-xs font-bold text-[#64748b]">
+                    Starts
+                    <input
+                      type="datetime-local"
+                      className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm"
+                      value={form.promotion_starts_at}
+                      onChange={(e) => setForm({ ...form, promotion_starts_at: e.target.value })}
+                    />
+                  </label>
+                  <label className="text-xs font-bold text-[#64748b]">
+                    Ends
+                    <input
+                      type="datetime-local"
+                      className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm"
+                      value={form.promotion_ends_at}
+                      onChange={(e) => setForm({ ...form, promotion_ends_at: e.target.value })}
+                    />
+                  </label>
+                  <label className="md:col-span-4 text-xs font-bold text-[#64748b]">
+                    Internal Note
+                    <textarea
+                      rows={2}
+                      className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm"
+                      value={form.promotion_note}
+                      onChange={(e) => setForm({ ...form, promotion_note: e.target.value })}
+                      placeholder="Campaign context for admin team"
+                    />
+                  </label>
+                </div>
               </div>
               <div className="md:col-span-2 rounded-[16px] border border-emerald-100 bg-emerald-50/60 p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
