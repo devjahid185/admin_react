@@ -14,7 +14,6 @@ const defaultForm = {
   update_title: "নতুন আপডেট এসেছে",
   update_message: "আরও ভালো অভিজ্ঞতার জন্য অ্যাপ আপডেট করুন।",
   store_url: "https://play.google.com/store/apps/details?id=com.sohojit.frontend_flutter",
-  direct_apk_url: "",
   maintenance_mode: false,
   maintenance_title: "সার্ভিস আপডেট চলছে",
   maintenance_message: "আমরা সিস্টেম উন্নত করছি। কিছুক্ষণ পর আবার চেষ্টা করুন।",
@@ -66,7 +65,6 @@ export default function AppVersionSettingsPage({ token, onUnauthorized }) {
         ...form,
         latest_build: Number(form.latest_build || 1),
         minimum_supported_build: Number(form.minimum_supported_build || 1),
-        direct_apk_url: form.direct_apk_url || null,
         store_url: form.store_url || null,
         maintenance_until: form.maintenance_until || null,
       };
@@ -95,7 +93,7 @@ export default function AppVersionSettingsPage({ token, onUnauthorized }) {
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-[#101827]">App Version Control</h2>
-              <p className="text-sm text-[#64748b]">Control updates, old app blocking, changelog and maintenance mode.</p>
+              <p className="text-sm text-[#64748b]">Control Play Store update prompts, old app blocking, changelog and maintenance mode.</p>
             </div>
             <label className="inline-flex cursor-pointer items-center gap-3 rounded-[14px] border border-[#dfe6ef] bg-[#f8fafc] px-3 py-2">
               <span className="text-sm font-medium text-[#24324a]">{form.is_enabled ? "Enabled" : "Disabled"}</span>
@@ -135,7 +133,9 @@ export default function AppVersionSettingsPage({ token, onUnauthorized }) {
             <Input label="Minimum supported version" value={form.minimum_supported_version} onChange={(e) => updateField("minimum_supported_version", e.target.value)} />
             <Input label="Minimum supported build" type="number" value={form.minimum_supported_build} onChange={(e) => updateField("minimum_supported_build", e.target.value)} />
             <Input label="Play Store / App Store URL" value={form.store_url || ""} onChange={(e) => updateField("store_url", e.target.value)} />
-            <Input label="Direct APK URL" value={form.direct_apk_url || ""} onChange={(e) => updateField("direct_apk_url", e.target.value)} />
+            <div className="rounded-[14px] border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 md:col-span-2">
+              Manual update popup is Play Store policy-safe: users are sent only to the official store URL. Do not use direct APK downloads for Play Store builds.
+            </div>
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -201,7 +201,7 @@ export default function AppVersionSettingsPage({ token, onUnauthorized }) {
           </div>
           <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 text-sm text-[#53637a] shadow-sm">
             <h3 className="font-semibold text-[#101827]">Recommended rollout</h3>
-            <p className="mt-3">Upload new APK/AAB first, keep minimum version old, use recommended update, then switch to force only after the new build is stable.</p>
+            <p className="mt-3">Upload the new AAB to Play Console first. After Play Store rollout is live, set Latest build to the new build and use Recommended update for a popup. Switch to Force only after the new build is stable.</p>
           </div>
         </aside>
       </div>

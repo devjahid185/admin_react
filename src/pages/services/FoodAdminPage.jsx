@@ -72,15 +72,21 @@ const RESOURCE_CONFIG = {
       { key: "title", label: "Offer Title", required: true },
       { key: "discount_type", label: "Discount Type", type: "select", options: ["fixed", "percent", "free_delivery"], defaultValue: "fixed" },
       { key: "discount_value", label: "Discount Value", type: "number", defaultValue: 0 },
+      { key: "applies_to", label: "Applies To", type: "select", options: ["order_items", "delivery", "total"], defaultValue: "order_items" },
+      { key: "funding_source", label: "Who Pays Discount", type: "select", options: ["admin", "restaurant"], defaultValue: "admin" },
+      { key: "source", label: "Created By", type: "select", options: ["admin", "restaurant"], defaultValue: "admin" },
       { key: "minimum_order", label: "Minimum Order", type: "number", defaultValue: 0 },
       { key: "max_discount", label: "Max Discount", type: "number" },
       { key: "restaurant_id", label: "Restaurant ID", type: "number" },
+      { key: "owner_user_id", label: "Owner User ID", type: "number" },
       { key: "usage_limit", label: "Usage Limit", type: "number" },
+      { key: "per_user_limit", label: "Per User Limit", type: "number" },
       { key: "starts_at", label: "Starts At", type: "datetime-local" },
       { key: "ends_at", label: "Ends At", type: "datetime-local" },
       { key: "is_active", label: "Active", type: "checkbox", defaultValue: true },
+      { key: "notes", label: "Settlement Notes", type: "textarea" },
     ],
-    columns: ["id", "code", "title", "discount_type", "discount_value", "minimum_order", "is_active"],
+    columns: ["id", "code", "title", "discount_type", "discount_value", "applies_to", "funding_source", "minimum_order", "used_count", "usage_limit", "is_active"],
   },
   "food-orders": {
     title: "Food Orders",
@@ -114,8 +120,14 @@ const RESOURCE_CONFIG = {
       { key: "delivery_distance_km", label: "Delivery Distance KM", type: "number" },
       { key: "delivery_charge_mode", label: "Delivery Charge Mode" },
       { key: "discount_amount", label: "Discount", type: "number", defaultValue: 0 },
+      { key: "admin_discount_amount", label: "Admin Discount", type: "number", defaultValue: 0 },
+      { key: "restaurant_discount_amount", label: "Restaurant Discount", type: "number", defaultValue: 0 },
+      { key: "delivery_discount_amount", label: "Delivery Discount", type: "number", defaultValue: 0 },
       { key: "grand_total", label: "Grand Total", type: "number", defaultValue: 0 },
       { key: "coupon_code", label: "Coupon Code" },
+      { key: "restaurant_payout_status", label: "Restaurant Payout Status", type: "select", options: ["pending", "processing", "paid", "hold"], defaultValue: "pending" },
+      { key: "restaurant_payout_reference", label: "Restaurant Payout Reference" },
+      { key: "restaurant_paid_out_at", label: "Restaurant Paid At", type: "datetime-local" },
       { key: "order_note", label: "Order Note", type: "textarea" },
     ],
     columns: ["id", "order_no", "restaurant", "payment_method", "payment_status", "manual_transaction_id", "payment_proof_photo_url", "rider_assignment_label", "accepted_rider_name", "route_distance_km", "receiver_name", "status", "grand_total", "created_at"],
@@ -225,10 +237,13 @@ const RESOURCE_CONFIG = {
       { key: "type", label: "টাইপ", type: "select", options: ["earning", "cash_collection", "payout", "adjustment", "penalty"], defaultValue: "adjustment" },
       { key: "amount", label: "টাকা", type: "number", required: true },
       { key: "balance_after", label: "Balance After", type: "number", defaultValue: 0 },
+      { key: "payout_status", label: "Payout Status", type: "select", options: ["pending", "processing", "paid", "hold", "not_applicable"], defaultValue: "pending" },
+      { key: "payout_reference", label: "Payout Reference" },
+      { key: "paid_out_at", label: "Paid Out At", type: "datetime-local" },
       { key: "title", label: "শিরোনাম", required: true },
       { key: "note", label: "নোট", type: "textarea" },
     ],
-    columns: ["id", "rider_id", "food_order_id", "type", "amount", "balance_after", "title", "created_at"],
+    columns: ["id", "rider_id", "food_order_id", "type", "amount", "payout_status", "balance_after", "title", "created_at"],
   },
   "rider-support-tickets": {
     title: "রাইডার সাপোর্ট",
@@ -345,7 +360,12 @@ const dateFields = new Set([
   "ends_at",
   "estimated_delivery_at",
   "accepted_at",
+  "preparing_at",
+  "picked_up_at",
+  "on_the_way_at",
   "delivered_at",
+  "cancelled_at",
+  "rejected_at",
 ]);
 
 function formatDateTime(value) {
@@ -360,6 +380,139 @@ function formatDateTime(value) {
     minute: "2-digit",
     hour12: true,
   }).format(date);
+}
+
+const foodProgressSteps = [
+  ["pending", "Waiting for Restaurant Acceptance", "created_at"],
+  ["accepted", "Accepted", "accepted_at"],
+  ["preparing", "Preparing", "preparing_at"],
+  ["picked_up", "Picked Up", "picked_up_at"],
+  ["on_the_way", "On The Way", "on_the_way_at"],
+  ["delivered", "Delivered", "delivered_at"],
+];
+
+const medicineProgressSteps = [
+  ["pending", "Waiting for Store Acceptance", "created_at"],
+  ["accepted", "Accepted", "accepted_at"],
+  ["preparing", "Processing", "preparing_at"],
+  ["picked_up", "Picked Up", "picked_up_at"],
+  ["on_the_way", "On The Way", "on_the_way_at"],
+  ["delivered", "Delivered", "delivered_at"],
+];
+
+function orderProgressItems(order, isMedicine) {
+  if (Array.isArray(order?.status_timeline) && order.status_timeline.length) {
+    return order.status_timeline.map((item) => ({
+      status: item.status,
+      label: item.label || String(item.status || "").replace(/_/g, " "),
+      timestamp: item.timestamp,
+      completed: Boolean(item.completed),
+      current: Boolean(item.current),
+    }));
+  }
+
+  const baseSteps = isMedicine ? medicineProgressSteps : foodProgressSteps;
+  const currentStatus = order?.status || "pending";
+  if (currentStatus === "payment_pending") {
+    return [
+      {
+        status: "payment_pending",
+        label: "Payment Pending",
+        timestamp: order?.created_at,
+        completed: true,
+        current: true,
+      },
+    ];
+  }
+  const terminalStep =
+    currentStatus === "cancelled"
+      ? [["cancelled", "Cancelled", "cancelled_at"]]
+      : currentStatus === "rejected"
+        ? [["rejected", "Rejected", "rejected_at"]]
+        : [];
+  const steps = [...baseSteps, ...terminalStep];
+  const currentIndex = Math.max(
+    0,
+    steps.findIndex(([status]) => status === currentStatus),
+  );
+
+  return steps.map(([status, label, key], index) => {
+    const apiItem = Array.isArray(order?.status_timeline)
+      ? order.status_timeline.find((item) => item?.status === status)
+      : null;
+    const timestamp = apiItem?.timestamp || order?.[key];
+    return {
+      status,
+      label: apiItem?.label || label,
+      timestamp,
+      completed: Boolean(apiItem?.completed) || index <= currentIndex || Boolean(timestamp),
+      current: Boolean(apiItem?.current) || index === currentIndex,
+    };
+  });
+}
+
+function OrderProgressTimeline({ order, isMedicine }) {
+  const items = orderProgressItems(order, isMedicine);
+
+  return (
+    <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h4 className="text-base font-bold text-[#111827]">Order Progress</h4>
+          <p className="mt-1 text-sm text-[#64748b]">
+            Status update time and date are tracked from order placement to delivery.
+          </p>
+        </div>
+        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold capitalize text-emerald-700">
+          {String(order?.status || "pending").replace(/_/g, " ")}
+        </span>
+      </div>
+
+      <div className="mt-4 space-y-0">
+        {items.map((item, index) => (
+          <div key={item.status} className="flex gap-3">
+            <div className="flex flex-col items-center">
+              <div
+                className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-black ${
+                  item.completed
+                    ? item.current
+                      ? "border-emerald-600 bg-emerald-600 text-white shadow-lg shadow-emerald-100"
+                      : "border-red-600 bg-red-600 text-white"
+                    : "border-[#dfe6ef] bg-[#f8fafc] text-[#94a3b8]"
+                }`}
+              >
+                {item.completed ? "✓" : index + 1}
+              </div>
+              {index !== items.length - 1 && (
+                <div
+                  className={`h-11 w-px ${
+                    item.completed ? "bg-red-200" : "bg-[#e5eaf1]"
+                  }`}
+                />
+              )}
+            </div>
+            <div className="min-w-0 flex-1 pb-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-bold text-[#111827]">{item.label}</div>
+                  <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-[#64748b]">
+                    <span>Time</span>
+                    <span className="text-[#cbd5e1]">•</span>
+                    <span>{formatDateTime(item.timestamp)}</span>
+                  </div>
+                </div>
+                {item.current && (
+                  <span className="shrink-0 rounded-full bg-[#fff1f2] px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-red-700">
+                    Current
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function emptyForm(config) {
@@ -629,7 +782,10 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                     {order?.service_type !== "medicine" && (
                       <>
                         <SummaryLine label="Restaurant Commission" value={`BDT ${order?.restaurant_commission_amount || 0}`} />
+                        <SummaryLine label="Restaurant Discount Cost" value={`BDT ${order?.restaurant_discount_amount || 0}`} />
                         <SummaryLine label="Restaurant Owner Payable" value={`BDT ${order?.restaurant_owner_payable || 0}`} />
+                        <SummaryLine label="Restaurant Payout Status" value={order?.restaurant_payout_status || "pending"} />
+                        {order?.restaurant_payout_reference && <SummaryLine label="Restaurant Payout Ref" value={order.restaurant_payout_reference} />}
                         <SummaryLine label="Admin Total Income" value={`BDT ${order?.admin_total_income || 0}`} />
                       </>
                     )}
@@ -637,6 +793,9 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                     <SummaryLine label="Rider Payout" value={`BDT ${order?.rider_earning || 0}`} />
                     <SummaryLine label="Admin Delivery Income" value={`BDT ${order?.admin_delivery_income || 0}`} />
                     <SummaryLine label="Discount" value={`BDT ${order?.discount_amount || 0}`} />
+                    <SummaryLine label="Admin-funded Discount" value={`BDT ${order?.admin_discount_amount || 0}`} />
+                    <SummaryLine label="Restaurant-funded Discount" value={`BDT ${order?.restaurant_discount_amount || 0}`} />
+                    <SummaryLine label="Delivery Discount" value={`BDT ${order?.delivery_discount_amount || 0}`} />
                     <div className="border-t border-[#edf1f6] pt-2">
                       <SummaryLine label="Grand Total" value={`BDT ${order?.grand_total || 0}`} strong />
                     </div>
@@ -646,6 +805,7 @@ function FoodOrderViewModal({ loading, order, onClose }) {
 
               <div className="space-y-4">
                 <FoodOrderRouteMap order={order} />
+                <OrderProgressTimeline order={order} isMedicine={isMedicine} />
                 <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -827,12 +987,15 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
         </div>
         {loading && <span className="text-xs font-semibold text-[#64748b]">Refreshing...</span>}
       </div>
-      <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-8">
+      <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-12">
         <SummaryCard label="Orders" value={totals.orders_count || 0} />
         <SummaryCard label="Grand Total" value={money(totals.grand_total)} />
         <SummaryCard label="Owner Received" value={money(totals.owner_received_total)} tone="emerald" />
         <SummaryCard label="COD Collectable" value={money(totals.cod_collectable_total)} tone="amber" />
         <SummaryCard label="Delivery Charge" value={money(totals.delivery_fee_total)} tone="blue" />
+        <SummaryCard label="Discounts" value={money(totals.discount_total)} tone="amber" />
+        <SummaryCard label="Admin Discount" value={money(totals.admin_discount_total)} tone="red" />
+        <SummaryCard label="Restaurant Discount" value={money(totals.restaurant_discount_total)} tone="emerald" />
         <SummaryCard label="Admin Income" value={money(totals.admin_delivery_income_total)} tone="red" />
         <SummaryCard label="Restaurant Commission" value={money(totals.restaurant_commission_total)} tone="violet" />
         <SummaryCard label="Total Admin Income" value={money(totals.admin_total_income)} tone="red" />

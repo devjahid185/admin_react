@@ -15,16 +15,18 @@ const privacySections = [
     ],
     bullets: [
       "Account information such as name, phone number, email address, profile photo and address details.",
-      "Order and service information such as food orders, saved delivery addresses, support tickets, booking or listing details and transaction status.",
+      "Order and service information such as food and medicine orders, saved delivery addresses, support tickets, booking or listing details and transaction status.",
+      "Health-related service information users provide through medicine delivery, blood donor/request, doctor appointment or similar features, such as medicine order details, blood group, age/gender/weight, last donation information or appointment details.",
       "Location information such as current or selected delivery location, restaurant location, rider location during active delivery and route visibility data.",
       "Device and notification information such as device token, app version and basic technical logs for push notifications, troubleshooting and fraud prevention.",
       "Media and documents voluntarily uploaded by users, riders, owners or service providers, including profile photos, food images, KYC files or delivery proof.",
+      "App activity and analytics information such as app interactions, searches, deep link opens, cart/order actions and events collected by trusted SDKs where enabled.",
     ],
   },
   {
     title: "3. How We Use Information",
     body: [
-      "We use information to create accounts, process orders, provide delivery services, match riders, show service details, send notifications, provide support, prevent abuse and improve app reliability.",
+      "We use information to create accounts, process orders, provide delivery services, match riders, show service details, support health-related service requests, send notifications, provide support, prevent abuse and improve app reliability.",
       "Location data is used for user-selected delivery addresses, restaurant-to-customer distance, rider matching, live delivery tracking and route display. We do not sell personal location data.",
     ],
   },
@@ -32,7 +34,7 @@ const privacySections = [
     title: "4. Sharing of Information",
     body: [
       "We share necessary information only with parties involved in providing the requested service, such as restaurants, riders, admins, support teams and trusted service providers.",
-      "We may use third-party services including Google Maps, Firebase Cloud Messaging, hosting, SMS/email gateways and payment-related providers. These services process data according to their own privacy and security practices.",
+      "We may use third-party services including Google Maps, Firebase Cloud Messaging, Meta App Events, hosting, SMS/email gateways and payment-related providers. These services process data according to their own privacy and security practices.",
     ],
   },
   {
