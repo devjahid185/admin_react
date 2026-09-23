@@ -16,6 +16,7 @@ const defaultForm = {
 export default function SmsSettingsPage({ token, onUnauthorized }) {
   const [form, setForm] = useState(defaultForm);
   const [meta, setMeta] = useState(null);
+  const [logs, setLogs] = useState([]);
   const [testPhone, setTestPhone] = useState("");
   const [testMessage, setTestMessage] = useState("Bholabashi SMS test.");
   const [loading, setLoading] = useState(true);
@@ -30,6 +31,7 @@ export default function SmsSettingsPage({ token, onUnauthorized }) {
       const data = await apiRequest("/admin/sms-settings", { token });
       const settings = data.settings || {};
       setMeta(settings);
+      setLogs(Array.isArray(data.logs) ? data.logs : []);
       setForm({
         ...defaultForm,
         is_enabled: Boolean(settings.is_enabled),
@@ -70,6 +72,7 @@ export default function SmsSettingsPage({ token, onUnauthorized }) {
         body: payload,
       });
       setMeta(data.settings || null);
+      setLogs(Array.isArray(data.logs) ? data.logs : logs);
       setForm((prev) => ({ ...prev, api_key: "" }));
     } catch (err) {
       setError(err.message || "Unable to save SMS settings.");
@@ -88,6 +91,7 @@ export default function SmsSettingsPage({ token, onUnauthorized }) {
         body: { phone: testPhone, message: testMessage },
       });
       setMeta(data.settings || meta);
+      setLogs(Array.isArray(data.logs) ? data.logs : logs);
     } catch (err) {
       setError(err.message || "Test SMS failed.");
     } finally {
@@ -228,8 +232,73 @@ export default function SmsSettingsPage({ token, onUnauthorized }) {
           </div>
         </div>
       </div>
+
+      <div className="rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
+        <div className="flex flex-col gap-2 border-b border-[#edf1f7] p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-[#101827]">Latest SMS logs</h3>
+            <p className="text-sm text-[#64748b]">OTP/test SMS success, gateway response and failure reason.</p>
+          </div>
+          <Button type="button" onClick={load} disabled={loading}>Refresh logs</Button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-[#f8fafc] text-xs uppercase tracking-wide text-[#64748b]">
+              <tr>
+                <th className="px-4 py-3">Time</th>
+                <th className="px-4 py-3">Phone</th>
+                <th className="px-4 py-3">Purpose</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">HTTP</th>
+                <th className="px-4 py-3">Reason / Gateway response</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#edf1f7]">
+              {logs.length === 0 ? (
+                <tr>
+                  <td className="px-4 py-5 text-center text-[#64748b]" colSpan={6}>
+                    No SMS logs yet.
+                  </td>
+                </tr>
+              ) : (
+                logs.map((log) => (
+                  <tr key={log.id} className="align-top">
+                    <td className="whitespace-nowrap px-4 py-3 text-[#53637a]">
+                      {log.created_at || "-"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 font-medium text-[#24324a]">
+                      {log.phone || "-"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-[#53637a]">
+                      {log.purpose || "-"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        log.status === "sent"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : log.status === "failed"
+                            ? "bg-red-50 text-red-700"
+                            : "bg-amber-50 text-amber-700"
+                      }`}>
+                        {log.status || "pending"}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-[#53637a]">
+                      {log.http_status || "-"}
+                    </td>
+                    <td className="min-w-[280px] px-4 py-3 text-[#53637a]">
+                      <div className="max-w-[520px] break-words">
+                        {log.error_message || log.gateway_response || "-"}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
-
 

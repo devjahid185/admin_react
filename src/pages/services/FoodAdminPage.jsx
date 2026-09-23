@@ -54,10 +54,15 @@ const RESOURCE_CONFIG = {
       { key: "add_ons", label: "Add-ons", type: "addons", placeholder: "Extra Sauce:20" },
       { key: "is_available", label: "Available", type: "checkbox", defaultValue: true },
       { key: "is_popular", label: "Popular", type: "checkbox", defaultValue: false },
-      { key: "is_promoted", label: "Promoted on Top", type: "checkbox", defaultValue: false },
+      { key: "is_promoted", label: "Promotion Campaign", type: "checkbox", defaultValue: false },
+      { key: "promotion_priority", label: "Promotion Priority", type: "number", defaultValue: 0 },
+      { key: "promotion_badge", label: "Promotion Badge", placeholder: "Featured, Best deal, Sponsor" },
+      { key: "promotion_starts_at", label: "Promotion Starts", type: "datetime-local" },
+      { key: "promotion_ends_at", label: "Promotion Ends", type: "datetime-local" },
+      { key: "promotion_note", label: "Promotion Note", type: "textarea" },
       { key: "status", label: "Status", type: "select", options: ["active", "pending", "inactive"], defaultValue: "active" },
     ],
-    columns: ["id", "image_url", "name", "restaurant_id", "food_category_id", "price", "discount_price", "is_promoted", "is_available", "status"],
+    columns: ["id", "image_url", "name", "restaurant_id", "food_category_id", "price", "discount_price", "promotion_badge", "promotion_priority", "is_promoted", "is_available", "status"],
   },
   "food-coupons": {
     title: "Food Coupons",
@@ -375,6 +380,7 @@ function normalizeRecord(record, config) {
     else if (field.type === "tags") form[field.key] = Array.isArray(value) ? value.join(", ") : value || "";
     else if (field.type === "addons") form[field.key] = formatAddons(value);
     else if (field.type === "size_prices") form[field.key] = formatSizePrices(value);
+    else if (field.type === "datetime-local") form[field.key] = value ? String(value).replace(" ", "T").slice(0, 16) : "";
     else form[field.key] = value ?? "";
   });
   return form;

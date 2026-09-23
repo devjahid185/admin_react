@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout.jsx";
 import { apiRequest } from "../lib/api.js";
+import { API_BASE } from "../lib/config.js";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../components/BulkDeleteBar.jsx";
 import Button from "../components/Button.jsx";
 import UsersPage from "./UsersPage.jsx";
+import StaffManagementPage from "./StaffManagementPage.jsx";
 import WorkersPage from "./services/WorkersPage.jsx";
 import BusinessesPage from "./services/BusinessesPage.jsx";
 import MarketplacePage from "./services/MarketplacePage.jsx";
@@ -47,6 +49,7 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Dashboard", slug: "dashboard", group_name: "Core", route: "/admin" },
   { name: "Profile", slug: "profile", group_name: "Core", route: "/admin/profile" },
   { name: "Users", slug: "users", group_name: "Core", route: "/admin/users" },
+  { name: "Staff Management", slug: "staff-management", group_name: "Core", route: "/admin/staff-management" },
   { name: "Home Banners", slug: "home-banners", group_name: "Engagement", route: "/admin/home-banners" },
   { name: "Home Services", slug: "home-service-shortcuts", group_name: "Engagement", route: "/admin/home-service-shortcuts" },
   { name: "Workers", slug: "workers", group_name: "Services", route: "/admin/workers" },
@@ -96,13 +99,428 @@ const DEFAULT_ADMIN_MODULES = [
 
 function mergeAdminModules(apiModules = []) {
   const hidden = new Set(["rider-documents", "rider-wallet", "rider-support-tickets", "rider-ratings", "rider-locations"]);
-  const merged = new Map(DEFAULT_ADMIN_MODULES.map((item) => [item.slug, item]));
-  apiModules.forEach((item) => {
+  if (!apiModules.length) {
+    return DEFAULT_ADMIN_MODULES.filter((item) => !hidden.has(item.slug));
+  }
+  const defaults = new Map(DEFAULT_ADMIN_MODULES.map((item) => [item.slug, item]));
+  return apiModules.map((item) => {
     if (item?.slug && !hidden.has(item.slug)) {
-      merged.set(item.slug, { ...merged.get(item.slug), ...item });
+      return { ...defaults.get(item.slug), ...item };
     }
+    return null;
+  }).filter(Boolean);
+}
+
+const compact = (value) => Number(value || 0).toLocaleString();
+const money = (value) => `BDT ${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+const ADMIN_ALERT_STORAGE_KEY = "bv_admin_alert_counters";
+
+const MONITORED_COUNTERS = [
+  { key: "food_orders", label: "New food order", slug: "food-orders", type: "Order" },
+  { key: "medicine_orders", label: "New medicine order", slug: "medicine-orders", type: "Order" },
+  { key: "rider_requests", label: "New delivery request", slug: "delivery-income", type: "Delivery" },
+  { key: "food_items", label: "New food item", slug: "food-items", type: "Food" },
+  { key: "medicine_items", label: "New medicine item", slug: "medicine-items", type: "Medicine" },
+  { key: "restaurants", label: "New restaurant", slug: "restaurants", type: "Food" },
+  { key: "workers", label: "New worker service", slug: "workers", type: "Service" },
+  { key: "businesses", label: "New business", slug: "businesses", type: "Service" },
+  { key: "marketplace_items", label: "New marketplace item", slug: "marketplace", type: "Service" },
+  { key: "jobs", label: "New job post", slug: "jobs", type: "Service" },
+  { key: "doctors", label: "New doctor listing", slug: "doctors", type: "Service" },
+  { key: "hospitals", label: "New hospital listing", slug: "hospitals", type: "Service" },
+  { key: "hotels", label: "New hotel listing", slug: "hotels", type: "Service" },
+  { key: "properties", label: "New property listing", slug: "property", type: "Service" },
+  { key: "education", label: "New education listing", slug: "education", type: "Service" },
+  { key: "car_rentals", label: "New car rental", slug: "car-rental", type: "Service" },
+  { key: "launches", label: "New launch service", slug: "launches", type: "Service" },
+  { key: "couriers", label: "New courier office", slug: "courier", type: "Service" },
+  { key: "messages_total", label: "New message", slug: "messages", type: "Support" },
+  { key: "reports_pending", label: "New pending report", slug: "reports", type: "Moderation" },
+];
+
+function formatDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
-  return Array.from(merged.values()).filter((item) => !hidden.has(item.slug));
+}
+
+function readStoredCounters() {
+  try {
+    return JSON.parse(localStorage.getItem(ADMIN_ALERT_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveStoredCounters(counters) {
+  try {
+    localStorage.setItem(ADMIN_ALERT_STORAGE_KEY, JSON.stringify(counters));
+  } catch {}
+}
+
+function countersFromStats(stats = {}) {
+  return MONITORED_COUNTERS.reduce((acc, item) => {
+    acc[item.key] = Number(stats?.[item.key] || 0);
+    return acc;
+  }, {});
+}
+
+function createAlertTone(ctx) {
+  const now = ctx.currentTime;
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.exponentialRampToValueAtTime(0.2, now + 0.08);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + 5);
+  master.connect(ctx.destination);
+
+  [0, 0.45, 0.9, 1.35, 1.8, 2.35, 2.9, 3.45, 4].forEach((offset, index) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(index % 2 ? 740 : 520, now + offset);
+    gain.gain.setValueAtTime(0.0001, now + offset);
+    gain.gain.exponentialRampToValueAtTime(0.55, now + offset + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.34);
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start(now + offset);
+    osc.stop(now + offset + 0.38);
+  });
+}
+
+async function fetchAdminStatsSilently(token) {
+  const res = await fetch(`${API_BASE}/admin/stats`, {
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error("Unable to poll admin stats");
+  return res.json();
+}
+
+function StatTile({ item, onOpen }) {
+  return (
+    <button
+      type="button"
+      onClick={() => item.slug && onOpen(item.slug)}
+      className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-red-200 hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#64748b]">{item.label}</p>
+          <p className="mt-3 text-2xl font-black text-[#050b18]">{item.money ? money(item.value) : compact(item.value)}</p>
+          {item.note && <p className="mt-1 text-xs font-semibold text-[#64748b]">{item.note}</p>}
+        </div>
+        <span className={`grid h-10 w-10 place-items-center rounded-[13px] text-sm font-black ${item.danger ? "bg-red-50 text-[#ee0012]" : "bg-[#f1f5f9] text-[#24324a]"}`}>
+          {item.icon || item.label.slice(0, 2)}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function MiniMetric({ label, value, note, slug, onOpen }) {
+  const Wrapper = slug ? "button" : "div";
+  const displayValue = typeof value === "string" ? value : compact(value);
+  return (
+    <Wrapper
+      type={slug ? "button" : undefined}
+      onClick={slug ? () => onOpen(slug) : undefined}
+      className="rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] px-4 py-3 text-left transition hover:border-red-200 hover:bg-white"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-bold text-[#24324a]">{label}</p>
+        <p className="text-sm font-black text-[#050b18]">{displayValue}</p>
+      </div>
+      {note && <p className="mt-1 text-xs text-[#8b98ab]">{note}</p>}
+    </Wrapper>
+  );
+}
+
+function StatusBars({ title, rows = [] }) {
+  const max = Math.max(1, ...rows.map((row) => Number(row.value || 0)));
+  return (
+    <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
+      <h3 className="text-sm font-black text-[#101827]">{title}</h3>
+      <div className="mt-4 space-y-3">
+        {rows.map((row) => (
+          <div key={row.label}>
+            <div className="mb-1 flex justify-between gap-3 text-xs font-bold text-[#64748b]">
+              <span className="capitalize">{String(row.label || "unknown").replaceAll("_", " ")}</span>
+              <span>{compact(row.value)}</span>
+            </div>
+            <div className="h-2 rounded-full bg-[#eef2f7]">
+              <div className="h-2 rounded-full bg-[#ee0012]" style={{ width: `${Math.max(4, (Number(row.value || 0) / max) * 100)}%` }} />
+            </div>
+          </div>
+        ))}
+        {!rows.length && <p className="text-sm text-[#8b98ab]">No data yet.</p>}
+      </div>
+    </div>
+  );
+}
+
+function RecentList({ title, items = [], empty, render }) {
+  return (
+    <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
+      <p className="text-sm font-black text-[#101827]">{title}</p>
+      <ul className="mt-3 space-y-3 text-sm text-[#53637a]">
+        {items.map(render)}
+        {!items.length && <li className="text-[#8b98ab]">{empty}</li>}
+      </ul>
+    </div>
+  );
+}
+
+function DashboardOverview({ stats, recent, onOpen }) {
+  const charts = stats?.charts || {};
+  const daily = charts.daily_visits || [];
+  const monthly = charts.monthly_visits || [];
+  const status = charts.status_breakdowns || {};
+  const serviceTotals = charts.service_totals || [];
+  const maxDaily = Math.max(1, ...daily.map((item) => Number(item.visits || 0) + Number(item.orders || 0) + Number(item.medicine_orders || 0)));
+  const maxService = Math.max(1, ...serviceTotals.map((item) => Number(item.value || 0)));
+
+  const topKpis = [
+    { label: "Total Users", value: stats?.users, note: `${compact(stats?.new_users_today)} today / ${compact(stats?.new_users_month)} this month`, slug: "users", icon: "US" },
+    { label: "Food Revenue", value: stats?.food_revenue_total, note: `${money(stats?.food_revenue_today)} today`, slug: "food-orders", icon: "FD", money: true },
+    { label: "Medicine Revenue", value: stats?.medicine_revenue_total, note: `${compact(stats?.medicine_orders_pending)} active orders`, slug: "medicine-orders", icon: "MD", money: true },
+    { label: "Riders Online", value: stats?.riders_online, note: `${compact(stats?.riders_active)} active / ${compact(stats?.riders_kyc_pending)} KYC pending`, slug: "riders", icon: "RD", danger: Number(stats?.riders_kyc_pending || 0) > 0 },
+    { label: "Pending Food", value: stats?.food_orders_pending, note: `${compact(stats?.food_unassigned_orders)} unassigned`, slug: "food-orders", icon: "FO", danger: Number(stats?.food_orders_pending || 0) > 0 },
+    { label: "Pending Medicine", value: stats?.medicine_orders_pending, note: `${compact(stats?.medicine_unassigned_orders)} unassigned`, slug: "medicine-orders", icon: "MO", danger: Number(stats?.medicine_orders_pending || 0) > 0 },
+    { label: "SMS Failed", value: stats?.sms_failed, note: `${compact(stats?.sms_today)} SMS today`, slug: "sms-settings", icon: "SM", danger: Number(stats?.sms_failed || 0) > 0 },
+    { label: "Open Support", value: Number(stats?.food_support_open || 0) + Number(stats?.rider_support_open || 0), note: "Food + rider tickets", slug: "support-settings", icon: "SP", danger: Number(stats?.food_support_open || 0) + Number(stats?.rider_support_open || 0) > 0 },
+  ];
+
+  const groups = [
+    {
+      title: "Food Delivery",
+      items: [
+        ["Orders", stats?.food_orders, "food-orders"],
+        ["Today", stats?.food_orders_today, "food-orders"],
+        ["Delivered", stats?.food_orders_delivered, "food-orders"],
+        ["Cancelled", stats?.food_orders_cancelled, "food-orders"],
+        ["Food Items", stats?.food_items, "food-items"],
+        ["Available Items", stats?.food_items_available, "food-items"],
+        ["Categories", stats?.food_categories, "food-categories"],
+        ["Active Coupons", stats?.food_coupons_active, "food-coupons"],
+        ["Food Carts", stats?.food_carts, "food-addresses"],
+        ["Food Reviews", stats?.food_reviews, "food-reviews"],
+      ],
+    },
+    {
+      title: "Medicine Delivery",
+      items: [
+        ["Orders", stats?.medicine_orders, "medicine-orders"],
+        ["Today", stats?.medicine_orders_today, "medicine-orders"],
+        ["Delivered", stats?.medicine_orders_delivered, "medicine-orders"],
+        ["Cancelled", stats?.medicine_orders_cancelled, "medicine-orders"],
+        ["Items", stats?.medicine_items, "medicine-items"],
+        ["Available", stats?.medicine_items_available, "medicine-items"],
+        ["Promoted", stats?.medicine_items_promoted, "medicine-items"],
+        ["Prescription", stats?.medicine_prescription_required, "medicine-items"],
+        ["Carts", stats?.medicine_carts, "medicine-orders"],
+        ["Delivery Fees", stats?.medicine_delivery_fees, "medicine-orders"],
+      ],
+    },
+    {
+      title: "Local Services",
+      items: [
+        ["Workers", stats?.workers, "workers"],
+        ["Businesses", stats?.businesses, "businesses"],
+        ["Marketplace", stats?.marketplace_items, "marketplace"],
+        ["Jobs", stats?.jobs, "jobs"],
+        ["Doctors", stats?.doctors, "doctors"],
+        ["Hospitals", stats?.hospitals, "hospitals"],
+        ["Hotels", stats?.hotels, "hotels"],
+        ["Properties", stats?.properties, "property"],
+        ["Education", stats?.education, "education"],
+        ["Launch Routes", stats?.launches, "launches"],
+        ["Couriers", stats?.couriers, "courier"],
+        ["Car Rentals", stats?.car_rentals, "car-rental"],
+      ],
+    },
+    {
+      title: "System and Content",
+      items: [
+        ["Home Banners", stats?.home_banners_active, "home-banners"],
+        ["Food Banners", stats?.food_banners_active, "food-banners"],
+        ["Home Services", stats?.home_shortcuts_active, "home-service-shortcuts"],
+        ["News", stats?.news, "news"],
+        ["Notices", stats?.notices, "notices"],
+        ["Updates", stats?.updates, "updates"],
+        ["FAQs", stats?.faqs_active, "faqs"],
+        ["Emergency", stats?.emergency_contacts, "emergency"],
+        ["Notifications", stats?.notifications_total, "notifications"],
+        ["Device Tokens", stats?.device_tokens, "notifications"],
+        ["Messages", stats?.messages_total, "messages"],
+        ["Reports Pending", stats?.reports_pending, "reports"],
+      ],
+    },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {topKpis.map((item) => <StatTile key={item.label} item={item} onOpen={onOpen} />)}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.4fr,1fr]">
+        <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm md:p-6">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="text-lg font-black text-[#101827]">14 day activity pulse</h3>
+              <p className="text-sm text-[#64748b]">Visits, users, food orders, medicine orders and revenue trend.</p>
+            </div>
+            <span className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-black text-red-700">Live DB</span>
+          </div>
+          <div className="mt-6 flex h-72 items-end gap-2 overflow-x-auto rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] p-4">
+            {daily.length ? daily.map((item) => {
+              const total = Number(item.visits || 0) + Number(item.orders || 0) + Number(item.medicine_orders || 0);
+              const height = Math.max(8, (total / maxDaily) * 210);
+              return (
+                <div key={item.date || item.label} className="group flex min-w-[46px] flex-1 flex-col items-center justify-end gap-2">
+                  <div className="text-[11px] font-bold text-[#64748b]">{compact(total)}</div>
+                  <div className="relative flex h-[220px] w-full items-end justify-center">
+                    <div className="w-7 rounded-t-[8px] bg-[#ee0012] transition group-hover:w-9" style={{ height }} />
+                    <div className="pointer-events-none absolute bottom-full mb-2 hidden w-44 rounded-[12px] border border-[#dfe6ef] bg-white p-3 text-left text-xs shadow-xl group-hover:block">
+                      <p className="font-black text-[#101827]">{item.label}</p>
+                      <p className="text-[#64748b]">Visits: {compact(item.visits)}</p>
+                      <p className="text-[#64748b]">New users: {compact(item.users)}</p>
+                      <p className="text-[#64748b]">Food orders: {compact(item.orders)}</p>
+                      <p className="text-[#64748b]">Medicine orders: {compact(item.medicine_orders)}</p>
+                      <p className="text-[#64748b]">Revenue: {money(item.revenue)}</p>
+                    </div>
+                  </div>
+                  <div className="whitespace-nowrap text-[10px] text-[#8b98ab]">{item.label}</div>
+                </div>
+              );
+            }) : <div className="m-auto text-sm text-[#64748b]">Activity data will appear after users open the app.</div>}
+          </div>
+        </div>
+
+        <div className="grid gap-4">
+          <StatusBars title="Food order status" rows={status.food_orders || []} />
+          <StatusBars title="Medicine order status" rows={status.medicine_orders || []} />
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-4">
+        <StatusBars title="Rider availability" rows={status.riders_by_availability || []} />
+        <StatusBars title="Rider accounts" rows={status.riders_by_status || []} />
+        <StatusBars title="SMS delivery" rows={status.sms || []} />
+        <StatusBars title="Payments" rows={status.payments || []} />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        {groups.map((group) => (
+          <div key={group.title} className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
+            <h3 className="text-lg font-black text-[#101827]">{group.title}</h3>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {group.items.map(([label, value, slug]) => (
+                <MiniMetric key={`${group.title}-${label}`} label={label} value={value} slug={slug} onOpen={onOpen} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.35fr,1fr]">
+        <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
+          <h3 className="text-lg font-black text-[#101827]">Service distribution</h3>
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            {serviceTotals.map((service) => {
+              const value = Number(service.value || 0);
+              return (
+                <button key={service.slug || service.label} type="button" onClick={() => service.slug && onOpen(service.slug)} className="rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] p-4 text-left transition hover:border-red-200 hover:bg-white">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-bold text-[#101827]">{service.label}</p>
+                    <p className="text-sm font-black text-[#050b18]">{compact(value)}</p>
+                  </div>
+                  <div className="mt-3 h-2 rounded-full bg-white">
+                    <div className="h-2 rounded-full bg-[#ee0012]" style={{ width: `${Math.max(3, (value / maxService) * 100)}%` }} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
+          <h3 className="text-lg font-black text-[#101827]">Finance snapshot</h3>
+          <div className="mt-4 grid gap-3">
+            <MiniMetric label="Food delivery fees" value={money(stats?.food_delivery_fees)} note="Delivered food orders" />
+            <MiniMetric label="Medicine delivery fees" value={money(stats?.medicine_delivery_fees)} note="Delivered medicine orders" />
+            <MiniMetric label="Rider earnings" value={money(stats?.rider_earnings_total)} note="Wallet earning entries" />
+            <MiniMetric label="Cash in hand" value={money(stats?.rider_cash_in_hand)} note="Rider collected cash" />
+            <MiniMetric label="Successful payments" value={stats?.payments_paid} note={`${money(stats?.payments_total_amount)} total`} slug="payments" onOpen={onOpen} />
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-4">
+        <RecentList
+          title="Recent app visits"
+          items={recent?.visits || []}
+          empty="No visit data yet."
+          render={(visit) => (
+            <li key={visit.id} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
+              <p className="font-bold text-[#24324a]">{visit.user?.name || visit.user?.email || visit.user?.phone || "Guest user"}</p>
+              <p className="text-xs text-[#8b98ab]">{visit.source || "app"} / {visit.path || "home"} / {formatDate(visit.visited_at)}</p>
+            </li>
+          )}
+        />
+        <RecentList
+          title="Recent food orders"
+          items={recent?.food_orders || []}
+          empty="No food orders yet."
+          render={(order) => (
+            <li key={order.id} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
+              <div className="flex justify-between gap-2"><p className="font-bold text-[#24324a]">{order.order_no || `Order #${order.id}`}</p><p className="text-xs font-black text-[#ee0012]">{order.status}</p></div>
+              <p className="text-xs text-[#8b98ab]">{money(order.grand_total)} / {order.payment_status} / {formatDate(order.created_at)}</p>
+            </li>
+          )}
+        />
+        <RecentList
+          title="Recent medicine orders"
+          items={recent?.medicine_orders || []}
+          empty="No medicine orders yet."
+          render={(order) => (
+            <li key={order.id} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
+              <div className="flex justify-between gap-2"><p className="font-bold text-[#24324a]">{order.order_no || `Order #${order.id}`}</p><p className="text-xs font-black text-[#08745c]">{order.status}</p></div>
+              <p className="text-xs text-[#8b98ab]">{money(order.grand_total)} / {order.payment_status} / {formatDate(order.created_at)}</p>
+            </li>
+          )}
+        />
+        <RecentList
+          title="Recent riders and SMS"
+          items={[...(recent?.riders || []).map((r) => ({ ...r, rowType: "rider" })), ...(recent?.sms_logs || []).map((s) => ({ ...s, rowType: "sms" }))].slice(0, 6)}
+          empty="No rider or SMS activity yet."
+          render={(item) => (
+            <li key={`${item.rowType}-${item.id}`} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
+              {item.rowType === "rider" ? (
+                <>
+                  <p className="font-bold text-[#24324a]">{item.name}</p>
+                  <p className="text-xs text-[#8b98ab]">{item.account_status} / {item.availability_status} / KYC {item.kyc_status}</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-bold text-[#24324a]">{item.phone || "SMS log"}</p>
+                  <p className="text-xs text-[#8b98ab]">{item.purpose || "-"} / {item.status} / HTTP {item.http_status || "-"}</p>
+                </>
+              )}
+            </li>
+          )}
+        />
+      </section>
+    </div>
+  );
 }
 
 export default function DashboardPage({ token, onLogout }) {
@@ -117,6 +535,127 @@ export default function DashboardPage({ token, onLogout }) {
   const [dashboardRecent, setDashboardRecent] = useState(null);
   const [coreSelectedIds, setCoreSelectedIds] = useState([]);
   const [coreBulkDeleting, setCoreBulkDeleting] = useState(false);
+  const [liveAlert, setLiveAlert] = useState(null);
+  const [soundReady, setSoundReady] = useState(false);
+  const [notificationReady, setNotificationReady] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
+  const alertCountersRef = useRef(readStoredCounters());
+  const audioRef = useRef(null);
+  const titleTimerRef = useRef(null);
+  const originalTitleRef = useRef(document.title);
+
+  const unlockAudio = async () => {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      if (!audioRef.current) audioRef.current = new AudioContextClass();
+      if (audioRef.current.state === "suspended") await audioRef.current.resume();
+      setSoundReady(audioRef.current.state === "running");
+    } catch {}
+  };
+
+  const requestNotifications = async () => {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "default") {
+      try {
+        const result = await Notification.requestPermission();
+        setNotificationReady(result === "granted");
+      } catch {}
+    } else {
+      setNotificationReady(Notification.permission === "granted");
+    }
+  };
+
+  const armAlerts = () => {
+    unlockAudio();
+    requestNotifications();
+  };
+
+  useEffect(() => {
+    const handler = () => armAlerts();
+    window.addEventListener("pointerdown", handler, { once: true });
+    window.addEventListener("keydown", handler, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", handler);
+      window.removeEventListener("keydown", handler);
+    };
+  }, []);
+
+  useEffect(() => () => {
+    if (titleTimerRef.current) clearInterval(titleTimerRef.current);
+    document.title = originalTitleRef.current;
+  }, []);
+
+  const fireLiveAlert = (changes) => {
+    const primary = changes[0];
+    const total = changes.reduce((sum, item) => sum + item.delta, 0);
+    const title = changes.length === 1 ? primary.label : `${changes.length} new admin updates`;
+    const message = changes.length === 1
+      ? `${primary.delta} new ${primary.type.toLowerCase()} item detected.`
+      : `${total} new records detected across orders, delivery and services.`;
+
+    setLiveAlert({
+      title,
+      message,
+      changes,
+      createdAt: new Date().toISOString(),
+    });
+
+    if (audioRef.current?.state === "running") {
+      createAlertTone(audioRef.current);
+    }
+
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      try {
+        const notification = new Notification(title, {
+          body: message,
+          icon: "/favicon_bholavashi.png",
+          tag: `bholavashi-admin-${primary.key}`,
+          requireInteraction: true,
+        });
+        notification.onclick = () => {
+          window.focus();
+          if (primary.slug) setActiveModule(primary.slug);
+          notification.close();
+        };
+      } catch {}
+    }
+
+    if (titleTimerRef.current) clearInterval(titleTimerRef.current);
+    let flip = false;
+    titleTimerRef.current = setInterval(() => {
+      flip = !flip;
+      document.title = flip ? `(${total}) New update` : originalTitleRef.current;
+    }, 900);
+    setTimeout(() => {
+      if (titleTimerRef.current) clearInterval(titleTimerRef.current);
+      titleTimerRef.current = null;
+      document.title = originalTitleRef.current;
+    }, 15000);
+  };
+
+  const applyStatsPayload = (data, shouldDetectAlerts = false) => {
+    const nextStats = { ...(data.stats || {}), charts: data.charts || {} };
+    setDashboardStats(nextStats);
+    setDashboardRecent(data.recent || null);
+
+    const nextCounters = countersFromStats(nextStats);
+    const previousCounters = alertCountersRef.current || {};
+    const hasPrevious = MONITORED_COUNTERS.some((item) => previousCounters[item.key] !== undefined);
+    const changes = shouldDetectAlerts && hasPrevious
+      ? MONITORED_COUNTERS
+          .map((item) => ({
+            ...item,
+            previous: Number(previousCounters[item.key] || 0),
+            current: Number(nextCounters[item.key] || 0),
+            delta: Number(nextCounters[item.key] || 0) - Number(previousCounters[item.key] || 0),
+          }))
+          .filter((item) => item.delta > 0)
+      : [];
+
+    alertCountersRef.current = nextCounters;
+    saveStoredCounters(nextCounters);
+    if (changes.length) fireLiveAlert(changes);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -147,6 +686,22 @@ export default function DashboardPage({ token, onLogout }) {
     };
     loadStats();
   }, [activeModule, token]);
+
+  useEffect(() => {
+    let stopped = false;
+    const poll = async () => {
+      try {
+        const data = await fetchAdminStatsSilently(token);
+        if (!stopped) applyStatsPayload(data, true);
+      } catch (_) {}
+    };
+    poll();
+    const timer = setInterval(poll, 5000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [token]);
 
   useEffect(() => {
     const loadModules = async () => {
@@ -198,7 +753,7 @@ export default function DashboardPage({ token, onLogout }) {
 
   const moduleTitle = useMemo(() => {
     if (activeModule === "users") return "Users";
-    if (activeModule === "admins") return "Admins";
+    if (activeModule === "staff-management") return "Staff / User Management";
     if (activeModule === "reports") return "Reports";
     if (activeModule === "reviews") return "Reviews";
     if (activeModule === "dashboard") return "Dashboard";
@@ -238,6 +793,7 @@ export default function DashboardPage({ token, onLogout }) {
 
   const servicePageMap = {
     users: UsersPage,
+    "staff-management": StaffManagementPage,
     profile: ProfilePage,
     workers: WorkersPage,
     businesses: BusinessesPage,
@@ -298,6 +854,75 @@ export default function DashboardPage({ token, onLogout }) {
       onSelectModule={(item) => setActiveModule(item.slug)}
     >
       {error && <div className="mb-4 text-red-600">{error}</div>}
+      {!soundReady && (
+        <div className="mb-4 flex flex-col gap-3 rounded-[16px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 shadow-sm md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="font-black">Live alert sound is waiting for browser permission.</p>
+            <p className="mt-1 text-amber-800">Click enable once so new order, delivery and service alerts can play the 5 second tone.</p>
+          </div>
+          <Button type="button" variant="ghost" onClick={armAlerts}>Enable live alerts</Button>
+        </div>
+      )}
+      {liveAlert && (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-[22px] border border-red-100 bg-white shadow-2xl">
+            <div className="bg-gradient-to-r from-[#ee0012] to-[#ff5664] p-5 text-white">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/75">Live admin alert</p>
+                  <h3 className="mt-2 text-2xl font-black">{liveAlert.title}</h3>
+                  <p className="mt-1 text-sm text-white/85">{liveAlert.message}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLiveAlert(null)}
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-white/15 text-xl font-black hover:bg-white/25"
+                  aria-label="Close alert"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="space-y-2">
+                {liveAlert.changes.slice(0, 6).map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      setLiveAlert(null);
+                      if (item.slug) setActiveModule(item.slug);
+                    }}
+                    className="flex w-full items-center justify-between gap-3 rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] px-4 py-3 text-left transition hover:border-red-200 hover:bg-white"
+                  >
+                    <div>
+                      <p className="font-black text-[#101827]">{item.label}</p>
+                      <p className="text-xs font-semibold text-[#64748b]">{item.type} update detected</p>
+                    </div>
+                    <span className="rounded-full bg-red-50 px-3 py-1 text-sm font-black text-[#ee0012]">+{item.delta}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <Button type="button" variant="ghost" onClick={() => setLiveAlert(null)}>Close</Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const first = liveAlert.changes[0];
+                    setLiveAlert(null);
+                    if (first?.slug) setActiveModule(first.slug);
+                  }}
+                >
+                  Open latest
+                </Button>
+              </div>
+              <p className="mt-3 text-xs font-semibold text-[#8b98ab]">
+                Browser notification: {notificationReady ? "enabled" : "not enabled"} · Sound: {soundReady ? "enabled" : "needs one click"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {["admins", "reports", "reviews"].includes(activeModule) && (
         <div className="mb-4">
           <BulkDeleteBar
@@ -310,292 +935,7 @@ export default function DashboardPage({ token, onLogout }) {
         </div>
       )}
       {activeModule === "dashboard" && (
-        <div className="space-y-5">
-          {(() => {
-            const formatDate = (value) => {
-              if (!value) return "-";
-              const date = new Date(value);
-              if (Number.isNaN(date.getTime())) return value;
-              return date.toLocaleString(undefined, {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              });
-            };
-            const compact = (value) => Number(value || 0).toLocaleString();
-            const money = (value) => `BDT ${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-            const charts = dashboardStats?.charts || {};
-            const dailyVisits = charts.daily_visits || [];
-            const monthlyVisits = charts.monthly_visits || [];
-            const serviceTotals = charts.service_totals || [];
-            const maxDaily = Math.max(1, ...dailyVisits.map((item) => Number(item.visits || 0)));
-            const maxMonthly = Math.max(1, ...monthlyVisits.map((item) => Number(item.visits || 0)));
-            const maxService = Math.max(1, ...serviceTotals.map((item) => Number(item.value || 0)));
-
-            const kpis = [
-              { label: "Visits Today", value: dashboardStats?.visits_today, note: `${compact(dashboardStats?.unique_visitors_today)} unique users`, accent: "red", slug: "users" },
-              { label: "Weekly Visits", value: dashboardStats?.visits_week, note: "Last 7 days activity", accent: "dark" },
-              { label: "Monthly Visits", value: dashboardStats?.visits_month, note: "Current month traffic", accent: "dark" },
-              { label: "New Users", value: dashboardStats?.new_users_month, note: `${compact(dashboardStats?.new_users_today)} joined today`, accent: "red", slug: "users" },
-              { label: "Food Orders", value: dashboardStats?.food_orders, note: `${compact(dashboardStats?.food_orders_pending)} needs action`, accent: "red", slug: "food-orders" },
-              { label: "Messages", value: dashboardStats?.messages_total, note: `${compact(dashboardStats?.messages_today)} sent today`, accent: "dark", slug: "messages" },
-              { label: "Reports", value: dashboardStats?.reports_pending, note: "Pending moderation", accent: "red", slug: "reports" },
-              { label: "Reviews", value: dashboardStats?.reviews_total, note: "Community feedback", accent: "dark", slug: "reviews" },
-            ];
-
-            const contentSignals = [
-              { label: "Active Banners", value: dashboardStats?.home_banners_active, total: dashboardStats?.home_banners, slug: "home-banners" },
-              { label: "Updates", value: dashboardStats?.updates, total: dashboardStats?.updates, slug: "updates" },
-              { label: "News", value: dashboardStats?.news, total: dashboardStats?.news, slug: "news" },
-              { label: "Notices", value: dashboardStats?.notices, total: dashboardStats?.notices, slug: "notices" },
-              { label: "Notifications", value: dashboardStats?.notifications_total, total: dashboardStats?.notifications_total, slug: "notifications" },
-              { label: "Emergency Contacts", value: dashboardStats?.emergency_contacts, total: dashboardStats?.emergency_contacts, slug: "emergency" },
-            ];
-
-            const serviceHighlights = [
-              { label: "Workers", value: dashboardStats?.workers, slug: "workers" },
-              { label: "Businesses", value: dashboardStats?.businesses, slug: "businesses" },
-              { label: "Marketplace", value: dashboardStats?.marketplace_items, slug: "marketplace" },
-              { label: "Jobs", value: dashboardStats?.jobs, slug: "jobs" },
-              { label: "Doctors", value: dashboardStats?.doctors, slug: "doctors" },
-              { label: "Hospitals", value: dashboardStats?.hospitals, slug: "hospitals" },
-              { label: "Restaurants", value: dashboardStats?.restaurants, slug: "restaurants" },
-              { label: "Food Items", value: dashboardStats?.food_items, slug: "food-items" },
-              { label: "Properties", value: dashboardStats?.properties, slug: "property" },
-              { label: "Education", value: dashboardStats?.education, slug: "education" },
-              { label: "Launch Routes", value: dashboardStats?.launches, slug: "launches" },
-              { label: "Car Rentals", value: dashboardStats?.car_rentals, slug: "car-rental" },
-            ];
-
-            return (
-              <>
-                {/* <section className="rounded-[18px] border border-[#020617] bg-[#030716] p-5 text-white shadow-lg shadow-slate-900/10 md:p-6">
-                  <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-red-300">Admin Command Center</p>
-                      <h2 className="mt-3 text-2xl font-bold text-white md:text-3xl">Bholabashi operations dashboard</h2>
-                      <p className="mt-2 max-w-3xl text-sm leading-6 text-white/75">
-                        Track traffic, user growth, service coverage, food orders, notifications and moderation from one focused workspace.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="dark" onClick={() => setActiveModule("users")}>Users</Button>
-                      <Button variant="dark" onClick={() => setActiveModule("food-orders")}>Food orders</Button>
-                      <Button variant="dark" onClick={() => setActiveModule("notifications")}>Send notification</Button>
-                    </div>
-                  </div>
-                </section> */}
-
-                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  {kpis.map((item) => (
-                    <button
-                      key={item.label}
-                      type="button"
-                      onClick={() => item.slug && setActiveModule(item.slug)}
-                      className={`group rounded-[16px] border bg-white p-5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ${item.accent === "red" ? "border-red-100 hover:border-red-300" : "border-[#dfe6ef] hover:border-slate-300"}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748b]">{item.label}</p>
-                          <p className="mt-4 text-3xl font-bold text-[#050b18]">{compact(item.value)}</p>
-                          <p className="mt-1 text-xs text-[#64748b]">{item.note}</p>
-                        </div>
-                        <span className={`flex h-10 w-10 items-center justify-center rounded-[12px] text-lg font-black ${item.accent === "red" ? "bg-red-50 text-[#ee0012]" : "bg-slate-100 text-[#0f172a]"}`}>
-                          {item.label.slice(0, 1)}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </section>
-
-                <section className="grid gap-4 xl:grid-cols-[2fr,1fr]">
-                  <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md md:p-6">
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <h3 className="text-lg font-bold text-[#101827]">Daily visitor trend</h3>
-                        <p className="text-sm text-[#64748b]">Last 14 days app visit, new user, message and order activity.</p>
-                      </div>
-                      <span className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">Live from DB</span>
-                    </div>
-                    <div className="mt-6 flex h-72 items-end gap-2 overflow-x-auto rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] p-4">
-                      {dailyVisits.length ? dailyVisits.map((item) => {
-                        const height = Math.max(8, (Number(item.visits || 0) / maxDaily) * 210);
-                        return (
-                          <div key={item.date || item.label} className="flex min-w-[44px] flex-1 flex-col items-center justify-end gap-2">
-                            <div className="text-[11px] font-semibold text-[#64748b]">{compact(item.visits)}</div>
-                            <div className="group relative flex h-[220px] w-full items-end justify-center">
-                              <div
-                                className="w-7 rounded-t-[8px] bg-[#ee0012] transition duration-200 group-hover:w-9 group-hover:bg-[#c90010]"
-                                style={{ height }}
-                              />
-                              <div className="pointer-events-none absolute bottom-full mb-2 hidden w-40 rounded-[12px] border border-[#dfe6ef] bg-white p-3 text-left text-xs shadow-xl group-hover:block">
-                                <p className="font-bold text-[#101827]">{item.label}</p>
-                                <p className="text-[#64748b]">Visits: {compact(item.visits)}</p>
-                                <p className="text-[#64748b]">New users: {compact(item.users)}</p>
-                                <p className="text-[#64748b]">Messages: {compact(item.messages)}</p>
-                                <p className="text-[#64748b]">Food orders: {compact(item.orders)}</p>
-                              </div>
-                            </div>
-                            <div className="whitespace-nowrap text-[10px] text-[#8b98ab]">{item.label}</div>
-                          </div>
-                        );
-                      }) : (
-                        <div className="m-auto rounded-[14px] border border-dashed border-[#cbd5e1] bg-white px-6 py-5 text-center text-sm text-[#64748b]">
-                          Visit data will appear after users open the app.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md">
-                      <h3 className="text-lg font-bold text-[#101827]">Visitor summary</h3>
-                      <div className="mt-4 grid gap-3">
-                        <div className="rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] p-4">
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748b]">Today</p>
-                          <p className="mt-2 text-2xl font-bold text-[#050b18]">{compact(dashboardStats?.visits_today)}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="rounded-[14px] border border-[#edf1f6] bg-white p-4">
-                            <p className="text-xs text-[#64748b]">Weekly</p>
-                            <p className="mt-2 text-xl font-bold text-[#050b18]">{compact(dashboardStats?.visits_week)}</p>
-                          </div>
-                          <div className="rounded-[14px] border border-[#edf1f6] bg-white p-4">
-                            <p className="text-xs text-[#64748b]">Monthly</p>
-                            <p className="mt-2 text-xl font-bold text-[#050b18]">{compact(dashboardStats?.visits_month)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md">
-                      <h3 className="text-lg font-bold text-[#101827]">Monthly growth</h3>
-                      <div className="mt-4 space-y-3">
-                        {monthlyVisits.map((item) => (
-                          <div key={item.label}>
-                            <div className="mb-1 flex justify-between text-xs text-[#64748b]">
-                              <span>{item.label}</span>
-                              <span>{compact(item.visits)} visits</span>
-                            </div>
-                            <div className="h-2 rounded-full bg-[#eef2f7]">
-                              <div className="h-2 rounded-full bg-[#ee0012]" style={{ width: `${Math.max(4, (Number(item.visits || 0) / maxMonthly) * 100)}%` }} />
-                            </div>
-                          </div>
-                        ))}
-                        {!monthlyVisits.length && <p className="text-sm text-[#64748b]">No monthly data yet.</p>}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                <section className="grid gap-4 xl:grid-cols-[1.35fr,1fr]">
-                  <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md md:p-6">
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <h3 className="text-lg font-bold text-[#101827]">Service distribution</h3>
-                        <p className="text-sm text-[#64748b]">Total records by service, clickable for fast management.</p>
-                      </div>
-                      <Button variant="ghost" onClick={() => setActiveModule("reports")}>Moderation queue</Button>
-                    </div>
-                    <div className="mt-5 grid gap-3 md:grid-cols-2">
-                      {(serviceTotals.length ? serviceTotals : serviceHighlights).map((service) => {
-                        const value = Number(service.value || 0);
-                        const width = Math.max(3, (value / maxService) * 100);
-                        return (
-                          <button
-                            key={service.slug || service.label}
-                            type="button"
-                            onClick={() => service.slug && setActiveModule(service.slug)}
-                            className="rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] p-4 text-left transition hover:-translate-y-0.5 hover:border-red-200 hover:bg-white hover:shadow-sm"
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="text-sm font-bold text-[#101827]">{service.label}</p>
-                              <p className="text-sm font-black text-[#050b18]">{compact(value)}</p>
-                            </div>
-                            <div className="mt-3 h-2 rounded-full bg-white">
-                              <div className="h-2 rounded-full bg-[#ee0012]" style={{ width: `${width}%` }} />
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md md:p-6">
-                    <h3 className="text-lg font-bold text-[#101827]">Content and engagement</h3>
-                    <p className="text-sm text-[#64748b]">Publishing, notification and support signals.</p>
-                    <div className="mt-5 space-y-3">
-                      {contentSignals.map((item) => (
-                        <button
-                          key={item.label}
-                          type="button"
-                          onClick={() => item.slug && setActiveModule(item.slug)}
-                          className="flex w-full items-center justify-between rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] px-4 py-3 text-left transition hover:border-red-200 hover:bg-white hover:shadow-sm"
-                        >
-                          <span className="text-sm font-semibold text-[#24324a]">{item.label}</span>
-                          <span className="text-sm font-black text-[#050b18]">{compact(item.value)}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-
-                <section className="grid gap-4 xl:grid-cols-4">
-                  <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md xl:col-span-2">
-                    <p className="text-sm font-bold text-[#101827]">Recent app visits</p>
-                    <ul className="mt-3 space-y-3 text-sm text-[#53637a]">
-                      {(dashboardRecent?.visits || []).map((visit) => (
-                        <li key={visit.id} className="flex items-start justify-between gap-3 rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
-                          <div>
-                            <p className="font-semibold text-[#24324a]">{visit.user?.name || visit.user?.email || visit.user?.phone || "Guest user"}</p>
-                            <p className="text-xs text-[#8b98ab]">{visit.source || "app"} / {visit.path || "home"}</p>
-                          </div>
-                          <span className="whitespace-nowrap text-xs text-[#8b98ab]">{formatDate(visit.visited_at)}</span>
-                        </li>
-                      ))}
-                      {!dashboardRecent?.visits?.length && <li className="text-[#8b98ab]">No visit data yet.</li>}
-                    </ul>
-                  </div>
-
-                  <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md">
-                    <p className="text-sm font-bold text-[#101827]">Recent food orders</p>
-                    <ul className="mt-3 space-y-3 text-sm text-[#53637a]">
-                      {(dashboardRecent?.food_orders || []).map((order) => (
-                        <li key={order.id} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
-                          <div className="flex justify-between gap-2">
-                            <p className="font-semibold text-[#24324a]">{order.order_no || `Order #${order.id}`}</p>
-                            <p className="text-xs font-bold text-[#ee0012]">{order.status}</p>
-                          </div>
-                          <p className="mt-1 text-xs text-[#8b98ab]">{money(order.grand_total)} - {formatDate(order.created_at)}</p>
-                        </li>
-                      ))}
-                      {!dashboardRecent?.food_orders?.length && <li className="text-[#8b98ab]">No orders yet.</li>}
-                    </ul>
-                  </div>
-
-                  <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm transition hover:shadow-md">
-                    <p className="text-sm font-bold text-[#101827]">Moderation feed</p>
-                    <ul className="mt-3 space-y-3 text-sm text-[#53637a]">
-                      {(dashboardRecent?.reports || []).slice(0, 3).map((report) => (
-                        <li key={report.id} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
-                          <p className="font-semibold text-[#24324a]">{report.target_type} #{report.target_id}</p>
-                          <p className="mt-1 text-xs text-[#8b98ab]">{report.reason || "No reason"}</p>
-                        </li>
-                      ))}
-                      {(dashboardRecent?.reviews || []).slice(0, 2).map((review) => (
-                        <li key={`review-${review.id}`} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
-                          <p className="font-semibold text-[#24324a]">{review.type} #{review.target_id}</p>
-                          <p className="mt-1 text-xs text-[#8b98ab]">Rating {review.rating} {"\u2605"}</p>
-                        </li>
-                      ))}
-                      {!dashboardRecent?.reports?.length && !dashboardRecent?.reviews?.length && <li className="text-[#8b98ab]">No moderation items.</li>}
-                    </ul>
-                  </div>
-                </section>
-              </>
-            );
-          })()}
-        </div>
+        <DashboardOverview stats={dashboardStats} recent={dashboardRecent} onOpen={setActiveModule} />
       )}
       {activeModule === "admins" && (
         <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">

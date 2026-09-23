@@ -4,6 +4,7 @@ const ICONS = {
   dashboard: "DB",
   profile: "PR",
   users: "US",
+  "staff-management": "ST",
   workers: "WK",
   businesses: "BZ",
   marketplace: "MK",
