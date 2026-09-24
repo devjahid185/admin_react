@@ -39,6 +39,8 @@ export default function AiSocialAutomationPage({ token, onUnauthorized }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [openAiModels, setOpenAiModels] = useState([]);
+  const [modelsFetchedAt, setModelsFetchedAt] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -48,6 +50,9 @@ export default function AiSocialAutomationPage({ token, onUnauthorized }) {
       hydrateSettings(data.settings || {});
       setPosts(data.posts || []);
       await loadSources(sourceType);
+      if (data.settings?.has_openai_api_key) {
+        await loadOpenAiModels({ silent: true });
+      }
     } catch (err) {
       setError(err.message || "Unable to load AI social automation.");
       if (/unauthorized|forbidden/i.test(err.message || "")) onUnauthorized?.();
@@ -70,6 +75,26 @@ export default function AiSocialAutomationPage({ token, onUnauthorized }) {
     const data = await apiRequest(`/admin/ai-social/sources?type=${encodeURIComponent(type)}`, { token });
     setSources(data.sources || []);
     setSelectedSource((data.sources || [])[0] || null);
+  };
+
+  const loadOpenAiModels = async ({ silent = false } = {}) => {
+    if (!silent) setBusy("models");
+    setError("");
+    try {
+      const payload = settings.openai_api_key?.trim()
+        ? { openai_api_key: settings.openai_api_key.trim() }
+        : {};
+      const data = await apiRequest("/admin/ai-social/openai-models", { method: "POST", token, body: payload });
+      setOpenAiModels(data.models || []);
+      setModelsFetchedAt(data.fetched_at || "");
+      if (data.settings) {
+        setMeta(data.settings);
+      }
+    } catch (err) {
+      if (!silent) setError(err.message || "Unable to load OpenAI models.");
+    } finally {
+      if (!silent) setBusy("");
+    }
   };
 
   useEffect(() => {
@@ -186,8 +211,35 @@ export default function AiSocialAutomationPage({ token, onUnauthorized }) {
 
           <div className="grid gap-4 md:grid-cols-2">
             <Input label={`OpenAI API Key ${meta?.openai_api_key_masked ? `(${meta.openai_api_key_masked})` : ""}`} type="password" value={settings.openai_api_key} onChange={(e) => update("openai_api_key", e.target.value)} placeholder={meta?.has_openai_api_key ? "Leave blank to keep saved key" : "sk-..."} />
-            <Input label="Text model" value={settings.openai_text_model} onChange={(e) => update("openai_text_model", e.target.value)} />
-            <Input label="Image model" value={settings.openai_image_model} onChange={(e) => update("openai_image_model", e.target.value)} />
+            <div className="md:col-span-2 rounded-[16px] border border-[#dfe6ef] bg-[#f8fafc] p-3">
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm font-black text-[#101827]">OpenAI model list</p>
+                  <p className="text-xs font-semibold text-[#64748b]">
+                    {openAiModels.length
+                      ? `${openAiModels.length} models loaded${modelsFetchedAt ? ` at ${modelsFetchedAt}` : ""}`
+                      : "Load models from your OpenAI account, then select from dropdowns."}
+                  </p>
+                </div>
+                <Button type="button" variant="ghost" onClick={() => loadOpenAiModels()} disabled={busy === "models"}>
+                  {busy === "models" ? "Loading models..." : "Refresh models"}
+                </Button>
+              </div>
+            </div>
+            <OpenAiModelSelect
+              label="Text model"
+              value={settings.openai_text_model}
+              models={openAiModels}
+              preferredKind="text"
+              onChange={(value) => update("openai_text_model", value)}
+            />
+            <OpenAiModelSelect
+              label="Image model"
+              value={settings.openai_image_model}
+              models={openAiModels}
+              preferredKind="image"
+              onChange={(value) => update("openai_image_model", value)}
+            />
             <Input label="Facebook Graph version" value={settings.facebook_api_version} onChange={(e) => update("facebook_api_version", e.target.value)} />
             <Input label="Facebook Page ID" value={settings.facebook_page_id || ""} onChange={(e) => update("facebook_page_id", e.target.value)} />
             <Input label={`Page Access Token ${meta?.facebook_page_access_token_masked ? `(${meta.facebook_page_access_token_masked})` : ""}`} type="password" value={settings.facebook_page_access_token} onChange={(e) => update("facebook_page_access_token", e.target.value)} placeholder={meta?.has_facebook_page_access_token ? "Leave blank to keep saved token" : "EAAG..."} />
@@ -248,6 +300,43 @@ export default function AiSocialAutomationPage({ token, onUnauthorized }) {
         {!posts.length && <Panel>No AI social posts yet.</Panel>}
       </div>
     </div>
+  );
+}
+
+function OpenAiModelSelect({ label, value, models, preferredKind, onChange }) {
+  const normalized = Array.isArray(models) ? models : [];
+  const optionMap = new Map();
+  if (value) {
+    optionMap.set(value, { id: value, kind: "selected", owned_by: "current setting" });
+  }
+  normalized.forEach((model) => optionMap.set(model.id, model));
+
+  const options = Array.from(optionMap.values()).sort((a, b) => {
+    const aPreferred = a.kind === preferredKind ? 0 : 1;
+    const bPreferred = b.kind === preferredKind ? 0 : 1;
+    if (aPreferred !== bPreferred) return aPreferred - bPreferred;
+    return a.id.localeCompare(b.id);
+  });
+
+  return (
+    <label className="block text-sm font-semibold text-[#24324a]">
+      {label}
+      <select
+        className="mt-1.5 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3.5 py-2.5 text-sm text-[#0f172a] shadow-sm outline-none transition focus:border-red-300 focus:ring-4 focus:ring-red-500/10"
+        value={value || ""}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {!options.length && <option value="">Refresh models first</option>}
+        {options.map((model) => (
+          <option key={`${label}-${model.id}`} value={model.id}>
+            {model.id}{model.kind ? ` (${model.kind})` : ""}{model.owned_by ? ` - ${model.owned_by}` : ""}
+          </option>
+        ))}
+      </select>
+      <span className="mt-1 block text-xs font-semibold text-[#64748b]">
+        {models.length ? "Dropdown is loaded from OpenAI for the saved/typed API key." : "Use Refresh models after adding an OpenAI API key."}
+      </span>
+    </label>
   );
 }
 
