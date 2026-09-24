@@ -44,6 +44,7 @@ import SupportSettingsPage from "./services/SupportSettingsPage.jsx";
 import MapSettingsPage from "./services/MapSettingsPage.jsx";
 import AppVersionSettingsPage from "./services/AppVersionSettingsPage.jsx";
 import DeliveryIncomePage from "./services/DeliveryIncomePage.jsx";
+import AiSocialAutomationPage from "./services/AiSocialAutomationPage.jsx";
 
 const DEFAULT_ADMIN_MODULES = [
   { name: "Dashboard", slug: "dashboard", group_name: "Core", route: "/admin" },
@@ -52,6 +53,7 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Staff Management", slug: "staff-management", group_name: "Core", route: "/admin/staff-management" },
   { name: "Home Banners", slug: "home-banners", group_name: "Engagement", route: "/admin/home-banners" },
   { name: "Home Services", slug: "home-service-shortcuts", group_name: "Engagement", route: "/admin/home-service-shortcuts" },
+  { name: "AI Social Automation", slug: "ai-social", group_name: "Engagement", route: "/admin/ai-social" },
   { name: "Workers", slug: "workers", group_name: "Services", route: "/admin/workers" },
   { name: "Businesses", slug: "businesses", group_name: "Services", route: "/admin/businesses" },
   { name: "Marketplace", slug: "marketplace", group_name: "Services", route: "/admin/marketplace" },
@@ -827,6 +829,7 @@ export default function DashboardPage({ token, onLogout }) {
     "map-settings": MapSettingsPage,
     "support-settings": SupportSettingsPage,
     "app-version-settings": AppVersionSettingsPage,
+    "ai-social": AiSocialAutomationPage,
     "delivery-income": DeliveryIncomePage,
     "rider-settings": RiderSettingsPage,
     riders: RiderAdminPage,
