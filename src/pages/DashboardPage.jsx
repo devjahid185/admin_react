@@ -46,6 +46,22 @@ import AppVersionSettingsPage from "./services/AppVersionSettingsPage.jsx";
 import DeliveryIncomePage from "./services/DeliveryIncomePage.jsx";
 import AiSocialAutomationPage from "./services/AiSocialAutomationPage.jsx";
 
+const MODULE_ALIASES = {
+  ai_social: "ai-social",
+  "ai-social-automation": "ai-social",
+};
+
+function normalizeModuleSlug(slug) {
+  return MODULE_ALIASES[slug] || slug || "dashboard";
+}
+
+function moduleSlugFromPath() {
+  const path = window.location.pathname.replace(/\/+$/, "") || "/admin";
+  if (path === "/admin" || path === "/") return "dashboard";
+  if (path.startsWith("/admin/")) return normalizeModuleSlug(path.slice("/admin/".length));
+  return "dashboard";
+}
+
 const DEFAULT_ADMIN_MODULES = [
   { name: "Dashboard", slug: "dashboard", group_name: "Core", route: "/admin" },
   { name: "Profile", slug: "profile", group_name: "Core", route: "/admin/profile" },
@@ -529,7 +545,7 @@ export default function DashboardPage({ token, onLogout }) {
   const [admin, setAdmin] = useState(null);
   const [modules, setModules] = useState([]);
   const [error, setError] = useState("");
-  const [activeModule, setActiveModule] = useState("dashboard");
+  const [activeModule, setActiveModuleState] = useState(moduleSlugFromPath);
   const [coreRecords, setCoreRecords] = useState([]);
   const [coreMeta, setCoreMeta] = useState(null);
   const [coreLoading, setCoreLoading] = useState(false);
@@ -544,6 +560,21 @@ export default function DashboardPage({ token, onLogout }) {
   const audioRef = useRef(null);
   const titleTimerRef = useRef(null);
   const originalTitleRef = useRef(document.title);
+
+  const setActiveModule = (slug) => {
+    const next = normalizeModuleSlug(slug);
+    setActiveModuleState(next);
+    const nextPath = next === "dashboard" ? "/admin" : `/admin/${next}`;
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({}, "", nextPath);
+    }
+  };
+
+  useEffect(() => {
+    const onPopState = () => setActiveModuleState(moduleSlugFromPath());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   const unlockAudio = async () => {
     try {
