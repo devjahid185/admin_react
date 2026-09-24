@@ -12,6 +12,12 @@ const defaultSettings = {
   facebook_page_id: "",
   facebook_page_access_token: "",
   facebook_api_version: "v21.0",
+  facebook_webhook_verify_token: "",
+  comment_automation_enabled: false,
+  comment_require_review: true,
+  auto_public_reply_enabled: false,
+  auto_private_reply_enabled: false,
+  ai_comment_reply_enabled: false,
   default_language: "bn",
   default_tone: "friendly-local",
   brand_voice: "Bholavashi is a trusted local service app for Bhola. Write clear, warm Bangla copy. Avoid fake claims, medical guarantees, political content, and personal data.",
@@ -31,6 +37,9 @@ export default function AiSocialAutomationPage({ token, onUnauthorized }) {
   const [settings, setSettings] = useState(defaultSettings);
   const [meta, setMeta] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [commentRules, setCommentRules] = useState([]);
+  const [facebookComments, setFacebookComments] = useState([]);
+  const [ruleDraft, setRuleDraft] = useState(defaultRule());
   const [sources, setSources] = useState([]);
   const [sourceType, setSourceType] = useState("all");
   const [selectedSource, setSelectedSource] = useState(null);
@@ -49,6 +58,8 @@ export default function AiSocialAutomationPage({ token, onUnauthorized }) {
       const data = await apiRequest("/admin/ai-social", { token });
       hydrateSettings(data.settings || {});
       setPosts(data.posts || []);
+      setCommentRules(data.comment_rules || []);
+      setFacebookComments(data.facebook_comments || []);
       await loadSources(sourceType);
       if (data.settings?.has_openai_api_key) {
         await loadOpenAiModels({ silent: true });
@@ -189,6 +200,53 @@ export default function AiSocialAutomationPage({ token, onUnauthorized }) {
     }
   };
 
+  const saveRule = async (event) => {
+    event.preventDefault();
+    setBusy("rule");
+    setError("");
+    try {
+      const path = ruleDraft.id ? `/admin/ai-social/comment-rules/${ruleDraft.id}` : "/admin/ai-social/comment-rules";
+      const data = await apiRequest(path, {
+        method: ruleDraft.id ? "PUT" : "POST",
+        token,
+        body: ruleDraft,
+      });
+      setCommentRules(data.comment_rules || []);
+      setRuleDraft(defaultRule());
+    } catch (err) {
+      setError(err.message || "Unable to save comment rule.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const deleteRule = async (rule) => {
+    setBusy(`delete-rule-${rule.id}`);
+    try {
+      const data = await apiRequest(`/admin/ai-social/comment-rules/${rule.id}`, { method: "DELETE", token });
+      setCommentRules(data.comment_rules || []);
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const sendCommentReply = async (comment, patch) => {
+    setBusy(`comment-${comment.id}`);
+    setError("");
+    try {
+      const data = await apiRequest(`/admin/ai-social/facebook-comments/${comment.id}/reply`, {
+        method: "POST",
+        token,
+        body: patch,
+      });
+      setFacebookComments(data.facebook_comments || []);
+    } catch (err) {
+      setError(err.message || "Unable to send comment reply.");
+    } finally {
+      setBusy("");
+    }
+  };
+
   if (loading) return <Panel>Loading AI social automation...</Panel>;
 
   return (
@@ -243,6 +301,16 @@ export default function AiSocialAutomationPage({ token, onUnauthorized }) {
             <Input label="Facebook Graph version" value={settings.facebook_api_version} onChange={(e) => update("facebook_api_version", e.target.value)} />
             <Input label="Facebook Page ID" value={settings.facebook_page_id || ""} onChange={(e) => update("facebook_page_id", e.target.value)} />
             <Input label={`Page Access Token ${meta?.facebook_page_access_token_masked ? `(${meta.facebook_page_access_token_masked})` : ""}`} type="password" value={settings.facebook_page_access_token} onChange={(e) => update("facebook_page_access_token", e.target.value)} placeholder={meta?.has_facebook_page_access_token ? "Leave blank to keep saved token" : "EAAG..."} />
+            <Input label="Webhook verify token" value={settings.facebook_webhook_verify_token || ""} onChange={(e) => update("facebook_webhook_verify_token", e.target.value)} />
+            <div className="md:col-span-2 rounded-[16px] border border-[#dfe6ef] bg-[#f8fafc] p-3 text-sm">
+              <div className="font-black text-[#101827]">Webhook callback URL</div>
+              <div className="mt-1 break-all font-semibold text-[#64748b]">{meta?.webhook_callback_url || "Save settings to generate callback URL"}</div>
+            </div>
+            <Toggle label="Comment automation" checked={settings.comment_automation_enabled} onChange={(value) => update("comment_automation_enabled", value)} />
+            <Toggle label="Require review before reply" checked={settings.comment_require_review} onChange={(value) => update("comment_require_review", value)} />
+            <Toggle label="Auto public reply" checked={settings.auto_public_reply_enabled} onChange={(value) => update("auto_public_reply_enabled", value)} />
+            <Toggle label="Auto private reply" checked={settings.auto_private_reply_enabled} onChange={(value) => update("auto_private_reply_enabled", value)} />
+            <Toggle label="AI comment reply" checked={settings.ai_comment_reply_enabled} onChange={(value) => update("ai_comment_reply_enabled", value)} />
             <Input label="Default tone" value={settings.default_tone} onChange={(e) => update("default_tone", e.target.value)} />
             <Input label="Daily post limit" type="number" value={settings.daily_post_limit} onChange={(e) => update("daily_post_limit", Number(e.target.value))} />
             <label className="md:col-span-2 text-sm font-medium text-[#24324a]">
@@ -299,7 +367,40 @@ export default function AiSocialAutomationPage({ token, onUnauthorized }) {
         ))}
         {!posts.length && <Panel>No AI social posts yet.</Panel>}
       </div>
+
+      <CommentAutomationPanel
+        rules={commentRules}
+        comments={facebookComments}
+        draft={ruleDraft}
+        setDraft={setRuleDraft}
+        onSaveRule={saveRule}
+        onDeleteRule={deleteRule}
+        onSendReply={sendCommentReply}
+        busy={busy}
+      />
     </div>
+  );
+}
+
+function defaultRule() {
+  return {
+    is_active: true,
+    keyword: "",
+    public_reply: "ধন্যবাদ {name}, বিস্তারিত ইনবক্সে পাঠানো হলো।",
+    private_reply: "ভোলাবাসী থেকে শুভেচ্ছা। আপনার কমেন্টের বিষয়ে বিস্তারিত জানতে এই মেসেজে রিপ্লাই করুন।",
+    ai_enabled: false,
+    auto_public_reply: true,
+    auto_private_reply: false,
+    sort_order: 0,
+  };
+}
+
+function Toggle({ label, checked, onChange }) {
+  return (
+    <label className="flex items-center gap-2 rounded-[14px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm font-bold text-[#24324a]">
+      <input type="checkbox" checked={!!checked} onChange={(event) => onChange(event.target.checked)} />
+      {label}
+    </label>
   );
 }
 
@@ -337,6 +438,114 @@ function OpenAiModelSelect({ label, value, models, preferredKind, onChange }) {
         {models.length ? "Dropdown is loaded from OpenAI for the saved/typed API key." : "Use Refresh models after adding an OpenAI API key."}
       </span>
     </label>
+  );
+}
+
+function CommentAutomationPanel({ rules, comments, draft, setDraft, onSaveRule, onDeleteRule, onSendReply, busy }) {
+  return (
+    <div className="grid gap-4 xl:grid-cols-[0.85fr,1.15fr]">
+      <form onSubmit={onSaveRule} className="rounded-[18px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
+        <div className="mb-4">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-red-700">Comment CRM</p>
+          <h2 className="mt-1 text-xl font-black text-[#101827]">Keyword Reply Rules</h2>
+          <p className="text-sm text-[#64748b]">Matched comments can receive public replies and one private Messenger reply if Meta allows it.</p>
+        </div>
+        <div className="grid gap-3">
+          <Toggle label="Rule active" checked={draft.is_active} onChange={(value) => setDraft((prev) => ({ ...prev, is_active: value }))} />
+          <Input label="Keyword/tag" value={draft.keyword} onChange={(e) => setDraft((prev) => ({ ...prev, keyword: e.target.value }))} placeholder="price, inbox, menu" />
+          <label className="text-sm font-semibold text-[#24324a]">
+            Public comment reply
+            <textarea className="mt-1.5 min-h-24 w-full rounded-[14px] border border-[#dfe6ef] px-3.5 py-2.5 text-sm" value={draft.public_reply || ""} onChange={(e) => setDraft((prev) => ({ ...prev, public_reply: e.target.value }))} />
+          </label>
+          <label className="text-sm font-semibold text-[#24324a]">
+            Private inbox reply
+            <textarea className="mt-1.5 min-h-24 w-full rounded-[14px] border border-[#dfe6ef] px-3.5 py-2.5 text-sm" value={draft.private_reply || ""} onChange={(e) => setDraft((prev) => ({ ...prev, private_reply: e.target.value }))} />
+          </label>
+          <div className="grid gap-2 md:grid-cols-2">
+            <Toggle label="AI rewrite" checked={draft.ai_enabled} onChange={(value) => setDraft((prev) => ({ ...prev, ai_enabled: value }))} />
+            <Toggle label="Public enabled" checked={draft.auto_public_reply} onChange={(value) => setDraft((prev) => ({ ...prev, auto_public_reply: value }))} />
+            <Toggle label="Private enabled" checked={draft.auto_private_reply} onChange={(value) => setDraft((prev) => ({ ...prev, auto_private_reply: value }))} />
+            <Input label="Sort" type="number" value={draft.sort_order || 0} onChange={(e) => setDraft((prev) => ({ ...prev, sort_order: Number(e.target.value) }))} />
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            {draft.id && <Button type="button" variant="ghost" onClick={() => setDraft(defaultRule())}>New rule</Button>}
+            <Button disabled={busy === "rule"}>{busy === "rule" ? "Saving..." : "Save rule"}</Button>
+          </div>
+        </div>
+
+        <div className="mt-5 space-y-2">
+          {rules.map((rule) => (
+            <div key={rule.id} className="rounded-[14px] border border-[#dfe6ef] bg-[#f8fafc] p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-black text-[#101827]">{rule.keyword}</div>
+                  <div className="text-xs font-semibold text-[#64748b]">{rule.is_active ? "Active" : "Off"} • public {rule.auto_public_reply ? "on" : "off"} • private {rule.auto_private_reply ? "on" : "off"}</div>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setDraft(rule)}>Edit</Button>
+                  <Button type="button" variant="ghost" onClick={() => onDeleteRule(rule)} disabled={busy === `delete-rule-${rule.id}`}>Delete</Button>
+                </div>
+              </div>
+            </div>
+          ))}
+          {!rules.length && <div className="rounded-[14px] bg-[#f8fafc] p-4 text-sm font-semibold text-[#64748b]">No comment rules yet.</div>}
+        </div>
+      </form>
+
+      <div className="rounded-[18px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
+        <div className="mb-4">
+          <h2 className="text-xl font-black text-[#101827]">Facebook Comment Inbox</h2>
+          <p className="text-sm text-[#64748b]">Webhook comments, matched keywords, reply status and manual actions.</p>
+        </div>
+        <div className="space-y-3">
+          {comments.map((comment) => (
+            <CommentCard key={comment.id} comment={comment} busy={busy} onSendReply={onSendReply} />
+          ))}
+          {!comments.length && <Panel>No Facebook comments received yet.</Panel>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CommentCard({ comment, busy, onSendReply }) {
+  const [publicReply, setPublicReply] = useState(comment.public_reply_text || "");
+  const [privateReply, setPrivateReply] = useState(comment.private_reply_text || "");
+
+  useEffect(() => {
+    setPublicReply(comment.public_reply_text || "");
+    setPrivateReply(comment.private_reply_text || "");
+  }, [comment.id, comment.public_reply_text, comment.private_reply_text]);
+
+  return (
+    <div className="rounded-[16px] border border-[#dfe6ef] bg-[#f8fafc] p-4">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div className="font-black text-[#101827]">{comment.sender_name || "Facebook user"}</div>
+          <div className="text-xs font-semibold text-[#64748b]">{comment.comment_id} • {comment.status} {comment.matched_keyword ? `• ${comment.matched_keyword}` : ""}</div>
+        </div>
+        <div className="rounded-full bg-white px-3 py-1 text-xs font-black uppercase text-[#64748b]">
+          {comment.public_replied_at ? "public sent" : "public pending"} / {comment.private_replied_at ? "private sent" : "private pending"}
+        </div>
+      </div>
+      <p className="mt-3 rounded-[12px] bg-white p-3 text-sm font-semibold text-[#24324a]">{comment.message || "No comment text"}</p>
+      {comment.last_error && <div className="mt-3 rounded-[12px] bg-red-50 p-3 text-xs font-bold text-red-700 whitespace-pre-wrap">{comment.last_error}</div>}
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <label className="text-sm font-semibold text-[#24324a]">
+          Public reply
+          <textarea className="mt-1.5 min-h-20 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm" value={publicReply} onChange={(e) => setPublicReply(e.target.value)} />
+        </label>
+        <label className="text-sm font-semibold text-[#24324a]">
+          Private reply
+          <textarea className="mt-1.5 min-h-20 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm" value={privateReply} onChange={(e) => setPrivateReply(e.target.value)} />
+        </label>
+      </div>
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <Button type="button" variant="ghost" disabled={busy === `comment-${comment.id}`} onClick={() => onSendReply(comment, { public_reply_text: publicReply, private_reply_text: privateReply, send_public: true, send_private: false })}>Send public</Button>
+        <Button type="button" variant="ghost" disabled={busy === `comment-${comment.id}`} onClick={() => onSendReply(comment, { public_reply_text: publicReply, private_reply_text: privateReply, send_public: false, send_private: true })}>Send private</Button>
+        <Button type="button" disabled={busy === `comment-${comment.id}`} onClick={() => onSendReply(comment, { public_reply_text: publicReply, private_reply_text: privateReply, send_public: true, send_private: true })}>Send both</Button>
+      </div>
+    </div>
   );
 }
 
