@@ -223,22 +223,113 @@ async function fetchAdminStatsSilently(token) {
   return res.json();
 }
 
-function StatTile({ item, onOpen }) {
+const CARD = "rounded-2xl border border-[#ececec] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]";
+const TD = "px-4 py-3 text-[#374151]";
+const DONUT = ["#ee0012", "#111827", "#f87171", "#6b7280", "#fca5a5", "#d1d5db"];
+const SERIES = [
+  { key: "visits", label: "Visits", color: "#ee0012" },
+  { key: "users", label: "New users", color: "#111827" },
+  { key: "orders", label: "Food orders", color: "#f87171" },
+  { key: "medicine_orders", label: "Medicine orders", color: "#9ca3af" },
+];
+
+const DASH_CSS = `
+@keyframes dashRise{from{opacity:0;transform:translateY(14px)}to{opacity:1}}
+@keyframes dashFade{from{opacity:0}to{opacity:1}}
+@keyframes dashPop{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1}}
+@keyframes dashDraw{to{stroke-dashoffset:0}}
+@keyframes dashGrowY{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes dashGrowX{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes dashRing{0%{box-shadow:0 0 0 0 rgba(238,0,18,.45)}100%{box-shadow:0 0 0 10px rgba(238,0,18,0)}}
+.dash-rise{opacity:0;animation:dashRise .55s cubic-bezier(.2,.8,.2,1) var(--d,0ms) forwards}
+.dash-fade{animation:dashFade .25s ease both}
+.dash-pop{animation:dashPop .35s cubic-bezier(.2,.8,.2,1) both}
+.dash-draw{stroke-dasharray:1;stroke-dashoffset:1;animation:dashDraw 1.1s ease-out var(--d,0ms) forwards}
+.dash-growy{transform-origin:bottom;animation:dashGrowY .7s cubic-bezier(.2,.8,.2,1) var(--d,0ms) both}
+.dash-growx{transform-origin:left;animation:dashGrowX .8s cubic-bezier(.2,.8,.2,1) var(--d,0ms) both}
+.dash-ring{animation:dashRing 1.8s ease-out infinite}
+@media (prefers-reduced-motion:reduce){.dash-rise,.dash-fade,.dash-pop,.dash-draw,.dash-growy,.dash-growx,.dash-ring{animation:none!important;opacity:1!important;stroke-dashoffset:0!important}}
+`;
+
+function useCountUp(target, duration = 900) {
+  const [val, setVal] = useState(0);
+  const from = useRef(0);
+  useEffect(() => {
+    const end = Number(target || 0);
+    const start = from.current;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      from.current = end;
+      setVal(end);
+      return undefined;
+    }
+    const t0 = performance.now();
+    let raf;
+    const tick = (now) => {
+      const p = Math.min(1, (now - t0) / duration);
+      const cur = start + (end - start) * (1 - Math.pow(1 - p, 3));
+      from.current = cur;
+      setVal(cur);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return val;
+}
+
+function Count({ value, isMoney }) {
+  const v = Math.round(useCountUp(value));
+  return isMoney ? money(v) : compact(v);
+}
+
+function Panel({ title, subtitle, action, children, className = "", delay = 0 }) {
+  return (
+    <section className={`dash-rise ${CARD} p-5 ${className}`} style={{ "--d": `${delay}ms` }}>
+      {(title || action) && (
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-[15px] font-bold text-[#111]">{title}</h3>
+            {subtitle && <p className="mt-0.5 text-xs text-[#6b7280]">{subtitle}</p>}
+          </div>
+          {action}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
+function Spark({ data = [] }) {
+  if (data.length < 2) return null;
+  const w = 72, h = 26, max = Math.max(...data), min = Math.min(...data);
+  const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - 2 - ((v - min) / (max - min || 1)) * (h - 4)}`).join(" ");
+  return (
+    <svg width={w} height={h} className="shrink-0">
+      <polyline points={pts} fill="none" stroke="#ee0012" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" pathLength="1" className="dash-draw" />
+    </svg>
+  );
+}
+
+function StatTile({ item, onOpen, index = 0 }) {
   return (
     <button
       type="button"
       onClick={() => item.slug && onOpen(item.slug)}
-      className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-red-200 hover:shadow-md"
+      style={{ "--d": `${index * 60}ms` }}
+      className={`dash-rise group text-left ${CARD} p-5 transition duration-200 hover:-translate-y-0.5 hover:border-[#ee0012]/40 hover:shadow-[0_10px_28px_rgba(238,0,18,0.09)]`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#64748b]">{item.label}</p>
-          <p className="mt-3 text-2xl font-black text-[#050b18]">{item.money ? money(item.value) : compact(item.value)}</p>
-          {item.note && <p className="mt-1 text-xs font-semibold text-[#64748b]">{item.note}</p>}
-        </div>
-        <span className={`grid h-10 w-10 place-items-center rounded-[13px] text-sm font-black ${item.danger ? "bg-red-50 text-[#ee0012]" : "bg-[#f1f5f9] text-[#24324a]"}`}>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280]">{item.label}</p>
+        <span className={`grid h-9 w-9 place-items-center rounded-xl text-[11px] font-bold ${item.danger ? "dash-ring bg-[#ee0012] text-white" : "bg-[#fef2f2] text-[#ee0012]"}`}>
           {item.icon || item.label.slice(0, 2)}
         </span>
+      </div>
+      <p className="mt-3 text-[28px] font-extrabold leading-none tracking-tight text-[#111]">
+        <Count value={item.value} isMoney={item.money} />
+      </p>
+      <div className="mt-3 flex items-end justify-between gap-3">
+        <p className="text-xs text-[#6b7280]">{item.note}</p>
+        <Spark data={item.spark} />
       </div>
     </button>
   );
@@ -251,48 +342,254 @@ function MiniMetric({ label, value, note, slug, onOpen }) {
     <Wrapper
       type={slug ? "button" : undefined}
       onClick={slug ? () => onOpen(slug) : undefined}
-      className="rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] px-4 py-3 text-left transition hover:border-red-200 hover:bg-white"
+      className={`w-full rounded-xl bg-[#fafafa] px-3.5 py-2.5 text-left transition ${slug ? "hover:bg-[#fef2f2] hover:text-[#ee0012]" : ""}`}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-bold text-[#24324a]">{label}</p>
-        <p className="text-sm font-black text-[#050b18]">{displayValue}</p>
+        <p className="text-[13px] font-medium text-[#4b5563]">{label}</p>
+        <p className="text-sm font-bold text-[#111]">{displayValue}</p>
       </div>
-      {note && <p className="mt-1 text-xs text-[#8b98ab]">{note}</p>}
+      {note && <p className="mt-0.5 text-[11px] text-[#9ca3af]">{note}</p>}
     </Wrapper>
   );
 }
 
-function StatusBars({ title, rows = [] }) {
-  const max = Math.max(1, ...rows.map((row) => Number(row.value || 0)));
+function StatusDonut({ title, rows = [], delay = 0 }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  const total = rows.reduce((sum, row) => sum + Number(row.value || 0), 0);
+  const R = 38, C = 2 * Math.PI * R;
+  let acc = 0;
   return (
-    <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
-      <h3 className="text-sm font-black text-[#101827]">{title}</h3>
-      <div className="mt-4 space-y-3">
-        {rows.map((row) => (
-          <div key={row.label}>
-            <div className="mb-1 flex justify-between gap-3 text-xs font-bold text-[#64748b]">
-              <span className="capitalize">{String(row.label || "unknown").replaceAll("_", " ")}</span>
-              <span>{compact(row.value)}</span>
-            </div>
-            <div className="h-2 rounded-full bg-[#eef2f7]">
-              <div className="h-2 rounded-full bg-[#ee0012]" style={{ width: `${Math.max(4, (Number(row.value || 0) / max) * 100)}%` }} />
+    <Panel title={title} delay={delay}>
+      <div className="flex items-center gap-4">
+        <div className="relative h-28 w-28 shrink-0">
+          <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+            <circle cx="50" cy="50" r={R} fill="none" stroke="#f3f4f6" strokeWidth="12" />
+            {total > 0 && rows.map((row, i) => {
+              const len = (Number(row.value || 0) / total) * C;
+              const seg = (
+                <circle
+                  key={row.label}
+                  cx="50" cy="50" r={R} fill="none"
+                  stroke={DONUT[i % DONUT.length]} strokeWidth="12"
+                  strokeDasharray={`${ready ? Math.max(0, len - 1.5) : 0} ${C}`}
+                  strokeDashoffset={-acc}
+                  style={{ transition: `stroke-dasharray 900ms cubic-bezier(.2,.8,.2,1) ${i * 90}ms` }}
+                />
+              );
+              acc += len;
+              return seg;
+            })}
+          </svg>
+          <div className="absolute inset-0 grid place-items-center text-center">
+            <div>
+              <p className="text-lg font-extrabold leading-none text-[#111]"><Count value={total} /></p>
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-[#9ca3af]">Total</p>
             </div>
           </div>
-        ))}
-        {!rows.length && <p className="text-sm text-[#8b98ab]">No data yet.</p>}
+        </div>
+        <ul className="min-w-0 flex-1 space-y-1.5">
+          {rows.map((row, i) => (
+            <li key={row.label} className="flex items-center justify-between gap-2 text-xs">
+              <span className="flex min-w-0 items-center gap-2 text-[#4b5563]">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: DONUT[i % DONUT.length] }} />
+                <span className="truncate capitalize">{String(row.label || "unknown").replaceAll("_", " ")}</span>
+              </span>
+              <span className="font-bold text-[#111]">{compact(row.value)}</span>
+            </li>
+          ))}
+          {!rows.length && <li className="text-sm text-[#9ca3af]">No data yet.</li>}
+        </ul>
+      </div>
+    </Panel>
+  );
+}
+
+function ActivityChart({ daily }) {
+  const [on, setOn] = useState(["visits", "orders", "medicine_orders"]);
+  const [hover, setHover] = useState(null);
+  if (!daily.length) {
+    return <div className="grid h-64 place-items-center rounded-xl bg-[#fafafa] text-sm text-[#6b7280]">Activity data will appear after users open the app.</div>;
+  }
+  const W = 640, H = 260, L = 38, R = 12, T = 12, B = 26;
+  const active = SERIES.filter((s) => on.includes(s.key));
+  const max = Math.max(1, ...daily.flatMap((d) => active.map((s) => Number(d[s.key] || 0))));
+  const iw = W - L - R, ih = H - T - B;
+  const x = (i) => L + (daily.length < 2 ? iw / 2 : (i / (daily.length - 1)) * iw);
+  const y = (v) => T + ih - (Number(v || 0) / max) * ih;
+  const line = (k) => daily.map((d, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(d[k]).toFixed(1)}`).join(" ");
+  const step = Math.ceil(daily.length / 7);
+  const move = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const px = ((e.clientX - r.left) / r.width) * W;
+    setHover(Math.max(0, Math.min(daily.length - 1, Math.round(((px - L) / iw) * (daily.length - 1)))));
+  };
+  const h = hover !== null ? daily[hover] : null;
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap gap-2">
+        {SERIES.map((s) => {
+          const isOn = on.includes(s.key);
+          return (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => setOn((p) => (isOn ? (p.length > 1 ? p.filter((k) => k !== s.key) : p) : [...p, s.key]))}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition ${isOn ? "border-[#111] bg-white text-[#111]" : "border-[#ececec] bg-[#fafafa] text-[#9ca3af]"}`}
+            >
+              <span className="h-2 w-2 rounded-full" style={{ background: isOn ? s.color : "#d1d5db" }} />
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="relative">
+        <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" onMouseMove={move} onMouseLeave={() => setHover(null)}>
+          {[0, 1, 2, 3, 4].map((t) => {
+            const v = (max * t) / 4;
+            return (
+              <g key={t}>
+                <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#f0f0f0" />
+                <text x={L - 8} y={y(v) + 3} textAnchor="end" fontSize="10" fill="#9ca3af">{compact(Math.round(v))}</text>
+              </g>
+            );
+          })}
+          {daily.map((d, i) => i % step === 0 && (
+            <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize="10" fill="#9ca3af">{d.label}</text>
+          ))}
+          {active[0] && (
+            <path d={`${line(active[0].key)} L${x(daily.length - 1)},${y(0)} L${x(0)},${y(0)} Z`} fill={active[0].color} fillOpacity="0.07" className="dash-fade" />
+          )}
+          {active.map((s, i) => (
+            <path key={s.key} d={line(s.key)} fill="none" stroke={s.color} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" pathLength="1" className="dash-draw" style={{ "--d": `${i * 120}ms` }} />
+          ))}
+          {h && (
+            <>
+              <line x1={x(hover)} x2={x(hover)} y1={T} y2={T + ih} stroke="#ee0012" strokeDasharray="3 3" strokeOpacity=".5" />
+              {active.map((s) => <circle key={s.key} cx={x(hover)} cy={y(h[s.key])} r="4" fill="#fff" stroke={s.color} strokeWidth="2" />)}
+            </>
+          )}
+        </svg>
+        {h && (
+          <div className="pointer-events-none absolute top-2 w-44 -translate-x-1/2 rounded-xl border border-[#ececec] bg-white p-3 text-xs shadow-lg" style={{ left: `${Math.min(82, Math.max(18, (x(hover) / W) * 100))}%` }}>
+            <p className="mb-1.5 font-bold text-[#111]">{h.label}</p>
+            {active.map((s) => (
+              <p key={s.key} className="flex justify-between text-[#6b7280]">
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: s.color }} />{s.label}</span>
+                <b className="text-[#111]">{compact(h[s.key])}</b>
+              </p>
+            ))}
+            <p className="mt-1.5 flex justify-between border-t border-[#f3f4f6] pt-1.5 text-[#6b7280]">Revenue <b className="text-[#ee0012]">{money(h.revenue)}</b></p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function RecentList({ title, items = [], empty, render }) {
+function RevenueBars({ daily }) {
+  if (!daily.length) return <div className="grid h-48 place-items-center rounded-xl bg-[#fafafa] text-sm text-[#6b7280]">No revenue data yet.</div>;
+  const max = Math.max(1, ...daily.map((d) => Number(d.revenue || 0)));
+  const total = daily.reduce((sum, d) => sum + Number(d.revenue || 0), 0);
   return (
-    <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
-      <p className="text-sm font-black text-[#101827]">{title}</p>
-      <ul className="mt-3 space-y-3 text-sm text-[#53637a]">
+    <div>
+      <p className="text-2xl font-extrabold text-[#111]"><Count value={total} isMoney /></p>
+      <p className="text-xs text-[#6b7280]">Total, last {daily.length} days</p>
+      <div className="mt-5 flex h-44 items-end gap-1.5">
+        {daily.map((d, i) => {
+          const v = Number(d.revenue || 0);
+          const last = i === daily.length - 1;
+          return (
+            <div key={d.date || d.label} title={`${d.label}: ${money(v)}`} className="group flex h-full flex-1 items-end">
+              <div className={`dash-growy w-full rounded-t-md transition-colors ${last ? "bg-[#ee0012]" : "bg-[#fbc4c8] group-hover:bg-[#ee0012]"}`} style={{ height: `${Math.max(3, (v / max) * 100)}%`, "--d": `${i * 40}ms` }} />
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-2 flex justify-between text-[10px] text-[#9ca3af]">
+        <span>{daily[0].label}</span>
+        <span>{daily[daily.length - 1].label}</span>
+      </div>
+    </div>
+  );
+}
+
+function FeedItem({ title, meta, badge, dark }) {
+  return (
+    <li className="flex gap-3 rounded-xl px-2 py-2 transition hover:bg-[#fafafa]">
+      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#ee0012]" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-sm font-semibold text-[#111]">{title}</p>
+          {badge && <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${dark ? "bg-[#f3f4f6] text-[#374151]" : "bg-[#fef2f2] text-[#ee0012]"}`}>{badge}</span>}
+        </div>
+        <p className="truncate text-xs text-[#9ca3af]">{meta}</p>
+      </div>
+    </li>
+  );
+}
+
+function RecentList({ title, items = [], empty, render, delay = 0 }) {
+  return (
+    <Panel title={title} delay={delay}>
+      <ul className="space-y-1">
         {items.map(render)}
-        {!items.length && <li className="text-[#8b98ab]">{empty}</li>}
+        {!items.length && <li className="px-2 py-4 text-sm text-[#9ca3af]">{empty}</li>}
       </ul>
+    </Panel>
+  );
+}
+
+function DataTable({ label, headers, records, selectedIds, setSelectedIds, selection, loading, renderCells }) {
+  return (
+    <div className={`dash-rise overflow-x-auto ${CARD}`}>
+      <table className="w-full min-w-[680px] text-sm">
+        <thead>
+          <tr className="border-b border-[#f0f0f0] bg-[#fafafa] text-[11px] uppercase tracking-wider text-[#6b7280]">
+            <th className="w-10 px-4 py-3">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-[#ee0012]"
+                checked={selection.allVisibleSelected}
+                ref={(input) => {
+                  if (input) input.indeterminate = selection.someVisibleSelected;
+                }}
+                onChange={(e) => setSelectedIds((prev) => toggleVisibleIds(prev, records, e.target.checked))}
+                aria-label={`Select all visible ${label}s`}
+              />
+            </th>
+            {headers.map((name, i) => (
+              <th key={name} className={`px-4 py-3 font-semibold ${i === headers.length - 1 ? "text-right" : "text-left"}`}>{name}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {records.map((r) => (
+            <tr key={r.id} className="border-t border-[#f3f4f6] transition hover:bg-[#fef2f2]/60">
+              <td className="px-4 py-3">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-[#ee0012]"
+                  checked={selectedIds.includes(r.id)}
+                  onChange={(e) => setSelectedIds((prev) => toggleSelectedId(prev, r.id, e.target.checked))}
+                  aria-label={`Select ${label} ${r.id}`}
+                />
+              </td>
+              {renderCells(r)}
+            </tr>
+          ))}
+          {!records.length && (
+            <tr>
+              <td className="px-4 py-10 text-center text-sm text-[#9ca3af]" colSpan={headers.length + 1}>
+                {loading ? "Loading..." : `No ${label}s found.`}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -303,16 +600,16 @@ function DashboardOverview({ stats, recent, onOpen }) {
   const monthly = charts.monthly_visits || [];
   const status = charts.status_breakdowns || {};
   const serviceTotals = charts.service_totals || [];
-  const maxDaily = Math.max(1, ...daily.map((item) => Number(item.visits || 0) + Number(item.orders || 0) + Number(item.medicine_orders || 0)));
+  const spark = (key) => daily.map((item) => Number(item[key] || 0));
   const maxService = Math.max(1, ...serviceTotals.map((item) => Number(item.value || 0)));
 
   const topKpis = [
-    { label: "Total Users", value: stats?.users, note: `${compact(stats?.new_users_today)} today / ${compact(stats?.new_users_month)} this month`, slug: "users", icon: "US" },
-    { label: "Food Revenue", value: stats?.food_revenue_total, note: `${money(stats?.food_revenue_today)} today`, slug: "food-orders", icon: "FD", money: true },
-    { label: "Medicine Revenue", value: stats?.medicine_revenue_total, note: `${compact(stats?.medicine_orders_pending)} active orders`, slug: "medicine-orders", icon: "MD", money: true },
+    { label: "Total Users", value: stats?.users, note: `${compact(stats?.new_users_today)} today / ${compact(stats?.new_users_month)} this month`, slug: "users", icon: "US", spark: spark("users") },
+    { label: "Food Revenue", value: stats?.food_revenue_total, note: `${money(stats?.food_revenue_today)} today`, slug: "food-orders", icon: "FD", money: true, spark: spark("revenue") },
+    { label: "Medicine Revenue", value: stats?.medicine_revenue_total, note: `${compact(stats?.medicine_orders_pending)} active orders`, slug: "medicine-orders", icon: "MD", money: true, spark: spark("medicine_orders") },
     { label: "Riders Online", value: stats?.riders_online, note: `${compact(stats?.riders_active)} active / ${compact(stats?.riders_kyc_pending)} KYC pending`, slug: "riders", icon: "RD", danger: Number(stats?.riders_kyc_pending || 0) > 0 },
-    { label: "Pending Food", value: stats?.food_orders_pending, note: `${compact(stats?.food_unassigned_orders)} unassigned`, slug: "food-orders", icon: "FO", danger: Number(stats?.food_orders_pending || 0) > 0 },
-    { label: "Pending Medicine", value: stats?.medicine_orders_pending, note: `${compact(stats?.medicine_unassigned_orders)} unassigned`, slug: "medicine-orders", icon: "MO", danger: Number(stats?.medicine_orders_pending || 0) > 0 },
+    { label: "Pending Food", value: stats?.food_orders_pending, note: `${compact(stats?.food_unassigned_orders)} unassigned`, slug: "food-orders", icon: "FO", spark: spark("orders"), danger: Number(stats?.food_orders_pending || 0) > 0 },
+    { label: "Pending Medicine", value: stats?.medicine_orders_pending, note: `${compact(stats?.medicine_unassigned_orders)} unassigned`, slug: "medicine-orders", icon: "MO", spark: spark("medicine_orders"), danger: Number(stats?.medicine_orders_pending || 0) > 0 },
     { label: "SMS Failed", value: stats?.sms_failed, note: `${compact(stats?.sms_today)} SMS today`, slug: "sms-settings", icon: "SM", danger: Number(stats?.sms_failed || 0) > 0 },
     { label: "Open Support", value: Number(stats?.food_support_open || 0) + Number(stats?.rider_support_open || 0), note: "Food + rider tickets", slug: "support-settings", icon: "SP", danger: Number(stats?.food_support_open || 0) + Number(stats?.rider_support_open || 0) > 0 },
   ];
@@ -386,154 +683,126 @@ function DashboardOverview({ stats, recent, onOpen }) {
 
   return (
     <div className="space-y-5">
+      <div className="dash-rise flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-extrabold tracking-tight text-[#111]">Overview</h2>
+          <p className="text-sm text-[#6b7280]">Real-time performance across delivery, services and system health.</p>
+        </div>
+        <span className="inline-flex items-center gap-2 rounded-full border border-[#ececec] bg-white px-3 py-1.5 text-xs font-semibold text-[#374151]">
+          <span className="dash-ring h-2 w-2 rounded-full bg-[#ee0012]" />
+          Live · refreshes every 5s
+        </span>
+      </div>
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {topKpis.map((item) => <StatTile key={item.label} item={item} onOpen={onOpen} />)}
+        {topKpis.map((item, i) => <StatTile key={item.label} item={item} index={i} onOpen={onOpen} />)}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.4fr,1fr]">
-        <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm md:p-6">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h3 className="text-lg font-black text-[#101827]">14 day activity pulse</h3>
-              <p className="text-sm text-[#64748b]">Visits, users, food orders, medicine orders and revenue trend.</p>
-            </div>
-            <span className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-black text-red-700">Live DB</span>
-          </div>
-          <div className="mt-6 flex h-72 items-end gap-2 overflow-x-auto rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] p-4">
-            {daily.length ? daily.map((item) => {
-              const total = Number(item.visits || 0) + Number(item.orders || 0) + Number(item.medicine_orders || 0);
-              const height = Math.max(8, (total / maxDaily) * 210);
-              return (
-                <div key={item.date || item.label} className="group flex min-w-[46px] flex-1 flex-col items-center justify-end gap-2">
-                  <div className="text-[11px] font-bold text-[#64748b]">{compact(total)}</div>
-                  <div className="relative flex h-[220px] w-full items-end justify-center">
-                    <div className="w-7 rounded-t-[8px] bg-[#ee0012] transition group-hover:w-9" style={{ height }} />
-                    <div className="pointer-events-none absolute bottom-full mb-2 hidden w-44 rounded-[12px] border border-[#dfe6ef] bg-white p-3 text-left text-xs shadow-xl group-hover:block">
-                      <p className="font-black text-[#101827]">{item.label}</p>
-                      <p className="text-[#64748b]">Visits: {compact(item.visits)}</p>
-                      <p className="text-[#64748b]">New users: {compact(item.users)}</p>
-                      <p className="text-[#64748b]">Food orders: {compact(item.orders)}</p>
-                      <p className="text-[#64748b]">Medicine orders: {compact(item.medicine_orders)}</p>
-                      <p className="text-[#64748b]">Revenue: {money(item.revenue)}</p>
-                    </div>
-                  </div>
-                  <div className="whitespace-nowrap text-[10px] text-[#8b98ab]">{item.label}</div>
-                </div>
-              );
-            }) : <div className="m-auto text-sm text-[#64748b]">Activity data will appear after users open the app.</div>}
-          </div>
-        </div>
-
-        <div className="grid gap-4">
-          <StatusBars title="Food order status" rows={status.food_orders || []} />
-          <StatusBars title="Medicine order status" rows={status.medicine_orders || []} />
-        </div>
+      <section className="grid gap-4 xl:grid-cols-[1.7fr,1fr]">
+        <Panel
+          title="14 day activity"
+          subtitle="Visits, users and orders per day. Hover the chart for details."
+          delay={200}
+          action={<span className="rounded-full bg-[#fef2f2] px-3 py-1 text-xs font-bold text-[#ee0012]">Live DB</span>}
+        >
+          <ActivityChart daily={daily} />
+        </Panel>
+        <Panel title="Revenue trend" subtitle="Daily revenue" delay={260}>
+          <RevenueBars daily={daily} />
+        </Panel>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-4">
-        <StatusBars title="Rider availability" rows={status.riders_by_availability || []} />
-        <StatusBars title="Rider accounts" rows={status.riders_by_status || []} />
-        <StatusBars title="SMS delivery" rows={status.sms || []} />
-        <StatusBars title="Payments" rows={status.payments || []} />
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-2">
-        {groups.map((group) => (
-          <div key={group.title} className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-black text-[#101827]">{group.title}</h3>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {group.items.map(([label, value, slug]) => (
-                <MiniMetric key={`${group.title}-${label}`} label={label} value={value} slug={slug} onOpen={onOpen} />
-              ))}
-            </div>
-          </div>
-        ))}
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <StatusDonut title="Food order status" rows={status.food_orders || []} delay={0} />
+        <StatusDonut title="Medicine order status" rows={status.medicine_orders || []} delay={60} />
+        <StatusDonut title="Payments" rows={status.payments || []} delay={120} />
+        <StatusDonut title="Rider availability" rows={status.riders_by_availability || []} delay={180} />
+        <StatusDonut title="Rider accounts" rows={status.riders_by_status || []} delay={240} />
+        <StatusDonut title="SMS delivery" rows={status.sms || []} delay={300} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.35fr,1fr]">
-        <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
-          <h3 className="text-lg font-black text-[#101827]">Service distribution</h3>
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            {serviceTotals.map((service) => {
+        <Panel title="Service distribution" subtitle="Listings per service, highest first" delay={0}>
+          <div className="grid gap-x-6 gap-y-3 md:grid-cols-2">
+            {[...serviceTotals].sort((a, b) => Number(b.value || 0) - Number(a.value || 0)).map((service, i) => {
               const value = Number(service.value || 0);
               return (
-                <button key={service.slug || service.label} type="button" onClick={() => service.slug && onOpen(service.slug)} className="rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] p-4 text-left transition hover:border-red-200 hover:bg-white">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-bold text-[#101827]">{service.label}</p>
-                    <p className="text-sm font-black text-[#050b18]">{compact(value)}</p>
+                <button key={service.slug || service.label} type="button" onClick={() => service.slug && onOpen(service.slug)} className="group rounded-xl p-2 text-left transition hover:bg-[#fef2f2]">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <p className="font-semibold text-[#374151] group-hover:text-[#ee0012]">{service.label}</p>
+                    <p className="font-bold text-[#111]">{compact(value)}</p>
                   </div>
-                  <div className="mt-3 h-2 rounded-full bg-white">
-                    <div className="h-2 rounded-full bg-[#ee0012]" style={{ width: `${Math.max(3, (value / maxService) * 100)}%` }} />
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#f3f4f6]">
+                    <div className="dash-growx h-full rounded-full bg-[#ee0012]" style={{ width: `${Math.max(3, (value / maxService) * 100)}%`, "--d": `${i * 40}ms` }} />
                   </div>
                 </button>
               );
             })}
+            {!serviceTotals.length && <p className="text-sm text-[#9ca3af]">No data yet.</p>}
           </div>
-        </div>
-        <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
-          <h3 className="text-lg font-black text-[#101827]">Finance snapshot</h3>
-          <div className="mt-4 grid gap-3">
+        </Panel>
+        <Panel title="Finance snapshot" subtitle="Delivery fees, earnings and payments" delay={80}>
+          <div className="grid gap-2">
             <MiniMetric label="Food delivery fees" value={money(stats?.food_delivery_fees)} note="Delivered food orders" />
             <MiniMetric label="Medicine delivery fees" value={money(stats?.medicine_delivery_fees)} note="Delivered medicine orders" />
             <MiniMetric label="Rider earnings" value={money(stats?.rider_earnings_total)} note="Wallet earning entries" />
             <MiniMetric label="Cash in hand" value={money(stats?.rider_cash_in_hand)} note="Rider collected cash" />
             <MiniMetric label="Successful payments" value={stats?.payments_paid} note={`${money(stats?.payments_total_amount)} total`} slug="payments" onOpen={onOpen} />
           </div>
-        </div>
+        </Panel>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-4">
+      <section className="grid gap-4 xl:grid-cols-2">
+        {groups.map((group, gi) => (
+          <Panel key={group.title} title={group.title} delay={gi * 60}>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {group.items.map(([label, value, slug]) => (
+                <MiniMetric key={`${group.title}-${label}`} label={label} value={value} slug={slug} onOpen={onOpen} />
+              ))}
+            </div>
+          </Panel>
+        ))}
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <RecentList
           title="Recent app visits"
           items={recent?.visits || []}
           empty="No visit data yet."
+          delay={0}
           render={(visit) => (
-            <li key={visit.id} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
-              <p className="font-bold text-[#24324a]">{visit.user?.name || visit.user?.email || visit.user?.phone || "Guest user"}</p>
-              <p className="text-xs text-[#8b98ab]">{visit.source || "app"} / {visit.path || "home"} / {formatDate(visit.visited_at)}</p>
-            </li>
+            <FeedItem key={visit.id} title={visit.user?.name || visit.user?.email || visit.user?.phone || "Guest user"} meta={`${visit.source || "app"} / ${visit.path || "home"} / ${formatDate(visit.visited_at)}`} />
           )}
         />
         <RecentList
           title="Recent food orders"
           items={recent?.food_orders || []}
           empty="No food orders yet."
+          delay={60}
           render={(order) => (
-            <li key={order.id} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
-              <div className="flex justify-between gap-2"><p className="font-bold text-[#24324a]">{order.order_no || `Order #${order.id}`}</p><p className="text-xs font-black text-[#ee0012]">{order.status}</p></div>
-              <p className="text-xs text-[#8b98ab]">{money(order.grand_total)} / {order.payment_status} / {formatDate(order.created_at)}</p>
-            </li>
+            <FeedItem key={order.id} title={order.order_no || `Order #${order.id}`} badge={order.status} meta={`${money(order.grand_total)} / ${order.payment_status} / ${formatDate(order.created_at)}`} />
           )}
         />
         <RecentList
           title="Recent medicine orders"
           items={recent?.medicine_orders || []}
           empty="No medicine orders yet."
+          delay={120}
           render={(order) => (
-            <li key={order.id} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
-              <div className="flex justify-between gap-2"><p className="font-bold text-[#24324a]">{order.order_no || `Order #${order.id}`}</p><p className="text-xs font-black text-[#08745c]">{order.status}</p></div>
-              <p className="text-xs text-[#8b98ab]">{money(order.grand_total)} / {order.payment_status} / {formatDate(order.created_at)}</p>
-            </li>
+            <FeedItem key={order.id} dark title={order.order_no || `Order #${order.id}`} badge={order.status} meta={`${money(order.grand_total)} / ${order.payment_status} / ${formatDate(order.created_at)}`} />
           )}
         />
         <RecentList
           title="Recent riders and SMS"
           items={[...(recent?.riders || []).map((r) => ({ ...r, rowType: "rider" })), ...(recent?.sms_logs || []).map((s) => ({ ...s, rowType: "sms" }))].slice(0, 6)}
           empty="No rider or SMS activity yet."
+          delay={180}
           render={(item) => (
-            <li key={`${item.rowType}-${item.id}`} className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] px-3 py-2">
-              {item.rowType === "rider" ? (
-                <>
-                  <p className="font-bold text-[#24324a]">{item.name}</p>
-                  <p className="text-xs text-[#8b98ab]">{item.account_status} / {item.availability_status} / KYC {item.kyc_status}</p>
-                </>
-              ) : (
-                <>
-                  <p className="font-bold text-[#24324a]">{item.phone || "SMS log"}</p>
-                  <p className="text-xs text-[#8b98ab]">{item.purpose || "-"} / {item.status} / HTTP {item.http_status || "-"}</p>
-                </>
-              )}
-            </li>
+            item.rowType === "rider" ? (
+              <FeedItem key={`rider-${item.id}`} title={item.name} meta={`${item.account_status} / ${item.availability_status} / KYC ${item.kyc_status}`} />
+            ) : (
+              <FeedItem key={`sms-${item.id}`} title={item.phone || "SMS log"} meta={`${item.purpose || "-"} / ${item.status} / HTTP ${item.http_status || "-"}`} />
+            )
           )}
         />
       </section>
@@ -887,30 +1156,36 @@ export default function DashboardPage({ token, onLogout }) {
       activeKey={activeModule}
       onSelectModule={(item) => setActiveModule(item.slug)}
     >
-      {error && <div className="mb-4 text-red-600">{error}</div>}
+      <style>{DASH_CSS}</style>
+      {error && (
+        <div className="dash-fade mb-4 rounded-xl border border-[#ee0012]/20 bg-[#fef2f2] px-4 py-3 text-sm font-semibold text-[#b91c1c]">{error}</div>
+      )}
       {!soundReady && (
-        <div className="mb-4 flex flex-col gap-3 rounded-[16px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 shadow-sm md:flex-row md:items-center md:justify-between">
+        <div className={`dash-rise mb-4 flex flex-col gap-3 border-l-4 border-l-[#ee0012] p-4 text-sm md:flex-row md:items-center md:justify-between ${CARD}`}>
           <div>
-            <p className="font-black">Live alert sound is waiting for browser permission.</p>
-            <p className="mt-1 text-amber-800">Click enable once so new order, delivery and service alerts can play the 5 second tone.</p>
+            <p className="font-bold text-[#111]">Live alert sound is waiting for browser permission.</p>
+            <p className="mt-1 text-[#6b7280]">Click enable once so new order, delivery and service alerts can play the 5 second tone.</p>
           </div>
           <Button type="button" variant="ghost" onClick={armAlerts}>Enable live alerts</Button>
         </div>
       )}
       {liveAlert && (
-        <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm">
-          <div className="w-full max-w-lg overflow-hidden rounded-[22px] border border-red-100 bg-white shadow-2xl">
-            <div className="bg-gradient-to-r from-[#ee0012] to-[#ff5664] p-5 text-white">
+        <div className="dash-fade fixed inset-0 z-[100] grid place-items-center bg-black/40 px-4 py-6 backdrop-blur-sm">
+          <div className="dash-pop w-full max-w-lg overflow-hidden rounded-3xl border border-[#ececec] bg-white shadow-2xl">
+            <div className="bg-[#ee0012] p-6 text-white">
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/75">Live admin alert</p>
-                  <h3 className="mt-2 text-2xl font-black">{liveAlert.title}</h3>
-                  <p className="mt-1 text-sm text-white/85">{liveAlert.message}</p>
+                <div className="flex items-start gap-4">
+                  <span className="dash-ring mt-1 h-3 w-3 shrink-0 rounded-full bg-white" />
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/75">Live admin alert</p>
+                    <h3 className="mt-2 text-2xl font-extrabold">{liveAlert.title}</h3>
+                    <p className="mt-1 text-sm text-white/90">{liveAlert.message}</p>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setLiveAlert(null)}
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-white/15 text-xl font-black hover:bg-white/25"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/15 text-xl font-bold transition hover:bg-white/25"
                   aria-label="Close alert"
                 >
                   ×
@@ -927,13 +1202,13 @@ export default function DashboardPage({ token, onLogout }) {
                       setLiveAlert(null);
                       if (item.slug) setActiveModule(item.slug);
                     }}
-                    className="flex w-full items-center justify-between gap-3 rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] px-4 py-3 text-left transition hover:border-red-200 hover:bg-white"
+                    className="flex w-full items-center justify-between gap-3 rounded-xl border border-[#ececec] bg-white px-4 py-3 text-left transition hover:border-[#ee0012]/40 hover:bg-[#fef2f2]"
                   >
                     <div>
-                      <p className="font-black text-[#101827]">{item.label}</p>
-                      <p className="text-xs font-semibold text-[#64748b]">{item.type} update detected</p>
+                      <p className="font-bold text-[#111]">{item.label}</p>
+                      <p className="text-xs text-[#6b7280]">{item.type} update detected</p>
                     </div>
-                    <span className="rounded-full bg-red-50 px-3 py-1 text-sm font-black text-[#ee0012]">+{item.delta}</span>
+                    <span className="rounded-full bg-[#ee0012] px-3 py-1 text-sm font-bold text-white">+{item.delta}</span>
                   </button>
                 ))}
               </div>
@@ -950,7 +1225,7 @@ export default function DashboardPage({ token, onLogout }) {
                   Open latest
                 </Button>
               </div>
-              <p className="mt-3 text-xs font-semibold text-[#8b98ab]">
+              <p className="mt-3 text-xs text-[#9ca3af]">
                 Browser notification: {notificationReady ? "enabled" : "not enabled"} · Sound: {soundReady ? "enabled" : "needs one click"}
               </p>
             </div>
@@ -971,192 +1246,95 @@ export default function DashboardPage({ token, onLogout }) {
       {activeModule === "dashboard" && (
         <DashboardOverview stats={dashboardStats} recent={dashboardRecent} onOpen={setActiveModule} />
       )}
+
       {activeModule === "admins" && (
-        <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
-          <table className="min-w-[640px] w-full text-xs md:text-sm">
-            <thead className="bg-[#f8fafc] text-[#53637a]">
-              <tr>
-                <th className="w-10 px-3 py-2 md:px-4">
-                  <input
-                    type="checkbox"
-                    checked={coreSelectionState.allVisibleSelected}
-                    ref={(input) => {
-                      if (input) input.indeterminate = coreSelectionState.someVisibleSelected;
-                    }}
-                    onChange={(e) => setCoreSelectedIds((prev) => toggleVisibleIds(prev, coreRecords, e.target.checked))}
-                    aria-label="Select all visible admins"
-                  />
-                </th>
-                <th className="text-left px-3 py-2 md:px-4">Name</th>
-                <th className="text-left px-3 py-2 md:px-4">Email</th>
-                <th className="text-left px-3 py-2 md:px-4">Super</th>
-                <th className="text-right px-3 py-2 md:px-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {coreRecords.map((a) => (
-                <tr key={a.id} className="border-t border-[#edf1f6]">
-                  <td className="px-3 py-2 md:px-4">
-                    <input
-                      type="checkbox"
-                      checked={coreSelectedIds.includes(a.id)}
-                      onChange={(e) => setCoreSelectedIds((prev) => toggleSelectedId(prev, a.id, e.target.checked))}
-                      aria-label={`Select admin ${a.id}`}
-                    />
-                  </td>
-                  <td className="px-3 py-2 md:px-4">{a.name}</td>
-                  <td className="px-3 py-2 md:px-4">{a.email}</td>
-                  <td className="px-3 py-2 md:px-4">{a.is_super ? "Yes" : "No"}</td>
-                  <td className="px-3 py-2 md:px-4 md:text-right">
-                    <div className="flex justify-end">
-                      <Button variant="ghost" onClick={() => deleteRow("/admin/admins", a.id)}>
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!coreRecords.length && (
-                <tr>
-                  <td className="px-4 py-4 text-[#64748b]" colSpan={5}>
-                    {coreLoading ? "Loading..." : "No admins found."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          label="admin"
+          headers={["Name", "Email", "Super", "Actions"]}
+          records={coreRecords}
+          selectedIds={coreSelectedIds}
+          setSelectedIds={setCoreSelectedIds}
+          selection={coreSelectionState}
+          loading={coreLoading}
+          renderCells={(a) => (
+            <>
+              <td className={`${TD} font-semibold text-[#111]`}>{a.name}</td>
+              <td className={TD}>{a.email}</td>
+              <td className={TD}>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${a.is_super ? "bg-[#ee0012] text-white" : "bg-[#f3f4f6] text-[#4b5563]"}`}>{a.is_super ? "Yes" : "No"}</span>
+              </td>
+              <td className="px-4 py-3">
+                <div className="flex justify-end">
+                  <Button variant="ghost" onClick={() => deleteRow("/admin/admins", a.id)}>Delete</Button>
+                </div>
+              </td>
+            </>
+          )}
+        />
       )}
 
       {activeModule === "reports" && (
-        <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
-          <table className="min-w-[720px] w-full text-xs md:text-sm">
-            <thead className="bg-[#f8fafc] text-[#53637a]">
-              <tr>
-                <th className="w-10 px-3 py-2 md:px-4">
-                  <input
-                    type="checkbox"
-                    checked={coreSelectionState.allVisibleSelected}
-                    ref={(input) => {
-                      if (input) input.indeterminate = coreSelectionState.someVisibleSelected;
-                    }}
-                    onChange={(e) => setCoreSelectedIds((prev) => toggleVisibleIds(prev, coreRecords, e.target.checked))}
-                    aria-label="Select all visible reports"
-                  />
-                </th>
-                <th className="text-left px-3 py-2 md:px-4">Reporter</th>
-                <th className="text-left px-3 py-2 md:px-4">Target</th>
-                <th className="text-left px-3 py-2 md:px-4">Reason</th>
-                <th className="text-left px-3 py-2 md:px-4">Status</th>
-                <th className="text-right px-3 py-2 md:px-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {coreRecords.map((r) => (
-                <tr key={r.id} className="border-t border-[#edf1f6]">
-                  <td className="px-3 py-2 md:px-4">
-                    <input
-                      type="checkbox"
-                      checked={coreSelectedIds.includes(r.id)}
-                      onChange={(e) => setCoreSelectedIds((prev) => toggleSelectedId(prev, r.id, e.target.checked))}
-                      aria-label={`Select report ${r.id}`}
-                    />
-                  </td>
-                  <td className="px-3 py-2 md:px-4">{r.reporter_id}</td>
-                  <td className="px-3 py-2 md:px-4">{r.target_type} #{r.target_id}</td>
-                  <td className="px-3 py-2 md:px-4">{r.reason}</td>
-                  <td className="px-3 py-2 md:px-4">
-                    <select
-                      className="rounded-[14px] border border-[#dfe6ef] px-2 py-1 text-sm"
-                      value={r.status}
-                      onChange={(e) => updateReport(r.id, e.target.value)}
-                    >
-                      <option value="pending">pending</option>
-                      <option value="reviewed">reviewed</option>
-                      <option value="resolved">resolved</option>
-                      <option value="rejected">rejected</option>
-                    </select>
-                  </td>
-                  <td className="px-3 py-2 md:px-4 md:text-right">
-                    <div className="flex justify-end">
-                      <Button variant="ghost" onClick={() => deleteRow("/admin/reports", r.id)}>
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!coreRecords.length && (
-                <tr>
-                  <td className="px-4 py-4 text-[#64748b]" colSpan={6}>
-                    {coreLoading ? "Loading..." : "No reports found."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          label="report"
+          headers={["Reporter", "Target", "Reason", "Status", "Actions"]}
+          records={coreRecords}
+          selectedIds={coreSelectedIds}
+          setSelectedIds={setCoreSelectedIds}
+          selection={coreSelectionState}
+          loading={coreLoading}
+          renderCells={(r) => (
+            <>
+              <td className={TD}>{r.reporter_id}</td>
+              <td className={TD}>{r.target_type} #{r.target_id}</td>
+              <td className={TD}>{r.reason}</td>
+              <td className={TD}>
+                <select
+                  className="rounded-lg border border-[#e5e7eb] bg-white px-2.5 py-1.5 text-sm font-medium text-[#111] outline-none transition focus:border-[#ee0012] focus:ring-2 focus:ring-[#ee0012]/15"
+                  value={r.status}
+                  onChange={(e) => updateReport(r.id, e.target.value)}
+                >
+                  <option value="pending">pending</option>
+                  <option value="reviewed">reviewed</option>
+                  <option value="resolved">resolved</option>
+                  <option value="rejected">rejected</option>
+                </select>
+              </td>
+              <td className="px-4 py-3">
+                <div className="flex justify-end">
+                  <Button variant="ghost" onClick={() => deleteRow("/admin/reports", r.id)}>Delete</Button>
+                </div>
+              </td>
+            </>
+          )}
+        />
       )}
 
       {activeModule === "reviews" && (
-        <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
-          <table className="min-w-[720px] w-full text-xs md:text-sm">
-            <thead className="bg-[#f8fafc] text-[#53637a]">
-              <tr>
-                <th className="w-10 px-3 py-2 md:px-4">
-                  <input
-                    type="checkbox"
-                    checked={coreSelectionState.allVisibleSelected}
-                    ref={(input) => {
-                      if (input) input.indeterminate = coreSelectionState.someVisibleSelected;
-                    }}
-                    onChange={(e) => setCoreSelectedIds((prev) => toggleVisibleIds(prev, coreRecords, e.target.checked))}
-                    aria-label="Select all visible reviews"
-                  />
-                </th>
-                <th className="text-left px-3 py-2 md:px-4">User</th>
-                <th className="text-left px-3 py-2 md:px-4">Type</th>
-                <th className="text-left px-3 py-2 md:px-4">Target</th>
-                <th className="text-left px-3 py-2 md:px-4">Rating</th>
-                <th className="text-left px-3 py-2 md:px-4">Comment</th>
-                <th className="text-right px-3 py-2 md:px-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {coreRecords.map((r) => (
-                <tr key={r.id} className="border-t border-[#edf1f6]">
-                  <td className="px-3 py-2 md:px-4">
-                    <input
-                      type="checkbox"
-                      checked={coreSelectedIds.includes(r.id)}
-                      onChange={(e) => setCoreSelectedIds((prev) => toggleSelectedId(prev, r.id, e.target.checked))}
-                      aria-label={`Select review ${r.id}`}
-                    />
-                  </td>
-                  <td className="px-3 py-2 md:px-4">{r.user_id}</td>
-                  <td className="px-3 py-2 md:px-4">{r.type}</td>
-                  <td className="px-3 py-2 md:px-4">#{r.target_id}</td>
-                  <td className="px-3 py-2 md:px-4">{r.rating}</td>
-                  <td className="px-3 py-2 md:px-4">{r.comment || "-"}</td>
-                  <td className="px-3 py-2 md:px-4 md:text-right">
-                    <div className="flex justify-end">
-                      <Button variant="ghost" onClick={() => deleteRow("/admin/reviews", r.id)}>
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!coreRecords.length && (
-                <tr>
-                  <td className="px-4 py-4 text-[#64748b]" colSpan={7}>
-                    {coreLoading ? "Loading..." : "No reviews found."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          label="review"
+          headers={["User", "Type", "Target", "Rating", "Comment", "Actions"]}
+          records={coreRecords}
+          selectedIds={coreSelectedIds}
+          setSelectedIds={setCoreSelectedIds}
+          selection={coreSelectionState}
+          loading={coreLoading}
+          renderCells={(r) => (
+            <>
+              <td className={TD}>{r.user_id}</td>
+              <td className={TD}>{r.type}</td>
+              <td className={TD}>#{r.target_id}</td>
+              <td className={TD}>
+                <span className="rounded-full bg-[#fef2f2] px-2.5 py-0.5 text-xs font-bold text-[#ee0012]">{r.rating}</span>
+              </td>
+              <td className={TD}>{r.comment || "-"}</td>
+              <td className="px-4 py-3">
+                <div className="flex justify-end">
+                  <Button variant="ghost" onClick={() => deleteRow("/admin/reviews", r.id)}>Delete</Button>
+                </div>
+              </td>
+            </>
+          )}
+        />
       )}
 
       {!ServiceComponent &&
@@ -1166,7 +1344,7 @@ export default function DashboardPage({ token, onLogout }) {
           ) : genericResourceModules.includes(activeModule) ? (
             <ServicePage token={token} resource={activeModule} />
           ) : (
-            <div className="rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm p-6 text-sm text-[#53637a]">
+            <div className={`dash-rise ${CARD} p-6 text-sm text-[#6b7280]`}>
               This module will be converted to a full form-based admin screen next.
             </div>
           )

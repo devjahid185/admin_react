@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Input from "../../components/Input.jsx";
 import { apiRequest } from "../../lib/api.js";
@@ -70,6 +70,85 @@ const numericFields = [
   "store_lng",
 ];
 
+const pageCss = `
+@keyframes fdRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fdFade{from{opacity:0}to{opacity:1}}
+@keyframes fdDraw{to{stroke-dashoffset:0}}
+@keyframes fdRing{0%{box-shadow:0 0 0 0 rgba(238,0,18,.4)}100%{box-shadow:0 0 0 8px rgba(238,0,18,0)}}
+.fd-rise{opacity:0;animation:fdRise .55s cubic-bezier(.2,.8,.2,1) var(--d,0ms) forwards}
+.fd-fade{animation:fdFade .3s ease both}
+.fd-draw{stroke-dasharray:1;stroke-dashoffset:1;animation:fdDraw 1.4s ease-out .1s forwards}
+.fd-ring{animation:fdRing 1.8s ease-out infinite}
+@media (prefers-reduced-motion:reduce){.fd-rise,.fd-fade,.fd-draw,.fd-ring{animation:none!important;opacity:1!important;stroke-dashoffset:0!important}}
+`;
+
+function Toggle({ checked, onChange }) {
+  return (
+    <span className={`relative inline-block h-6 w-11 shrink-0 rounded-full transition-colors duration-300 ${checked ? "bg-[#ee0012]" : "bg-[#e5e7eb]"}`}>
+      <input type="checkbox" checked={Boolean(checked)} onChange={(e) => onChange(e.target.checked)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
+      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-all duration-300 ${checked ? "left-6" : "left-1"}`} />
+    </span>
+  );
+}
+
+function FieldGroup({ label, children, hint, span }) {
+  return (
+    <label className={`block text-xs font-bold uppercase tracking-wide text-[#6b7280] ${span ? `md:col-span-${span}` : ""}`}>
+      {label}
+      <div className="mt-1.5 normal-case tracking-normal">{children}</div>
+      {hint && <span className="mt-1.5 block text-[11px] font-medium normal-case tracking-normal text-[#9ca3af]">{hint}</span>}
+    </label>
+  );
+}
+
+function PolygonMap({ polygon, center, radiusKm }) {
+  const pts = Array.isArray(polygon) ? polygon.filter((p) => typeof p?.lat === "number" && typeof p?.lng === "number") : [];
+  const W = 280, H = 220, pad = 16;
+
+  if (!pts.length) {
+    return (
+      <div className="grid h-56 place-items-center rounded-2xl border border-dashed border-[#d1d5db] bg-[#fafafa] text-xs font-semibold text-[#9ca3af]">
+        No valid polygon points to preview.
+      </div>
+    );
+  }
+
+  const lats = pts.map((p) => p.lat);
+  const lngs = pts.map((p) => p.lng);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const spanLat = maxLat - minLat || 0.01;
+  const spanLng = maxLng - minLng || 0.01;
+
+  const x = (lng) => pad + ((lng - minLng) / spanLng) * (W - pad * 2);
+  const y = (lat) => H - pad - ((lat - minLat) / spanLat) * (H - pad * 2);
+
+  const path = pts.map((p, i) => `${i ? "L" : "M"}${x(p.lng).toFixed(1)},${y(p.lat).toFixed(1)}`).join(" ") + " Z";
+  const showCenter = typeof center?.lat === "number" && typeof center?.lng === "number";
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-56 w-full rounded-2xl border border-[#ececec] bg-[#fafafa]">
+      <defs>
+        <pattern id="fd-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <path d="M20 0H0V20" fill="none" stroke="#eee" strokeWidth="1" />
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width={W} height={H} fill="url(#fd-grid)" />
+      <path d={path} fill="#ee0012" fillOpacity="0.08" stroke="#ee0012" strokeWidth="2" strokeLinejoin="round" className="fd-draw" pathLength="1" />
+      {pts.map((p, i) => (
+        <circle key={i} cx={x(p.lng)} cy={y(p.lat)} r="2.5" fill="#111" />
+      ))}
+      {showCenter && (
+        <>
+          <circle cx={x(center.lng)} cy={y(center.lat)} r="5" fill="#ee0012" />
+          <circle cx={x(center.lng)} cy={y(center.lat)} r="9" fill="none" stroke="#ee0012" strokeWidth="1.5" strokeDasharray="3 2" />
+        </>
+      )}
+      <text x={pad} y={H - 5} fontSize="9" fill="#9ca3af">{pts.length} points{radiusKm ? ` / radius ${radiusKm}km` : ""}</text>
+    </svg>
+  );
+}
+
 export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
   const [form, setForm] = useState(defaultForm);
   const [loading, setLoading] = useState(true);
@@ -131,131 +210,212 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
     }
   };
 
+  const previewPolygon = useMemo(() => {
+    try {
+      return polygonText.trim() ? JSON.parse(polygonText) : [];
+    } catch {
+      return [];
+    }
+  }, [polygonText]);
+
+  const polygonValid = polygonText.trim() ? previewPolygon.length > 0 || polygonText.trim() === "[]" : true;
+
   if (loading) {
-    return <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-6 text-sm text-[#64748b] shadow-sm">Loading delivery settings...</div>;
+    return (
+      <div className="flex items-center gap-3 rounded-2xl border border-[#ececec] bg-[#fafafa] p-6 text-sm font-semibold text-[#6b7280]">
+        <span className="fd-ring h-2.5 w-2.5 rounded-full bg-[#ee0012]" />
+        Loading delivery settings...
+      </div>
+    );
   }
+
+  const ruleTitle = form.municipality_rule_enabled
+    ? "Bhola Sadar Pourashava rule"
+    : form.charge_mode === "fixed"
+    ? "Fixed delivery fee"
+    : "Distance based fee";
+
+  const ruleText = form.municipality_rule_enabled
+    ? `Inside pourashava BDT ${form.municipality_fixed_charge || 0}; rider gets BDT ${form.rider_fixed_earning || 0}. Outside extra BDT ${form.municipality_extra_per_km_charge || 0}/KM; rider gets BDT ${form.rider_per_km_earning || 0}/KM.`
+    : form.charge_mode === "fixed"
+    ? `Every delivery order gets BDT ${form.fixed_charge || 0}; rider gets BDT ${form.rider_fixed_earning || 0}.`
+    : `Fee = base ${form.base_charge || 0} + distance x ${form.per_km_charge || 0}; rider gets fixed BDT ${form.rider_fixed_earning || 0} + BDT ${form.rider_per_km_earning || 0}/KM.`;
+
+  const inputCls =
+    "w-full rounded-xl border border-[#ececec] bg-white px-3.5 py-2.5 text-sm text-[#111] outline-none transition focus:border-[#ee0012]/50 focus:ring-4 focus:ring-[#ee0012]/10";
 
   return (
     <div className="space-y-5">
-      {error && <div className="rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-      <div className="grid gap-4 xl:grid-cols-[1.35fr,0.75fr]">
-        <form onSubmit={save} className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-red-700">Food Delivery</p>
-              <h2 className="mt-1 text-xl font-semibold text-[#101827]">Delivery Charge Rules</h2>
-              <p className="mt-1 text-sm text-[#64748b]">Only admins can change how delivery fee is calculated during checkout.</p>
-            </div>
-            <label className="inline-flex cursor-pointer items-center justify-between gap-3 rounded-[12px] border border-[#dfe6ef] bg-[#f8fafc] px-3 py-2">
-              <span className="text-sm font-semibold text-[#24324a]">{form.is_enabled ? "Enabled" : "Disabled"}</span>
-              <input
-                type="checkbox"
-                className="h-5 w-5 accent-red-700"
-                checked={Boolean(form.is_enabled)}
-                onChange={(e) => updateField("is_enabled", e.target.checked)}
-              />
-            </label>
-          </div>
+      <style>{pageCss}</style>
+      {error && (
+        <div className="fd-rise rounded-2xl border border-[#ee0012]/20 bg-[#fef2f2] px-4 py-3 text-sm font-semibold text-[#b91c1c]">{error}</div>
+      )}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-sm font-medium text-[#24324a]">
-              Charge Mode
-              <select
-                className="mt-1 w-full rounded-[12px] border border-[#dfe6ef] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700/15"
-                value={form.charge_mode}
-                onChange={(e) => updateField("charge_mode", e.target.value)}
-              >
-                <option value="fixed">Fixed rate</option>
-                <option value="per_km">Per kilometer</option>
-              </select>
-            </label>
-            <label className="inline-flex cursor-pointer items-center justify-between gap-3 rounded-[12px] border border-emerald-100 bg-emerald-50 px-3 py-2">
-              <span>
-                <span className="block text-sm font-semibold text-[#0f513f]">Bhola Sadar Pourashava Rule</span>
-                <span className="text-xs text-[#4f756b]">Inside fixed, outside fixed + extra per KM</span>
-              </span>
-              <input
-                type="checkbox"
-                className="h-5 w-5 accent-emerald-700"
-                checked={Boolean(form.municipality_rule_enabled)}
-                onChange={(e) => updateField("municipality_rule_enabled", e.target.checked)}
-              />
-            </label>
-            {form.municipality_rule_enabled && (
-              <div className="grid gap-4 rounded-[14px] border border-emerald-100 bg-emerald-50/60 p-4 md:col-span-2 md:grid-cols-3">
-                <Input label="Pourashava Fixed Charge" type="number" value={form.municipality_fixed_charge ?? ""} onChange={(e) => updateField("municipality_fixed_charge", e.target.value)} />
-                <Input label="Rider Gets From Fixed" type="number" value={form.rider_fixed_earning ?? ""} onChange={(e) => updateField("rider_fixed_earning", e.target.value)} />
-                <Input label="Outside Extra Per KM" type="number" value={form.municipality_extra_per_km_charge ?? ""} onChange={(e) => updateField("municipality_extra_per_km_charge", e.target.value)} />
-                <Input label="Rider Gets Per KM" type="number" value={form.rider_per_km_earning ?? ""} onChange={(e) => updateField("rider_per_km_earning", e.target.value)} />
-                <Input label="Boundary Radius (KM)" type="number" value={form.municipality_radius_km ?? ""} onChange={(e) => updateField("municipality_radius_km", e.target.value)} placeholder="Optional" />
-                <Input label="Boundary Center Latitude" type="number" value={form.municipality_center_lat ?? ""} onChange={(e) => updateField("municipality_center_lat", e.target.value)} placeholder="Optional" />
-                <Input label="Boundary Center Longitude" type="number" value={form.municipality_center_lng ?? ""} onChange={(e) => updateField("municipality_center_lng", e.target.value)} placeholder="Optional" />
-                <label className="block text-sm font-medium text-[#24324a] md:col-span-3">
-                  Pourashava Polygon JSON
-                  <textarea
-                    className="mt-1 min-h-28 w-full rounded-[12px] border border-emerald-100 px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-emerald-700/15"
-                    value={polygonText}
-                    onChange={(e) => setPolygonText(e.target.value)}
-                    placeholder='[{"lat":22.69,"lng":90.64},{"lat":22.68,"lng":90.66},{"lat":22.66,"lng":90.64}]'
-                  />
-                  <span className="mt-1 block text-xs text-[#4f756b]">Polygon দিলে সেটাই boundary হবে। Polygon খালি থাকলে center + radius দিয়ে হিসাব হবে।</span>
-                </label>
-              </div>
-            )}
-            <Input label="Fixed Charge" type="number" value={form.fixed_charge ?? ""} onChange={(e) => updateField("fixed_charge", e.target.value)} />
-            {!form.municipality_rule_enabled && (
-              <Input label="Rider Fixed Earning" type="number" value={form.rider_fixed_earning ?? ""} onChange={(e) => updateField("rider_fixed_earning", e.target.value)} />
-            )}
-            <Input label="Base Charge" type="number" value={form.base_charge ?? ""} onChange={(e) => updateField("base_charge", e.target.value)} />
-            <Input label="Per KM Charge" type="number" value={form.per_km_charge ?? ""} onChange={(e) => updateField("per_km_charge", e.target.value)} />
-            {!form.municipality_rule_enabled && (
-              <Input label="Rider Per KM Earning" type="number" value={form.rider_per_km_earning ?? ""} onChange={(e) => updateField("rider_per_km_earning", e.target.value)} />
-            )}
-            <Input label="Minimum Charge" type="number" value={form.minimum_charge ?? ""} onChange={(e) => updateField("minimum_charge", e.target.value)} />
-            <Input label="Free Delivery Minimum Order" type="number" value={form.free_delivery_min_order ?? ""} onChange={(e) => updateField("free_delivery_min_order", e.target.value)} placeholder="Optional" />
-            <Input label="Max Delivery Distance (KM)" type="number" value={form.max_delivery_distance_km ?? ""} onChange={(e) => updateField("max_delivery_distance_km", e.target.value)} placeholder="Optional" />
-            <Input label="Fallback Store Latitude" type="number" value={form.store_lat ?? ""} onChange={(e) => updateField("store_lat", e.target.value)} placeholder="Optional" />
-            <Input label="Fallback Store Longitude" type="number" value={form.store_lng ?? ""} onChange={(e) => updateField("store_lng", e.target.value)} placeholder="Optional" />
-            <label className="block text-sm font-medium text-[#24324a] md:col-span-2">
-              Internal Note
-              <textarea
-                className="mt-1 min-h-24 w-full rounded-[12px] border border-[#dfe6ef] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700/15"
-                value={form.note || ""}
-                onChange={(e) => updateField("note", e.target.value)}
-                placeholder="Example: Fixed rate for Bhola Sadar, per-KM outside city."
-              />
-            </label>
+      <section className="fd-rise overflow-hidden rounded-[26px] border border-[#ececec] bg-white shadow-[0_18px_50px_rgba(17,24,39,0.06)]">
+        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#ee0012]">Food Delivery</p>
+            <h1 className="mt-2 text-2xl font-black tracking-tight text-[#111] sm:text-3xl">Delivery Charge Rules</h1>
+            <p className="mt-2 max-w-2xl text-sm font-medium text-[#6b7280]">Control how the delivery fee and rider earning are calculated at checkout.</p>
           </div>
-
-          <div className="mt-5 flex justify-end">
-            <Button disabled={saving}>{saving ? "Saving..." : "Save delivery settings"}</Button>
-          </div>
-        </form>
-
-        <div className="space-y-4">
-          <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-5 shadow-sm">
-            <h3 className="text-base font-semibold text-[#101827]">How checkout uses this</h3>
-            <div className="mt-4 space-y-3 text-sm text-[#53637a]">
-              <p>User must tap current location before placing a delivery order.</p>
-              <p>Admin receives saved latitude, longitude and a Google Maps link in the order record.</p>
-              <p>Per-KM mode uses restaurant coordinates first. If missing, fallback store coordinates are used.</p>
-              <p>Rider earning is calculated from the rider fixed/per-KM values. The remaining delivery fee becomes admin delivery income.</p>
-            </div>
-          </div>
-
-          <div className="rounded-[16px] border border-red-100 bg-red-50/70 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-red-700">Current Rule</p>
-            <h3 className="mt-2 text-lg font-semibold text-[#101827]">{form.municipality_rule_enabled ? "Bhola Sadar Pourashava rule" : form.charge_mode === "fixed" ? "Fixed delivery fee" : "Distance based fee"}</h3>
-            <p className="mt-2 text-sm text-[#53637a]">
-              {form.municipality_rule_enabled
-                ? `Inside pourashava BDT ${form.municipality_fixed_charge || 0}; rider gets BDT ${form.rider_fixed_earning || 0}. Outside extra BDT ${form.municipality_extra_per_km_charge || 0}/KM; rider gets BDT ${form.rider_per_km_earning || 0}/KM.`
-                : form.charge_mode === "fixed"
-                ? `Every delivery order gets BDT ${form.fixed_charge || 0}; rider gets BDT ${form.rider_fixed_earning || 0}.`
-                : `Fee = base ${form.base_charge || 0} + distance x ${form.per_km_charge || 0}; rider gets fixed BDT ${form.rider_fixed_earning || 0} + BDT ${form.rider_per_km_earning || 0}/KM.`}
-            </p>
+          <div className="flex items-center gap-3 rounded-2xl border border-[#ececec] bg-[#fafafa] px-4 py-3">
+            <span className="text-sm font-bold text-[#111]">{form.is_enabled ? "Enabled" : "Disabled"}</span>
+            <Toggle checked={form.is_enabled} onChange={(v) => updateField("is_enabled", v)} />
           </div>
         </div>
-      </div>
+      </section>
+
+      <form onSubmit={save} className="grid gap-5 xl:grid-cols-[1.35fr,0.9fr]">
+        <div className="space-y-5">
+          <section className="fd-rise rounded-[26px] border border-[#ececec] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6" style={{ "--d": "60ms" }}>
+            <h2 className="text-sm font-black uppercase tracking-wide text-[#111]">Charge mode</h2>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <FieldGroup label="Charge mode">
+                <select className={inputCls} value={form.charge_mode} onChange={(e) => updateField("charge_mode", e.target.value)}>
+                  <option value="fixed">Fixed rate</option>
+                  <option value="per_km">Per kilometer</option>
+                </select>
+              </FieldGroup>
+              <FieldGroup label="Fixed charge">
+                <input className={inputCls} type="number" value={form.fixed_charge ?? ""} onChange={(e) => updateField("fixed_charge", e.target.value)} />
+              </FieldGroup>
+              <FieldGroup label="Base charge">
+                <input className={inputCls} type="number" value={form.base_charge ?? ""} onChange={(e) => updateField("base_charge", e.target.value)} />
+              </FieldGroup>
+              <FieldGroup label="Per KM charge">
+                <input className={inputCls} type="number" value={form.per_km_charge ?? ""} onChange={(e) => updateField("per_km_charge", e.target.value)} />
+              </FieldGroup>
+              <FieldGroup label="Minimum charge">
+                <input className={inputCls} type="number" value={form.minimum_charge ?? ""} onChange={(e) => updateField("minimum_charge", e.target.value)} />
+              </FieldGroup>
+              {!form.municipality_rule_enabled && (
+                <>
+                  <FieldGroup label="Rider fixed earning">
+                    <input className={inputCls} type="number" value={form.rider_fixed_earning ?? ""} onChange={(e) => updateField("rider_fixed_earning", e.target.value)} />
+                  </FieldGroup>
+                  <FieldGroup label="Rider per KM earning">
+                    <input className={inputCls} type="number" value={form.rider_per_km_earning ?? ""} onChange={(e) => updateField("rider_per_km_earning", e.target.value)} />
+                  </FieldGroup>
+                </>
+              )}
+              <FieldGroup label="Free delivery minimum order" hint="Optional">
+                <input className={inputCls} type="number" value={form.free_delivery_min_order ?? ""} onChange={(e) => updateField("free_delivery_min_order", e.target.value)} placeholder="Optional" />
+              </FieldGroup>
+              <FieldGroup label="Max delivery distance (KM)" hint="Optional">
+                <input className={inputCls} type="number" value={form.max_delivery_distance_km ?? ""} onChange={(e) => updateField("max_delivery_distance_km", e.target.value)} placeholder="Optional" />
+              </FieldGroup>
+              <FieldGroup label="Fallback store latitude" hint="Optional">
+                <input className={inputCls} type="number" value={form.store_lat ?? ""} onChange={(e) => updateField("store_lat", e.target.value)} placeholder="Optional" />
+              </FieldGroup>
+              <FieldGroup label="Fallback store longitude" hint="Optional">
+                <input className={inputCls} type="number" value={form.store_lng ?? ""} onChange={(e) => updateField("store_lng", e.target.value)} placeholder="Optional" />
+              </FieldGroup>
+              <FieldGroup label="Internal note" span={2}>
+                <textarea
+                  className={`${inputCls} min-h-24`}
+                  value={form.note || ""}
+                  onChange={(e) => updateField("note", e.target.value)}
+                  placeholder="Example: Fixed rate for Bhola Sadar, per-KM outside city."
+                />
+              </FieldGroup>
+            </div>
+          </section>
+
+          <section className="fd-rise rounded-[26px] border border-[#ececec] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]" style={{ "--d": "120ms" }}>
+            <div className="flex flex-col gap-3 border-b border-[#ececec] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+              <div>
+                <h2 className="text-sm font-black uppercase tracking-wide text-[#111]">Bhola Sadar Pourashava rule</h2>
+                <p className="mt-1 text-xs font-semibold text-[#6b7280]">Inside fixed, outside fixed + extra per KM.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-[#111]">{form.municipality_rule_enabled ? "On" : "Off"}</span>
+                <Toggle checked={form.municipality_rule_enabled} onChange={(v) => updateField("municipality_rule_enabled", v)} />
+              </div>
+            </div>
+
+            {form.municipality_rule_enabled && (
+              <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[1fr,280px]">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FieldGroup label="Pourashava fixed charge">
+                    <input className={inputCls} type="number" value={form.municipality_fixed_charge ?? ""} onChange={(e) => updateField("municipality_fixed_charge", e.target.value)} />
+                  </FieldGroup>
+                  <FieldGroup label="Rider gets from fixed">
+                    <input className={inputCls} type="number" value={form.rider_fixed_earning ?? ""} onChange={(e) => updateField("rider_fixed_earning", e.target.value)} />
+                  </FieldGroup>
+                  <FieldGroup label="Outside extra per KM">
+                    <input className={inputCls} type="number" value={form.municipality_extra_per_km_charge ?? ""} onChange={(e) => updateField("municipality_extra_per_km_charge", e.target.value)} />
+                  </FieldGroup>
+                  <FieldGroup label="Rider gets per KM">
+                    <input className={inputCls} type="number" value={form.rider_per_km_earning ?? ""} onChange={(e) => updateField("rider_per_km_earning", e.target.value)} />
+                  </FieldGroup>
+                  <FieldGroup label="Boundary radius (KM)" hint="Optional">
+                    <input className={inputCls} type="number" value={form.municipality_radius_km ?? ""} onChange={(e) => updateField("municipality_radius_km", e.target.value)} placeholder="Optional" />
+                  </FieldGroup>
+                  <FieldGroup label="Boundary center latitude" hint="Optional">
+                    <input className={inputCls} type="number" value={form.municipality_center_lat ?? ""} onChange={(e) => updateField("municipality_center_lat", e.target.value)} placeholder="Optional" />
+                  </FieldGroup>
+                  <FieldGroup label="Boundary center longitude" hint="Optional" span={2}>
+                    <input className={inputCls} type="number" value={form.municipality_center_lng ?? ""} onChange={(e) => updateField("municipality_center_lng", e.target.value)} placeholder="Optional" />
+                  </FieldGroup>
+                  <FieldGroup
+                    label="Pourashava polygon JSON"
+                    span={2}
+                    hint="Polygon দিলে সেটাই boundary হবে। Polygon খালি থাকলে center + radius দিয়ে হিসাব হবে।"
+                  >
+                    <textarea
+                      className={`${inputCls} min-h-28 font-mono text-xs ${polygonValid ? "" : "border-[#ee0012]/60"}`}
+                      value={polygonText}
+                      onChange={(e) => setPolygonText(e.target.value)}
+                      placeholder='[{"lat":22.69,"lng":90.64},{"lat":22.68,"lng":90.66},{"lat":22.66,"lng":90.64}]'
+                    />
+                  </FieldGroup>
+                </div>
+                <div className="fd-fade">
+                  <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[#6b7280]">Boundary preview</p>
+                  <PolygonMap
+                    polygon={previewPolygon}
+                    center={{ lat: Number(form.municipality_center_lat), lng: Number(form.municipality_center_lng) }}
+                    radiusKm={form.municipality_radius_km}
+                  />
+                </div>
+              </div>
+            )}
+          </section>
+
+          <div className="fd-rise flex justify-end" style={{ "--d": "160ms" }}>
+            <Button disabled={saving}>{saving ? "Saving..." : "Save delivery settings"}</Button>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <section className="fd-rise rounded-[26px] border border-[#111] bg-[#111] p-6 text-white" style={{ "--d": "90ms" }}>
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/55">Current rule</p>
+            <h3 className="mt-2 text-xl font-black">{ruleTitle}</h3>
+            <p className="mt-3 text-sm font-medium leading-6 text-white/75">{ruleText}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="rounded-full bg-[#ee0012] px-3 py-1 text-xs font-black uppercase tracking-wide">{form.is_enabled ? "Live" : "Paused"}</span>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-wide">{form.charge_mode.replace("_", " ")}</span>
+            </div>
+          </section>
+
+          <section className="fd-rise rounded-[26px] border border-[#ececec] bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]" style={{ "--d": "150ms" }}>
+            <h3 className="text-sm font-black uppercase tracking-wide text-[#111]">How checkout uses this</h3>
+            <ul className="mt-4 space-y-3">
+              {[
+                "User must tap current location before placing a delivery order.",
+                "Admin receives saved latitude, longitude and a Google Maps link in the order record.",
+                "Per-KM mode uses restaurant coordinates first. If missing, fallback store coordinates are used.",
+                "Rider earning is calculated from the rider fixed/per-KM values. The remaining delivery fee becomes admin delivery income.",
+              ].map((line) => (
+                <li key={line} className="flex gap-2.5 text-sm font-medium leading-5 text-[#374151]">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#ee0012]" />
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      </form>
     </div>
   );
 }

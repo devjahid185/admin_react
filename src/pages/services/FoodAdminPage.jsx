@@ -6,6 +6,18 @@ import Input from "../../components/Input.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
 
+const fd2Css = `
+@keyframes fd2Rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fd2Pop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes fd2Fade{from{opacity:0}to{opacity:1}}
+@keyframes fd2Ring{0%{box-shadow:0 0 0 0 rgba(238,0,18,.4)}100%{box-shadow:0 0 0 8px rgba(238,0,18,0)}}
+.fd2-rise{opacity:0;animation:fd2Rise .55s cubic-bezier(.2,.8,.2,1) var(--d,0ms) forwards}
+.fd2-pop{opacity:0;animation:fd2Pop .35s cubic-bezier(.2,.8,.2,1) both}
+.fd2-fade{animation:fd2Fade .2s ease both}
+.fd2-ring{animation:fd2Ring 1.8s ease-out infinite}
+@media (prefers-reduced-motion:reduce){.fd2-rise,.fd2-pop,.fd2-fade,.fd2-ring{animation:none!important;opacity:1!important}}
+`;
+
 const RESOURCE_CONFIG = {
   "food-categories": {
     title: "Food Categories",
@@ -304,7 +316,6 @@ const RESOURCE_CONFIG = {
     columns: ["id", "user_id", "receiver_name", "receiver_phone", "area", "is_default"],
   },
 };
-
 const slugify = (value) =>
   value
     .toLowerCase()
@@ -352,7 +363,6 @@ const formatSizePrices = (value) =>
         })
         .join("\n")
     : "";
-
 const dateFields = new Set([
   "created_at",
   "updated_at",
@@ -381,7 +391,6 @@ function formatDateTime(value) {
     hour12: true,
   }).format(date);
 }
-
 const foodProgressSteps = [
   ["pending", "Waiting for Restaurant Acceptance", "created_at"],
   ["accepted", "Accepted", "accepted_at"],
@@ -450,20 +459,19 @@ function orderProgressItems(order, isMedicine) {
     };
   });
 }
-
 function OrderProgressTimeline({ order, isMedicine }) {
   const items = orderProgressItems(order, isMedicine);
 
   return (
-    <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
+    <div className="fd2-rise rounded-[22px] border border-[#ececec] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h4 className="text-base font-bold text-[#111827]">Order Progress</h4>
-          <p className="mt-1 text-sm text-[#64748b]">
+          <h4 className="text-base font-black text-[#111]">Order Progress</h4>
+          <p className="mt-1 text-sm font-medium text-[#6b7280]">
             Status update time and date are tracked from order placement to delivery.
           </p>
         </div>
-        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold capitalize text-emerald-700">
+        <span className="shrink-0 rounded-full bg-[#111] px-3 py-1 text-xs font-black capitalize text-white">
           {String(order?.status || "pending").replace(/_/g, " ")}
         </span>
       </div>
@@ -473,36 +481,32 @@ function OrderProgressTimeline({ order, isMedicine }) {
           <div key={item.status} className="flex gap-3">
             <div className="flex flex-col items-center">
               <div
-                className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-black ${
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-black transition ${
                   item.completed
                     ? item.current
-                      ? "border-emerald-600 bg-emerald-600 text-white shadow-lg shadow-emerald-100"
-                      : "border-red-600 bg-red-600 text-white"
-                    : "border-[#dfe6ef] bg-[#f8fafc] text-[#94a3b8]"
+                      ? "fd2-ring border-[#ee0012] bg-[#ee0012] text-white"
+                      : "border-[#111] bg-[#111] text-white"
+                    : "border-[#ececec] bg-[#fafafa] text-[#9ca3af]"
                 }`}
               >
                 {item.completed ? "✓" : index + 1}
               </div>
               {index !== items.length - 1 && (
-                <div
-                  className={`h-11 w-px ${
-                    item.completed ? "bg-red-200" : "bg-[#e5eaf1]"
-                  }`}
-                />
+                <div className={`h-11 w-px ${item.completed ? "bg-[#ee0012]/30" : "bg-[#ececec]"}`} />
               )}
             </div>
             <div className="min-w-0 flex-1 pb-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-bold text-[#111827]">{item.label}</div>
-                  <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-[#64748b]">
+                  <div className="font-bold text-[#111]">{item.label}</div>
+                  <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-[#6b7280]">
                     <span>Time</span>
-                    <span className="text-[#cbd5e1]">•</span>
+                    <span className="text-[#d1d5db]">•</span>
                     <span>{formatDateTime(item.timestamp)}</span>
                   </div>
                 </div>
                 {item.current && (
-                  <span className="shrink-0 rounded-full bg-[#fff1f2] px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-red-700">
+                  <span className="shrink-0 rounded-full bg-[#fef2f2] px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-[#ee0012]">
                     Current
                   </span>
                 )}
@@ -510,6 +514,100 @@ function OrderProgressTimeline({ order, isMedicine }) {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function FoodOrderRouteMap({ order }) {
+  const isMedicine = order?.service_type === "medicine" || order?.order_no?.startsWith?.("MD-");
+  const pickupLabel = isMedicine ? "Pickup" : "Restaurant";
+  const restaurantLat = toCoord(order?.restaurant?.lat);
+  const restaurantLng = toCoord(order?.restaurant?.lng);
+  const deliveryLat = toCoord(order?.delivery_lat);
+  const deliveryLng = toCoord(order?.delivery_lng);
+  const riderLat = toCoord(order?.rider?.last_lat);
+  const riderLng = toCoord(order?.rider?.last_lng);
+  const routeUrl = mapsRouteUrl(restaurantLat, restaurantLng, deliveryLat, deliveryLng);
+  const embedUrl = mapsEmbedRouteUrl(restaurantLat, restaurantLng, deliveryLat, deliveryLng);
+  const deliveryUrl = mapsPointUrl(deliveryLat, deliveryLng) || order?.delivery_map_url;
+  const restaurantUrl = mapsPointUrl(restaurantLat, restaurantLng);
+  const riderUrl = mapsPointUrl(riderLat, riderLng);
+
+  return (
+    <div className="fd2-rise rounded-[22px] border border-[#ececec] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h4 className="text-base font-black text-[#111]">{pickupLabel} to Delivery Map</h4>
+          <p className="mt-1 text-sm font-medium text-[#6b7280]">
+            {pickupLabel} and customer delivery location together
+            {order?.route_distance_km !== null && order?.route_distance_km !== undefined ? ` • ${order.route_distance_km} KM` : ""}.
+          </p>
+        </div>
+        {routeUrl && (
+          <a
+            href={routeUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center rounded-xl bg-[#ee0012] px-3.5 py-2 text-sm font-bold text-white transition hover:bg-[#c8000f]"
+          >
+            Open route
+          </a>
+        )}
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-[#ececec] bg-[#fafafa] p-3 text-sm">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280]">{pickupLabel}</div>
+          <div className="mt-1 font-semibold text-[#111]">{order?.restaurant?.name || (isMedicine ? "Medicine Store" : "-")}</div>
+          <div className="mt-1 text-xs text-[#9ca3af]">{restaurantLat !== null && restaurantLng !== null ? `${restaurantLat}, ${restaurantLng}` : "Location missing"}</div>
+        </div>
+        <div className="rounded-2xl border border-[#ececec] bg-[#fafafa] p-3 text-sm">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280]">Customer</div>
+          <div className="mt-1 font-semibold text-[#111]">{order?.receiver_name || "-"}</div>
+          <div className="mt-1 text-xs text-[#9ca3af]">{deliveryLat !== null && deliveryLng !== null ? `${deliveryLat}, ${deliveryLng}` : "Location missing"}</div>
+        </div>
+        <div className="rounded-2xl border border-[#111] bg-[#111] p-3 text-sm text-white">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-white/60">
+            <span className="fd2-ring h-1.5 w-1.5 rounded-full bg-[#ee0012]" />
+            Live Rider
+          </div>
+          <div className="mt-1 font-semibold">{order?.rider?.name || order?.accepted_rider_name || "-"}</div>
+          <div className="mt-1 text-xs text-white/60">{riderLat !== null && riderLng !== null ? `${riderLat}, ${riderLng}` : "Location not started"}</div>
+          <div className="mt-1 text-[11px] text-white/50">{order?.rider?.last_location_at ? `Updated ${formatDateTime(order.rider.last_location_at)}` : ""}</div>
+        </div>
+      </div>
+
+      {embedUrl ? (
+        <iframe
+          title={`Route map ${order?.order_no || ""}`}
+          src={embedUrl}
+          className="mt-4 h-72 w-full rounded-2xl border border-[#ececec]"
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      ) : (
+        <div className="mt-4 rounded-2xl border border-[#ee0012]/20 bg-[#fef2f2] p-4 text-sm font-semibold text-[#b91c1c]">
+          Pickup and delivery coordinates are both required to show the route map.
+        </div>
+      )}
+
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        {restaurantUrl && (
+          <a href={restaurantUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-[#ececec] px-3 py-2 text-center text-sm font-semibold text-[#374151] transition hover:border-[#ee0012]/40 hover:text-[#ee0012]">
+            Open pickup
+          </a>
+        )}
+        {deliveryUrl && (
+          <a href={deliveryUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-[#ececec] px-3 py-2 text-center text-sm font-semibold text-[#374151] transition hover:border-[#ee0012]/40 hover:text-[#ee0012]">
+            Open delivery
+          </a>
+        )}
+        {riderUrl && (
+          <a href={riderUrl} target="_blank" rel="noreferrer" className="rounded-xl bg-[#111] px-3 py-2 text-center text-sm font-semibold text-white transition hover:bg-black">
+            Open rider live
+          </a>
+        )}
       </div>
     </div>
   );
@@ -566,7 +664,6 @@ function buildPayload(form, config) {
   }
   return payload;
 }
-
 function toCoord(value) {
   if (value === null || value === undefined || value === "") return null;
   const n = Number(value);
@@ -586,97 +683,6 @@ function mapsEmbedRouteUrl(fromLat, fromLng, toLat, toLng) {
 function mapsPointUrl(lat, lng) {
   if (lat === null || lng === null) return null;
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-}
-
-function FoodOrderRouteMap({ order }) {
-  const isMedicine = order?.service_type === "medicine" || order?.order_no?.startsWith?.("MD-");
-  const pickupLabel = isMedicine ? "Pickup" : "Restaurant";
-  const restaurantLat = toCoord(order?.restaurant?.lat);
-  const restaurantLng = toCoord(order?.restaurant?.lng);
-  const deliveryLat = toCoord(order?.delivery_lat);
-  const deliveryLng = toCoord(order?.delivery_lng);
-  const riderLat = toCoord(order?.rider?.last_lat);
-  const riderLng = toCoord(order?.rider?.last_lng);
-  const routeUrl = mapsRouteUrl(restaurantLat, restaurantLng, deliveryLat, deliveryLng);
-  const embedUrl = mapsEmbedRouteUrl(restaurantLat, restaurantLng, deliveryLat, deliveryLng);
-  const deliveryUrl = mapsPointUrl(deliveryLat, deliveryLng) || order?.delivery_map_url;
-  const restaurantUrl = mapsPointUrl(restaurantLat, restaurantLng);
-  const riderUrl = mapsPointUrl(riderLat, riderLng);
-
-  return (
-    <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h4 className="text-base font-bold text-[#111827]">{pickupLabel} to Delivery Map</h4>
-          <p className="mt-1 text-sm text-[#64748b]">
-            {pickupLabel} and customer delivery location together
-            {order?.route_distance_km !== null && order?.route_distance_km !== undefined ? ` • ${order.route_distance_km} KM` : ""}.
-          </p>
-        </div>
-        {routeUrl && (
-          <a
-            href={routeUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center rounded-[12px] border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-100"
-          >
-            Open route
-          </a>
-        )}
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] p-3 text-sm">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">{pickupLabel}</div>
-          <div className="mt-1 font-semibold text-[#111827]">{order?.restaurant?.name || (isMedicine ? "Medicine Store" : "-")}</div>
-          <div className="mt-1 text-xs text-[#64748b]">{restaurantLat !== null && restaurantLng !== null ? `${restaurantLat}, ${restaurantLng}` : "Location missing"}</div>
-        </div>
-        <div className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] p-3 text-sm">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">Customer</div>
-          <div className="mt-1 font-semibold text-[#111827]">{order?.receiver_name || "-"}</div>
-          <div className="mt-1 text-xs text-[#64748b]">{deliveryLat !== null && deliveryLng !== null ? `${deliveryLat}, ${deliveryLng}` : "Location missing"}</div>
-        </div>
-        <div className="rounded-[12px] border border-emerald-100 bg-emerald-50 p-3 text-sm">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">Live Rider</div>
-          <div className="mt-1 font-semibold text-[#111827]">{order?.rider?.name || order?.accepted_rider_name || "-"}</div>
-          <div className="mt-1 text-xs text-emerald-700">{riderLat !== null && riderLng !== null ? `${riderLat}, ${riderLng}` : "Location not started"}</div>
-          <div className="mt-1 text-[11px] text-emerald-700">{order?.rider?.last_location_at ? `Updated ${formatDateTime(order.rider.last_location_at)}` : ""}</div>
-        </div>
-      </div>
-
-      {embedUrl ? (
-        <iframe
-          title={`Route map ${order?.order_no || ""}`}
-          src={embedUrl}
-          className="mt-4 h-72 w-full rounded-[14px] border border-[#dfe6ef]"
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-        />
-      ) : (
-        <div className="mt-4 rounded-[14px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          Pickup and delivery coordinates are both required to show the route map.
-        </div>
-      )}
-
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-        {restaurantUrl && (
-          <a href={restaurantUrl} target="_blank" rel="noreferrer" className="rounded-[12px] border border-[#dfe6ef] px-3 py-2 text-center text-sm font-semibold text-[#24324a] hover:bg-[#f8fafc]">
-            Open pickup
-          </a>
-        )}
-        {deliveryUrl && (
-          <a href={deliveryUrl} target="_blank" rel="noreferrer" className="rounded-[12px] border border-[#dfe6ef] px-3 py-2 text-center text-sm font-semibold text-[#24324a] hover:bg-[#f8fafc]">
-            Open delivery
-          </a>
-        )}
-        {riderUrl && (
-          <a href={riderUrl} target="_blank" rel="noreferrer" className="rounded-[12px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-sm font-semibold text-emerald-700 hover:bg-emerald-100">
-            Open rider live
-          </a>
-        )}
-      </div>
-    </div>
-  );
 }
 
 function FoodOrderViewModal({ loading, order, onClose }) {
@@ -713,30 +719,33 @@ function FoodOrderViewModal({ loading, order, onClose }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3">
-      <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[18px] border border-[#dfe6ef] bg-white shadow-2xl shadow-slate-900/20">
-        <div className="flex items-start justify-between gap-4 border-b border-[#edf1f6] px-5 py-4">
+    <div className="fd2-fade fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 backdrop-blur-sm">
+      <div className="fd2-pop flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[26px] border border-[#ececec] bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-[#ececec] px-5 py-4">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#ee0012]">Order Details</p>
-            <h3 className="mt-1 text-xl font-bold text-[#111827]">{order?.order_no || "Loading order"}</h3>
-            <p className="mt-1 text-sm text-[#64748b]">{serviceLabel} items, customer delivery location, rider requests, payment and totals.</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#ee0012]">Order Details</p>
+            <h3 className="mt-1 text-xl font-black text-[#111]">{order?.order_no || "Loading order"}</h3>
+            <p className="mt-1 text-sm font-medium text-[#6b7280]">{serviceLabel} items, customer delivery location, rider requests, payment and totals.</p>
           </div>
-          <button className="rounded-[12px] border border-[#dfe6ef] px-3 py-2 text-sm" onClick={onClose}>
-            Close
+          <button className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-lg font-bold text-[#9ca3af] transition hover:bg-[#f3f4f6] hover:text-[#111]" onClick={onClose} aria-label="Close">
+            ×
           </button>
         </div>
 
         <div className="overflow-y-auto p-5">
           {loading ? (
-            <div className="rounded-[14px] border border-[#dfe6ef] bg-[#f8fafc] p-5 text-sm text-[#64748b]">Loading order details...</div>
+            <div className="flex items-center gap-3 rounded-2xl border border-[#ececec] bg-[#fafafa] p-5 text-sm font-semibold text-[#6b7280]">
+              <span className="fd2-ring h-2.5 w-2.5 rounded-full bg-[#ee0012]" />
+              Loading order details...
+            </div>
           ) : (
             <div className="grid gap-5 xl:grid-cols-[1fr,0.85fr]">
               <div className="space-y-4">
-                <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
-                  <h4 className="text-base font-bold text-[#111827]">Ordered {serviceLabel} Items</h4>
-                  <div className="mt-4 overflow-hidden rounded-[14px] border border-[#edf1f6]">
+                <div className="rounded-[22px] border border-[#ececec] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                  <h4 className="text-base font-black text-[#111]">Ordered {serviceLabel} Items</h4>
+                  <div className="mt-4 overflow-hidden rounded-2xl border border-[#f0f0f0]">
                     <table className="w-full text-sm">
-                      <thead className="bg-[#f8fafc] text-xs uppercase tracking-wide text-[#53637a]">
+                      <thead className="bg-[#fafafa] text-xs uppercase tracking-wide text-[#6b7280]">
                         <tr>
                           <th className="px-3 py-3 text-left">Item</th>
                           <th className="px-3 py-3 text-right">Qty</th>
@@ -746,19 +755,15 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                       </thead>
                       <tbody>
                         {items.map((item) => (
-                          <tr key={item.id} className="border-t border-[#edf1f6]">
+                          <tr key={item.id} className="border-t border-[#f3f4f6]">
                             <td className="px-3 py-3">
-                              <div className="font-semibold text-[#111827]">{item.name || item.brand_name || "Medicine"}</div>
+                              <div className="font-semibold text-[#111]">{item.name || item.brand_name || "Medicine"}</div>
                               {(item.generic_name || item.strength || item.company) && (
-                                <div className="mt-1 text-xs text-[#64748b]">
+                                <div className="mt-1 text-xs text-[#9ca3af]">
                                   {[item.generic_name, item.strength, item.company].filter(Boolean).join(" · ")}
                                 </div>
                               )}
-                              {item.note && (
-                                <div className="mt-1 text-xs text-[#64748b]">
-                                  Note: {item.note}
-                                </div>
-                              )}
+                              {item.note && <div className="mt-1 text-xs text-[#9ca3af]">Note: {item.note}</div>}
                             </td>
                             <td className="px-3 py-3 text-right">{item.quantity}</td>
                             <td className="px-3 py-3 text-right">BDT {item.unit_price}</td>
@@ -767,7 +772,7 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                         ))}
                         {!items.length && (
                           <tr>
-                            <td className="px-3 py-6 text-center text-[#64748b]" colSpan={4}>No items found for this order.</td>
+                            <td className="px-3 py-6 text-center text-[#9ca3af]" colSpan={4}>No items found for this order.</td>
                           </tr>
                         )}
                       </tbody>
@@ -775,8 +780,8 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                   </div>
                 </div>
 
-                <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
-                  <h4 className="text-base font-bold text-[#111827]">Billing Summary</h4>
+                <div className="rounded-[22px] border border-[#ececec] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                  <h4 className="text-base font-black text-[#111]">Billing Summary</h4>
                   <div className="mt-4 space-y-2 text-sm">
                     <SummaryLine label="Items Total" value={`BDT ${order?.items_total || 0}`} />
                     {order?.service_type !== "medicine" && (
@@ -796,7 +801,7 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                     <SummaryLine label="Admin-funded Discount" value={`BDT ${order?.admin_discount_amount || 0}`} />
                     <SummaryLine label="Restaurant-funded Discount" value={`BDT ${order?.restaurant_discount_amount || 0}`} />
                     <SummaryLine label="Delivery Discount" value={`BDT ${order?.delivery_discount_amount || 0}`} />
-                    <div className="border-t border-[#edf1f6] pt-2">
+                    <div className="border-t border-[#f3f4f6] pt-2">
                       <SummaryLine label="Grand Total" value={`BDT ${order?.grand_total || 0}`} strong />
                     </div>
                   </div>
@@ -806,54 +811,52 @@ function FoodOrderViewModal({ loading, order, onClose }) {
               <div className="space-y-4">
                 <FoodOrderRouteMap order={order} />
                 <OrderProgressTimeline order={order} isMedicine={isMedicine} />
-                <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
+                <div className="rounded-[22px] border border-[#ececec] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h4 className="text-base font-bold text-[#111827]">Payment Proof</h4>
-                      <p className="mt-1 text-sm text-[#64748b]">
-                        Customer submitted manual payment transaction and optional screenshot.
-                      </p>
+                      <h4 className="text-base font-black text-[#111]">Payment Proof</h4>
+                      <p className="mt-1 text-sm font-medium text-[#6b7280]">Customer submitted manual payment transaction and optional screenshot.</p>
                     </div>
                     <PaymentMethodBadge method={order?.payment_method} />
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-[12px] bg-[#f8fafc] p-3">
-                      <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">Transaction ID</div>
-                      <div className="mt-1 break-words font-bold text-[#111827]">{order?.manual_transaction_id || "-"}</div>
+                    <div className="rounded-2xl bg-[#fafafa] p-3">
+                      <div className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280]">Transaction ID</div>
+                      <div className="mt-1 break-words font-bold text-[#111]">{order?.manual_transaction_id || "-"}</div>
                     </div>
-                    <div className="rounded-[12px] bg-[#f8fafc] p-3">
-                      <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">Proof Status</div>
-                      <div className={`mt-1 font-bold ${paymentProofUrl ? "text-emerald-700" : "text-[#64748b]"}`}>
+                    <div className="rounded-2xl bg-[#fafafa] p-3">
+                      <div className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280]">Proof Status</div>
+                      <div className={`mt-1 font-bold ${paymentProofUrl ? "text-[#ee0012]" : "text-[#9ca3af]"}`}>
                         {paymentProofUrl ? "Screenshot submitted" : "No screenshot"}
                       </div>
                     </div>
                   </div>
                   {paymentProofUrl && (
-                    <a href={paymentProofUrl} target="_blank" rel="noreferrer" className="mt-4 block overflow-hidden rounded-[14px] border border-[#dfe6ef] bg-[#f8fafc]">
+                    <a href={paymentProofUrl} target="_blank" rel="noreferrer" className="mt-4 block overflow-hidden rounded-2xl border border-[#ececec] bg-[#fafafa] transition hover:border-[#ee0012]/40">
                       <img src={paymentProofUrl} alt="Payment proof" className="h-56 w-full object-cover" />
-                      <div className="flex items-center justify-between px-4 py-3 text-sm font-bold text-red-700">
+                      <div className="flex items-center justify-between px-4 py-3 text-sm font-bold text-[#ee0012]">
                         <span>Open full payment proof</span>
                         <span>↗</span>
                       </div>
                     </a>
                   )}
                   {deliveryProofUrl && (
-                    <a href={deliveryProofUrl} target="_blank" rel="noreferrer" className="mt-4 block overflow-hidden rounded-[14px] border border-[#dfe6ef] bg-[#f8fafc]">
+                    <a href={deliveryProofUrl} target="_blank" rel="noreferrer" className="mt-4 block overflow-hidden rounded-2xl border border-[#ececec] bg-[#fafafa] transition hover:border-[#111]/30">
                       <img src={deliveryProofUrl} alt="Delivery proof" className="h-56 w-full object-cover" />
-                      <div className="flex items-center justify-between px-4 py-3 text-sm font-bold text-emerald-700">
+                      <div className="flex items-center justify-between px-4 py-3 text-sm font-bold text-[#111]">
                         <span>Open full delivery proof</span>
                         <span>↗</span>
                       </div>
                     </a>
                   )}
                 </div>
-                <div className="rounded-[16px] border border-[#dfe6ef] bg-[#f8fafc] p-4">
-                  <h4 className="text-base font-bold text-[#111827]">Delivery & Customer</h4>
+                <div className="rounded-[22px] border border-[#ececec] bg-[#fafafa] p-4">
+                  <h4 className="text-base font-black text-[#111]">Delivery & Customer</h4>
                   <div className="mt-4 space-y-3 text-sm">
                     {detailRows.map(([label, value]) => (
-                      <div key={label} className="rounded-[12px] bg-white p-3">
-                        <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">{label}</div>
-                        <div className="mt-1 break-words font-medium text-[#111827]">{value || "-"}</div>
+                      <div key={label} className="rounded-2xl bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                        <div className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280]">{label}</div>
+                        <div className="mt-1 break-words font-medium text-[#111]">{value || "-"}</div>
                       </div>
                     ))}
                   </div>
@@ -862,26 +865,26 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                       href={order.delivery_map_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-4 inline-flex w-full items-center justify-center rounded-[12px] border border-red-200 bg-white px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50"
+                      className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-[#ee0012] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#c8000f]"
                     >
                       View delivery location on map
                     </a>
                   )}
                 </div>
-                <div className="rounded-[16px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
-                  <h4 className="text-base font-bold text-[#111827]">Rider Assignment</h4>
-                  <div className="mt-3 rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] p-3 text-sm">
-                    <div className="font-bold text-[#111827]">{order?.rider_assignment_label || "No rider accepted yet"}</div>
-                    <div className="mt-1 text-[#64748b]">
+                <div className="rounded-[22px] border border-[#ececec] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                  <h4 className="text-base font-black text-[#111]">Rider Assignment</h4>
+                  <div className="mt-3 rounded-2xl border border-[#f0f0f0] bg-[#fafafa] p-3 text-sm">
+                    <div className="font-bold text-[#111]">{order?.rider_assignment_label || "No rider accepted yet"}</div>
+                    <div className="mt-1 text-[#6b7280]">
                       {order?.accepted_rider_name
                         ? `${order.accepted_rider_name} (${order.accepted_rider_phone || "-"}) accepted this order.`
                         : `${order?.pending_rider_requests_count || 0} rider request pending, ${order?.total_rider_requests_count || 0} total request sent.`}
                     </div>
                   </div>
                   {!!order?.rider_requests?.length && (
-                    <div className="mt-3 overflow-hidden rounded-[12px] border border-[#edf1f6]">
+                    <div className="mt-3 overflow-hidden rounded-2xl border border-[#f0f0f0]">
                       <table className="w-full text-sm">
-                        <thead className="bg-[#f8fafc] text-xs uppercase tracking-wide text-[#53637a]">
+                        <thead className="bg-[#fafafa] text-xs uppercase tracking-wide text-[#6b7280]">
                           <tr>
                             <th className="px-3 py-2 text-left">Rider</th>
                             <th className="px-3 py-2 text-left">Status</th>
@@ -890,10 +893,10 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                         </thead>
                         <tbody>
                           {order.rider_requests.map((request) => (
-                            <tr key={request.id} className="border-t border-[#edf1f6]">
+                            <tr key={request.id} className="border-t border-[#f3f4f6]">
                               <td className="px-3 py-2">
-                                <div className="font-semibold text-[#111827]">{request.rider?.name || `Rider #${request.rider_id}`}</div>
-                                <div className="text-xs text-[#64748b]">{request.rider?.phone || "-"}</div>
+                                <div className="font-semibold text-[#111]">{request.rider?.name || `Rider #${request.rider_id}`}</div>
+                                <div className="text-xs text-[#9ca3af]">{request.rider?.phone || "-"}</div>
                               </td>
                               <td className="px-3 py-2 capitalize">{String(request.status || "-").replace(/_/g, " ")}</td>
                               <td className="px-3 py-2 text-right">{request.distance_km ? `${request.distance_km} KM` : "-"}</td>
@@ -917,7 +920,7 @@ function FoodOrderFilterBar({ filters, onChange, hideRestaurant = false }) {
   const update = (key, value) => onChange((prev) => ({ ...prev, [key]: value }));
   const clear = () => onChange({ payment_method: "", payment_status: "", status: "", restaurant_id: "", date_from: "", date_to: "" });
   return (
-    <div className="rounded-[18px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
+    <div className="fd2-rise rounded-2xl border border-[#ececec] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
         <FilterField label="Payment">
           <select value={filters.payment_method} onChange={(e) => update("payment_method", e.target.value)} className={filterInputClass}>
@@ -961,11 +964,11 @@ function FoodOrderFilterBar({ filters, onChange, hideRestaurant = false }) {
   );
 }
 
-const filterInputClass = "mt-1 w-full rounded-[12px] border border-[#dfe6ef] bg-white px-3 py-2 text-sm text-[#111827] outline-none focus:border-red-300 focus:ring-4 focus:ring-red-500/10";
+const filterInputClass = "mt-1.5 w-full rounded-xl border border-[#ececec] bg-white px-3 py-2 text-sm text-[#111] outline-none transition focus:border-[#ee0012]/50 focus:ring-4 focus:ring-[#ee0012]/10";
 
 function FilterField({ label, children }) {
   return (
-    <label className="min-w-[150px] flex-1 text-xs font-bold uppercase tracking-wide text-[#64748b]">
+    <label className="min-w-[150px] flex-1 text-xs font-bold uppercase tracking-wide text-[#6b7280]">
       {label}
       {children}
     </label>
@@ -979,41 +982,46 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
   const services = summary?.by_service || [];
   const settings = summary?.settings || {};
   return (
-    <div className="space-y-4 rounded-[18px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
+    <div className="fd2-rise space-y-4 rounded-[26px] border border-[#ececec] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#ee0012]">Income Reconciliation</p>
-          <h3 className="text-lg font-black text-[#111827]">Admin income, rider payout and delivery charge</h3>
+          <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#ee0012]">Income Reconciliation</p>
+          <h3 className="text-lg font-black text-[#111]">Admin income, rider payout and delivery charge</h3>
         </div>
-        {loading && <span className="text-xs font-semibold text-[#64748b]">Refreshing...</span>}
+        {loading && (
+          <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#6b7280]">
+            <span className="fd2-ring h-2 w-2 rounded-full bg-[#ee0012]" />
+            Refreshing...
+          </span>
+        )}
       </div>
       <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-12">
         <SummaryCard label="Orders" value={totals.orders_count || 0} />
         <SummaryCard label="Grand Total" value={money(totals.grand_total)} />
-        <SummaryCard label="Owner Received" value={money(totals.owner_received_total)} tone="emerald" />
-        <SummaryCard label="COD Collectable" value={money(totals.cod_collectable_total)} tone="amber" />
-        <SummaryCard label="Delivery Charge" value={money(totals.delivery_fee_total)} tone="blue" />
-        <SummaryCard label="Discounts" value={money(totals.discount_total)} tone="amber" />
+        <SummaryCard label="Owner Received" value={money(totals.owner_received_total)} tone="dark" />
+        <SummaryCard label="COD Collectable" value={money(totals.cod_collectable_total)} tone="gray" />
+        <SummaryCard label="Delivery Charge" value={money(totals.delivery_fee_total)} tone="gray" />
+        <SummaryCard label="Discounts" value={money(totals.discount_total)} tone="gray" />
         <SummaryCard label="Admin Discount" value={money(totals.admin_discount_total)} tone="red" />
-        <SummaryCard label="Restaurant Discount" value={money(totals.restaurant_discount_total)} tone="emerald" />
+        <SummaryCard label="Restaurant Discount" value={money(totals.restaurant_discount_total)} tone="dark" />
         <SummaryCard label="Admin Income" value={money(totals.admin_delivery_income_total)} tone="red" />
-        <SummaryCard label="Restaurant Commission" value={money(totals.restaurant_commission_total)} tone="violet" />
+        <SummaryCard label="Restaurant Commission" value={money(totals.restaurant_commission_total)} tone="gray" />
         <SummaryCard label="Total Admin Income" value={money(totals.admin_total_income)} tone="red" />
       </div>
       <div className="grid gap-3 md:grid-cols-5">
-        <SummaryCard label="Rider Payout" value={money(totals.rider_payout_total)} tone="indigo" />
-        <SummaryCard label="Owner Payable" value={money(totals.restaurant_owner_payable_total)} tone="emerald" />
-        <SummaryCard label="COD Owner Due" value={money(totals.owner_settlement_due_total)} tone="amber" />
+        <SummaryCard label="Rider Payout" value={money(totals.rider_payout_total)} tone="gray" />
+        <SummaryCard label="Owner Payable" value={money(totals.restaurant_owner_payable_total)} tone="dark" />
+        <SummaryCard label="COD Owner Due" value={money(totals.owner_settlement_due_total)} tone="gray" />
         <SummaryCard label="Delivered Orders" value={totals.delivered_orders_count ?? "-"} />
-        <SummaryCard label="Current Rider Rule" value={`Fixed ${money(settings.rider_fixed_earning)} • KM ${money(settings.rider_per_km_earning)}`} tone="emerald" />
+        <SummaryCard label="Current Rider Rule" value={`Fixed ${money(settings.rider_fixed_earning)} • KM ${money(settings.rider_per_km_earning)}`} tone="dark" />
       </div>
       {services.length > 0 && (
         <div className="grid gap-3 md:grid-cols-2">
           {services.map((row) => (
-            <div key={row.service_type} className="rounded-[14px] border border-[#edf1f6] bg-[#f8fafc] p-4">
+            <div key={row.service_type} className="rounded-2xl border border-[#ececec] bg-[#fafafa] p-4">
               <div className="flex items-center justify-between gap-3">
-                <h4 className="text-base font-black capitalize text-[#111827]">{row.service_type} Delivery</h4>
-                <span className="rounded-[10px] border border-slate-200 bg-white px-2.5 py-1 text-xs font-black text-[#53637a]">{row.orders_count} orders</span>
+                <h4 className="text-base font-black capitalize text-[#111]">{row.service_type} Delivery</h4>
+                <span className="rounded-full border border-[#ececec] bg-white px-2.5 py-1 text-xs font-black text-[#6b7280]">{row.orders_count} orders</span>
               </div>
               <div className="mt-3 grid gap-2 sm:grid-cols-3">
                 <MiniMetric label="Fee" value={money(row.delivery_fee_total)} />
@@ -1025,9 +1033,9 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
         </div>
       )}
       <div className="grid gap-4 xl:grid-cols-[1fr,0.55fr]">
-        <div className="overflow-x-auto rounded-[14px] border border-[#edf1f6]">
+        <div className="overflow-x-auto rounded-2xl border border-[#f0f0f0]">
           <table className="min-w-[760px] w-full text-sm">
-            <thead className="bg-[#f8fafc] text-xs uppercase tracking-wide text-[#53637a]">
+            <thead className="bg-[#fafafa] text-xs uppercase tracking-wide text-[#6b7280]">
               <tr>
                 <th className="px-3 py-3 text-left">Owner / Restaurant</th>
                 <th className="px-3 py-3 text-right">Orders</th>
@@ -1043,48 +1051,48 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
             </thead>
             <tbody>
               {owners.map((row) => (
-                <tr key={row.restaurant_id || row.restaurant_name} className="border-t border-[#edf1f6]">
+                <tr key={row.restaurant_id || row.restaurant_name} className="border-t border-[#f3f4f6] transition hover:bg-[#fef2f2]/50">
                   <td className="px-3 py-3">
-                    <div className="font-bold text-[#111827]">{row.restaurant_name}</div>
-                    <div className="mt-1 text-xs text-[#64748b]">Owner ID: {row.owner_user_id || "-"} · bKash: {row.bkash_number || "-"} · Nagad: {row.nagad_number || "-"}</div>
+                    <div className="font-bold text-[#111]">{row.restaurant_name}</div>
+                    <div className="mt-1 text-xs text-[#9ca3af]">Owner ID: {row.owner_user_id || "-"} · bKash: {row.bkash_number || "-"} · Nagad: {row.nagad_number || "-"}</div>
                   </td>
                   <td className="px-3 py-3 text-right">{row.orders_count}</td>
-                  <td className="px-3 py-3 text-right font-bold text-emerald-700">{money(row.owner_received_total)}</td>
-                  <td className="px-3 py-3 text-right font-bold text-amber-700">{money(row.cod_collectable_total)}</td>
+                  <td className="px-3 py-3 text-right font-bold text-[#111]">{money(row.owner_received_total)}</td>
+                  <td className="px-3 py-3 text-right font-bold text-[#6b7280]">{money(row.cod_collectable_total)}</td>
                   <td className="px-3 py-3 text-right">{money(row.delivery_fee_total)}</td>
                   <td className="px-3 py-3 text-right">{money(row.rider_payout_total)}</td>
-                  <td className="px-3 py-3 text-right font-bold text-red-700">{money(row.admin_total_income)}</td>
+                  <td className="px-3 py-3 text-right font-bold text-[#ee0012]">{money(row.admin_total_income)}</td>
                   <td className="px-3 py-3 text-right">{money(row.restaurant_commission_total)}</td>
-                  <td className="px-3 py-3 text-right font-bold text-emerald-700">{money(row.restaurant_owner_payable_total)}</td>
+                  <td className="px-3 py-3 text-right font-bold text-[#111]">{money(row.restaurant_owner_payable_total)}</td>
                   <td className="px-3 py-3 text-right font-bold">{money(row.grand_total)}</td>
                 </tr>
               ))}
               {!owners.length && (
-                <tr><td colSpan={10} className="px-3 py-5 text-center text-[#64748b]">No payment data found for selected filters.</td></tr>
+                <tr><td colSpan={10} className="px-3 py-5 text-center text-[#9ca3af]">No payment data found for selected filters.</td></tr>
               )}
             </tbody>
           </table>
         </div>
-        <div className="rounded-[14px] border border-[#edf1f6] p-4">
-          <h4 className="font-black text-[#111827]">Payment method breakdown</h4>
+        <div className="rounded-2xl border border-[#f0f0f0] p-4">
+          <h4 className="font-black text-[#111]">Payment method breakdown</h4>
           <div className="mt-3 space-y-3">
             {methods.map((row) => (
-              <div key={row.payment_method} className="rounded-[12px] bg-[#f8fafc] p-3">
+              <div key={row.payment_method} className="rounded-2xl bg-[#fafafa] p-3">
                 <div className="flex items-center justify-between gap-3">
                   <PaymentMethodBadge method={row.payment_method} />
-                  <span className="text-xs font-bold text-[#64748b]">{row.orders_count} orders</span>
+                  <span className="text-xs font-bold text-[#6b7280]">{row.orders_count} orders</span>
                 </div>
                 <div className="mt-2 flex justify-between text-sm">
                   <span>Total {money(row.grand_total)}</span>
                   <span>Admin {money(row.admin_total_income)}</span>
                 </div>
-                <div className="mt-1 flex justify-between text-xs text-[#64748b]">
+                <div className="mt-1 flex justify-between text-xs text-[#9ca3af]">
                   <span>Delivery {money(row.delivery_fee_total)}</span>
                   <span>Commission {money(row.restaurant_commission_total)}</span>
                 </div>
               </div>
             ))}
-            {!methods.length && <div className="text-sm text-[#64748b]">No method data.</div>}
+            {!methods.length && <div className="text-sm text-[#9ca3af]">No method data.</div>}
           </div>
         </div>
       </div>
@@ -1092,18 +1100,14 @@ function FoodPaymentSummaryPanel({ summary, loading }) {
   );
 }
 
-function SummaryCard({ label, value, tone = "slate" }) {
+function SummaryCard({ label, value, tone = "gray" }) {
   const tones = {
-    slate: "border-slate-200 bg-slate-50 text-slate-900",
-    emerald: "border-emerald-200 bg-emerald-50 text-emerald-900",
-    amber: "border-amber-200 bg-amber-50 text-amber-900",
-    blue: "border-sky-200 bg-sky-50 text-sky-900",
-    indigo: "border-indigo-200 bg-indigo-50 text-indigo-900",
-    red: "border-red-200 bg-red-50 text-red-900",
-    violet: "border-violet-200 bg-violet-50 text-violet-900",
+    gray: "border-[#ececec] bg-[#fafafa] text-[#111]",
+    dark: "border-[#111] bg-[#111] text-white",
+    red: "border-[#ee0012]/20 bg-[#fef2f2] text-[#ee0012]",
   };
   return (
-    <div className={`rounded-[14px] border p-3 ${tones[tone] || tones.slate}`}>
+    <div className={`rounded-2xl border p-3 ${tones[tone] || tones.gray}`}>
       <div className="text-[11px] font-bold uppercase tracking-wide opacity-70">{label}</div>
       <div className="mt-1 text-xl font-black">{value}</div>
     </div>
@@ -1112,31 +1116,31 @@ function SummaryCard({ label, value, tone = "slate" }) {
 
 function MiniMetric({ label, value }) {
   return (
-    <div className="rounded-[12px] bg-white p-3">
-      <div className="text-[11px] font-bold uppercase tracking-wide text-[#64748b]">{label}</div>
-      <div className="mt-1 text-base font-black text-[#111827]">{value}</div>
+    <div className="rounded-xl bg-white p-3">
+      <div className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280]">{label}</div>
+      <div className="mt-1 text-base font-black text-[#111]">{value}</div>
     </div>
   );
 }
 
 function PaymentMethodBadge({ method }) {
   const map = {
-    cash_on_delivery: ["COD", "border-amber-200 bg-amber-50 text-amber-700"],
-    manual_bkash: ["Owner bKash", "border-pink-200 bg-pink-50 text-pink-700"],
-    manual_nagad: ["Owner Nagad", "border-orange-200 bg-orange-50 text-orange-700"],
-    online: ["Online", "border-sky-200 bg-sky-50 text-sky-700"],
+    cash_on_delivery: ["COD", "border-[#ececec] bg-[#fafafa] text-[#374151]"],
+    manual_bkash: ["Owner bKash", "border-[#ee0012]/20 bg-[#fef2f2] text-[#ee0012]"],
+    manual_nagad: ["Owner Nagad", "border-[#111] bg-[#111] text-white"],
+    online: ["Online", "border-[#ececec] bg-white text-[#111]"],
   };
-  const [label, cls] = map[method] || [method || "-", "border-slate-200 bg-slate-50 text-slate-600"];
-  return <span className={`inline-flex rounded-[10px] border px-2.5 py-1 text-xs font-black ${cls}`}>{label}</span>;
+  const [label, cls] = map[method] || [method || "-", "border-[#ececec] bg-[#fafafa] text-[#6b7280]"];
+  return <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-black ${cls}`}>{label}</span>;
 }
 
 function PaymentStatusBadge({ status }) {
   const map = {
-    paid: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    unpaid: "border-slate-200 bg-slate-50 text-slate-600",
-    refunded: "border-purple-200 bg-purple-50 text-purple-700",
+    paid: "border-[#111] bg-[#111] text-white",
+    unpaid: "border-[#ececec] bg-[#fafafa] text-[#6b7280]",
+    refunded: "border-[#ee0012]/20 bg-[#fef2f2] text-[#ee0012]",
   };
-  return <span className={`inline-flex rounded-[10px] border px-2.5 py-1 text-xs font-bold ${map[status] || map.unpaid}`}>{status || "unpaid"}</span>;
+  return <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold capitalize ${map[status] || map.unpaid}`}>{status || "unpaid"}</span>;
 }
 
 function money(value) {
@@ -1147,8 +1151,8 @@ function money(value) {
 function SummaryLine({ label, value, strong = false }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className={strong ? "font-bold text-[#111827]" : "text-[#64748b]"}>{label}</span>
-      <span className={strong ? "text-lg font-black text-[#111827]" : "font-semibold text-[#111827]"}>{value}</span>
+      <span className={strong ? "font-bold text-[#111]" : "text-[#6b7280]"}>{label}</span>
+      <span className={strong ? "text-lg font-black text-[#111]" : "font-semibold text-[#111]"}>{value}</span>
     </div>
   );
 }
@@ -1385,7 +1389,7 @@ export default function FoodAdminPage({ token, resource }) {
     };
     if (field.type === "checkbox") {
       return (
-        <label className="flex items-center gap-3 rounded-[12px] border border-[#dfe6ef] bg-white px-3 py-3 text-sm font-semibold text-[#24324a]">
+        <label className="flex items-center gap-3 rounded-xl border border-[#ececec] bg-white px-3.5 py-3 text-sm font-semibold text-[#111] transition hover:border-[#ee0012]/30">
           <input
             type="checkbox"
             checked={Boolean(form[field.key])}
@@ -1398,10 +1402,10 @@ export default function FoodAdminPage({ token, resource }) {
     }
     if (field.type === "textarea" || field.type === "addons" || field.type === "size_prices") {
       return (
-        <label className="block text-sm font-semibold text-[#24324a]">
+        <label className="block text-sm font-bold text-[#111]">
           {field.label}
           <textarea
-            className="mt-1.5 min-h-[96px] w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3.5 py-2.5 text-sm text-[#0f172a] shadow-sm outline-none focus:border-red-300 focus:ring-4 focus:ring-red-500/10"
+            className="mt-1.5 min-h-[96px] w-full rounded-xl border border-[#ececec] bg-white px-3.5 py-2.5 text-sm text-[#111] outline-none transition focus:border-[#ee0012]/50 focus:ring-4 focus:ring-[#ee0012]/10"
             {...common}
           />
         </label>
@@ -1409,10 +1413,10 @@ export default function FoodAdminPage({ token, resource }) {
     }
     if (field.type === "select") {
       return (
-        <label className="block text-sm font-semibold text-[#24324a]">
+        <label className="block text-sm font-bold text-[#111]">
           {field.label}
           <select
-            className="mt-1.5 w-full rounded-[14px] border border-[#dfe6ef] bg-white px-3.5 py-2.5 text-sm text-[#0f172a] shadow-sm outline-none focus:border-red-300 focus:ring-4 focus:ring-red-500/10"
+            className="mt-1.5 w-full rounded-xl border border-[#ececec] bg-white px-3.5 py-2.5 text-sm text-[#111] outline-none transition focus:border-[#ee0012]/50 focus:ring-4 focus:ring-[#ee0012]/10"
             {...common}
           >
             {field.options.map((option) => (
@@ -1430,19 +1434,19 @@ export default function FoodAdminPage({ token, resource }) {
   const renderValue = (record, col) => {
     const value = record[col];
     if (col === "image_url") {
-      return value ? <img src={value} alt="" className="h-12 w-16 rounded-[10px] object-cover" /> : <span className="text-[#94a3b8]">No image</span>;
+      return value ? <img src={value} alt="" className="h-12 w-16 rounded-lg border border-[#ececec] object-cover" /> : <span className="text-[#9ca3af]">No image</span>;
     }
     if (col === "payment_proof_photo_url") {
       return value ? (
-        <a href={value} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-[10px] border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
-          <img src={value} alt="" className="h-7 w-9 rounded-[6px] object-cover" />
+        <a href={value} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-[#ee0012]/20 bg-[#fef2f2] px-2.5 py-1 text-xs font-black text-[#ee0012]">
+          <img src={value} alt="" className="h-7 w-9 rounded object-cover" />
           Proof
         </a>
-      ) : <span className="text-[#94a3b8]">No proof</span>;
+      ) : <span className="text-[#9ca3af]">No proof</span>;
     }
     if (value === null || value === undefined || value === "") return "-";
     if (col === "restaurant") {
-      return <span className="font-semibold text-[#111827]">{value?.name || record.restaurant_id || "-"}</span>;
+      return <span className="font-semibold text-[#111]">{value?.name || record.restaurant_id || "-"}</span>;
     }
     if (col === "payment_method") {
       return <PaymentMethodBadge method={value} />;
@@ -1454,18 +1458,18 @@ export default function FoodAdminPage({ token, resource }) {
       const waiting = String(value).toLowerCase().includes("waiting");
       const accepted = String(value).toLowerCase().includes("accepted");
       const cls = accepted
-        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+        ? "border-[#111] bg-[#111] text-white"
         : waiting
-          ? "border-amber-200 bg-amber-50 text-amber-700"
-          : "border-slate-200 bg-slate-50 text-slate-600";
-      return <span className={`inline-flex rounded-[10px] border px-2.5 py-1 text-xs font-bold ${cls}`}>{value}</span>;
+          ? "border-[#ee0012]/20 bg-[#fef2f2] text-[#ee0012]"
+          : "border-[#ececec] bg-[#fafafa] text-[#6b7280]";
+      return <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${cls}`}>{value}</span>;
     }
     if (col === "route_distance_km") {
       return `${value} KM`;
     }
     if (col === "delivery_map_url") {
       return (
-        <a href={value} target="_blank" rel="noreferrer" className="font-semibold text-red-700 hover:underline">
+        <a href={value} target="_blank" rel="noreferrer" className="font-semibold text-[#ee0012] hover:underline">
           View map
         </a>
       );
@@ -1480,45 +1484,52 @@ export default function FoodAdminPage({ token, resource }) {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-[18px] border border-[#dfe6ef] bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <style>{fd2Css}</style>
+      <section className="fd2-rise overflow-hidden rounded-[26px] border border-[#ececec] bg-white shadow-[0_18px_50px_rgba(17,24,39,0.06)]">
+        <div className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between sm:p-6">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#ee0012]">{resourceGroup}</p>
-            <h2 className="mt-1 text-xl font-bold text-[#111827]">{config.title}</h2>
-            <p className="mt-1 text-sm text-[#64748b]">{config.description}</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#ee0012]">{resourceGroup}</p>
+            <h1 className="mt-2 text-2xl font-black tracking-tight text-[#111]">{config.title}</h1>
+            <p className="mt-2 max-w-2xl text-sm font-medium text-[#6b7280]">{config.description}</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <input
-              placeholder={`Search ${resourceNoun}`}
-              className="w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm sm:w-72"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            <div className="relative w-full sm:w-72">
+              <svg viewBox="0 0 20 20" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="9" cy="9" r="6" />
+                <path d="M17 17l-3.5-3.5" strokeLinecap="round" />
+              </svg>
+              <input
+                placeholder={`Search ${resourceNoun}`}
+                className="w-full rounded-xl border border-[#ececec] bg-white py-2.5 pl-10 pr-3 text-sm text-[#111] outline-none transition focus:border-[#ee0012]/50 focus:ring-4 focus:ring-[#ee0012]/10"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
             <Button onClick={openCreate}>Create New</Button>
           </div>
         </div>
-      </div>
+      </section>
 
-      {error && <div className="rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="fd2-rise rounded-2xl border border-[#ee0012]/20 bg-[#fef2f2] px-4 py-3 text-sm font-semibold text-[#b91c1c]">{error}</div>
+      )}
 
       {(resource === "food-orders" || resource === "medicine-orders") && (
         <FoodOrderFilterBar filters={orderFilters} onChange={setOrderFilters} hideRestaurant={resource === "medicine-orders"} />
       )}
 
-      <BulkDeleteBar
-        selectedCount={selectedIds.length}
-        deleting={bulkDeleting}
-        onClear={() => setSelectedIds([])}
-        onDelete={bulkDelete}
-      />
+      <div className="fd2-rise">
+        <BulkDeleteBar selectedCount={selectedIds.length} deleting={bulkDeleting} onClear={() => setSelectedIds([])} onDelete={bulkDelete} />
+      </div>
 
-      <div className="overflow-x-auto rounded-[16px] border border-[#dfe6ef] bg-white shadow-sm">
+      <div className="fd2-rise overflow-x-auto rounded-2xl border border-[#ececec] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]" style={{ "--d": "60ms" }}>
         <table className="min-w-[860px] w-full text-sm">
-          <thead className="bg-[#f8fafc] text-xs uppercase tracking-wide text-[#53637a]">
-            <tr>
+          <thead>
+            <tr className="border-b border-[#f0f0f0] bg-[#fafafa] text-[11px] uppercase tracking-wider text-[#6b7280]">
               <th className="w-10 px-4 py-3">
                 <input
                   type="checkbox"
+                  className="h-4 w-4 accent-[#ee0012]"
                   checked={selectionState.allVisibleSelected}
                   ref={(input) => {
                     if (input) input.indeterminate = selectionState.someVisibleSelected;
@@ -1528,26 +1539,27 @@ export default function FoodAdminPage({ token, resource }) {
                 />
               </th>
               {visibleColumns.map((col) => (
-                <th key={col} className="px-4 py-3 text-left">
+                <th key={col} className="px-4 py-3 text-left font-semibold capitalize">
                   {col.replace(/_/g, " ")}
                 </th>
               ))}
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3 text-right font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {records.map((record) => (
-              <tr key={record.id} className="border-t border-[#edf1f6]">
+            {records.map((record, i) => (
+              <tr key={record.id} className="fd2-fade border-t border-[#f3f4f6] transition hover:bg-[#fef2f2]/50" style={{ animationDelay: `${Math.min(i, 10) * 25}ms` }}>
                 <td className="px-4 py-3 align-middle">
                   <input
                     type="checkbox"
+                    className="h-4 w-4 accent-[#ee0012]"
                     checked={selectedIds.includes(record.id)}
                     onChange={(e) => setSelectedIds((prev) => toggleSelectedId(prev, record.id, e.target.checked))}
                     aria-label={`Select record ${record.id}`}
                   />
                 </td>
                 {visibleColumns.map((col) => (
-                  <td key={`${record.id}-${col}`} className="px-4 py-3 align-middle">
+                  <td key={`${record.id}-${col}`} className="px-4 py-3 align-middle text-[#374151]">
                     {renderValue(record, col)}
                   </td>
                 ))}
@@ -1570,8 +1582,15 @@ export default function FoodAdminPage({ token, resource }) {
             ))}
             {!records.length && (
               <tr>
-                <td colSpan={visibleColumns.length + 2} className="px-4 py-8 text-center text-[#64748b]">
-                  {loading ? "Loading..." : `No ${resourceNoun} found.`}
+                <td colSpan={visibleColumns.length + 2} className="px-4 py-10 text-center text-sm text-[#9ca3af]">
+                  {loading ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="fd2-ring h-2 w-2 rounded-full bg-[#ee0012]" />
+                      Loading...
+                    </span>
+                  ) : (
+                    `No ${resourceNoun} found.`
+                  )}
                 </td>
               </tr>
             )}
@@ -1591,23 +1610,24 @@ export default function FoodAdminPage({ token, resource }) {
       />
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3">
-          <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[18px] border border-[#dfe6ef] bg-white shadow-2xl shadow-slate-900/20">
-            <div className="flex items-center justify-between border-b border-[#edf1f6] px-5 py-4">
+        <div className="fd2-fade fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 backdrop-blur-sm">
+          <div className="fd2-pop flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[26px] border border-[#ececec] bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#ececec] px-5 py-4">
               <div>
-                <h3 className="text-lg font-bold text-[#111827]">{mode === "create" ? `Create ${config.title}` : `Edit ${config.title}`}</h3>
-                <p className="text-xs text-[#64748b]">Manual form. No JSON editing required.</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#ee0012]">{mode === "create" ? "New record" : "Edit record"}</p>
+                <h3 className="mt-1 text-lg font-black text-[#111]">{mode === "create" ? `Create ${config.title}` : `Edit ${config.title}`}</h3>
+                <p className="mt-1 text-xs font-medium text-[#9ca3af]">Manual form. No JSON editing required.</p>
               </div>
-              <button className="rounded-[12px] border border-[#dfe6ef] px-3 py-2 text-sm" onClick={() => setModalOpen(false)}>
-                Close
+              <button className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-lg font-bold text-[#9ca3af] transition hover:bg-[#f3f4f6] hover:text-[#111]" onClick={() => setModalOpen(false)} aria-label="Close">
+                ×
               </button>
             </div>
 
             <div className="overflow-y-auto p-5">
               {config.imageTarget && (
-                <div className="mb-5 rounded-[16px] border border-[#dfe6ef] bg-[#f8fafc] p-4">
-                  <p className="text-sm font-bold text-[#24324a]">Image Upload</p>
-                  <p className="mt-1 text-xs text-[#64748b]">Upload a real image for this record. It will be saved after the record is created/updated.</p>
+                <div className="mb-5 rounded-2xl border border-[#ececec] bg-[#fafafa] p-4">
+                  <p className="text-sm font-black text-[#111]">Image Upload</p>
+                  <p className="mt-1 text-xs font-medium text-[#6b7280]">Upload a real image for this record. It will be saved after the record is created/updated.</p>
                   <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
                     <div className="w-full sm:w-48">
                       <ImageUploadPreview
@@ -1630,16 +1650,16 @@ export default function FoodAdminPage({ token, resource }) {
                 {config.fields.map((field) => (
                   <div key={field.key} className={field.type === "textarea" || field.type === "addons" || field.type === "size_prices" ? "md:col-span-2" : ""}>
                     {renderField(field)}
-                    {field.type === "addons" && <p className="mt-1 text-xs text-[#64748b]">One add-on per line, format: Extra Sauce:20</p>}
-                    {field.type === "size_prices" && <p className="mt-1 text-xs text-[#64748b]">One size per line, format: Regular:120. Keep empty if this item has no size option.</p>}
-                    {field.type === "tags" && <p className="mt-1 text-xs text-[#64748b]">Separate values with comma.</p>}
-                    {fieldErrors[field.key] && <p className="mt-1 text-xs text-red-600">{fieldErrors[field.key]}</p>}
+                    {field.type === "addons" && <p className="mt-1 text-xs text-[#9ca3af]">One add-on per line, format: Extra Sauce:20</p>}
+                    {field.type === "size_prices" && <p className="mt-1 text-xs text-[#9ca3af]">One size per line, format: Regular:120. Keep empty if this item has no size option.</p>}
+                    {field.type === "tags" && <p className="mt-1 text-xs text-[#9ca3af]">Separate values with comma.</p>}
+                    {fieldErrors[field.key] && <p className="mt-1 text-xs font-semibold text-[#ee0012]">{fieldErrors[field.key]}</p>}
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-[#edf1f6] px-5 py-4">
+            <div className="flex justify-end gap-2 border-t border-[#ececec] px-5 py-4">
               <Button variant="ghost" onClick={() => setModalOpen(false)}>
                 Cancel
               </Button>
