@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
+import UserSelect from "../../components/UserSelect.jsx";
 import { apiRequest } from "../../lib/api.js";
 
 const emptyForm = {
@@ -245,14 +246,12 @@ export default function JobsPage({ token }) {
               </button>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <div>
-                <label className="text-xs text-[#64748b]">Posted By (User ID)</label>
-                <input
-                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
-                  value={form.posted_by}
-                  onChange={(e) => setForm({ ...form, posted_by: e.target.value })}
-                />
-              </div>
+              <UserSelect
+                token={token}
+                label="Posted by"
+                value={form.posted_by}
+                onChange={(userId) => setForm({ ...form, posted_by: userId })}
+              />
               <div>
                 <label className="text-xs text-[#64748b]">Company</label>
                 <input
@@ -323,6 +322,5 @@ export default function JobsPage({ token }) {
     </div>
   );
 }
-
 
 

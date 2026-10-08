@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
+import ResourceSelect from "../../components/ResourceSelect.jsx";
+import UserSelect from "../../components/UserSelect.jsx";
 import { apiRequest } from "../../lib/api.js";
 
 const emptyForm = {
@@ -262,29 +264,20 @@ export default function WorkersPage({ token }) {
               </button>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <div>
-                <label className="text-xs text-[#64748b]">User ID</label>
-                <input
-                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
-                  value={form.user_id}
-                  onChange={(e) => setForm({ ...form, user_id: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-[#64748b]">Category</label>
-                <select
-                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
-                  value={form.category_id}
-                  onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-                >
-                  <option value="">Select</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <UserSelect
+                token={token}
+                label="Worker user"
+                value={form.user_id}
+                onChange={(userId) => setForm({ ...form, user_id: userId })}
+              />
+              <ResourceSelect
+                token={token}
+                resource="worker-categories"
+                label="Category"
+                value={form.category_id}
+                onChange={(categoryId) => setForm({ ...form, category_id: categoryId })}
+                placeholder="Search category"
+              />
               <div>
                 <label className="text-xs text-[#64748b]">Experience (years)</label>
                 <input
@@ -364,6 +357,4 @@ export default function WorkersPage({ token }) {
     </div>
   );
 }
-
-
 

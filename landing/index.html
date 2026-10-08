@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0A6B55" />
+    <meta name="theme-color" content="#ee0012" />
     <meta
       name="description"
       content="Bholavashi is Bhola's local digital service ecosystem for food delivery, medicine delivery, riders, restaurants, local services and everyday support."
@@ -25,26 +25,26 @@
          ============================================================ */
       :root {
         color-scheme: light;
-        --ink: #0d1a16;
-        --ink-2: #47564f;
-        --ink-3: #6d7d76;
-        --paper: #f3f7f4;
+        --ink: #101827;
+        --ink-2: #53637a;
+        --ink-3: #8b98ab;
+        --paper: #f4f6f9;
         --surface: #ffffff;
-        --surface-2: #eaf2ed;
-        --line: rgba(13, 26, 22, 0.1);
-        --line-2: rgba(13, 26, 22, 0.055);
+        --surface-2: #f8fafc;
+        --line: #dfe6ef;
+        --line-2: rgba(16, 24, 39, 0.055);
 
-        --jade: #0a6b55;
-        --jade-2: #17a97c;
-        --jade-soft: rgba(23, 169, 124, 0.12);
-        --clay: #c4382e;
-        --gold: #d29a22;
-        --indigo: #3455c8;
-        --plum: #7b3fa8;
+        --jade: #ee0012;
+        --jade-2: #ff5664;
+        --jade-soft: rgba(238, 0, 18, 0.08);
+        --clay: #d90010;
+        --gold: #ee0012;
+        --indigo: #ee0012;
+        --plum: #ee0012;
 
-        --shadow-s: 0 2px 6px rgba(13, 26, 22, 0.04), 0 10px 24px rgba(13, 26, 22, 0.05);
-        --shadow-m: 0 4px 12px rgba(13, 26, 22, 0.05), 0 22px 48px rgba(13, 26, 22, 0.08);
-        --shadow-l: 0 10px 30px rgba(13, 26, 22, 0.07), 0 40px 90px rgba(13, 26, 22, 0.12);
+        --shadow-s: 0 2px 6px rgba(16, 24, 39, 0.04), 0 10px 24px rgba(16, 24, 39, 0.05);
+        --shadow-m: 0 4px 12px rgba(16, 24, 39, 0.05), 0 22px 48px rgba(16, 24, 39, 0.08);
+        --shadow-l: 0 10px 30px rgba(16, 24, 39, 0.07), 0 40px 90px rgba(16, 24, 39, 0.12);
 
         --r-s: 10px;
         --r-m: 16px;
@@ -72,13 +72,13 @@
         --surface-2: #142722;
         --line: rgba(230, 239, 234, 0.12);
         --line-2: rgba(230, 239, 234, 0.07);
-        --jade: #2fbf93;
-        --jade-2: #4fd7ac;
-        --jade-soft: rgba(47, 191, 147, 0.14);
-        --clay: #e5645a;
-        --gold: #e8bb55;
-        --indigo: #7d95ee;
-        --plum: #b183d8;
+        --jade: #ff5664;
+        --jade-2: #ff8b95;
+        --jade-soft: rgba(255, 86, 100, 0.16);
+        --clay: #ff5664;
+        --gold: #ff5664;
+        --indigo: #ff5664;
+        --plum: #ff5664;
         --shadow-s: 0 2px 6px rgba(0, 0, 0, 0.3);
         --shadow-m: 0 20px 44px rgba(0, 0, 0, 0.42);
         --shadow-l: 0 36px 86px rgba(0, 0, 0, 0.5);
@@ -162,9 +162,9 @@
       @keyframes riseIn { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       @keyframes pulseRing {
-        0% { box-shadow: 0 0 0 0 rgba(23, 169, 124, 0.45); }
-        70% { box-shadow: 0 0 0 11px rgba(23, 169, 124, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(23, 169, 124, 0); }
+        0% { box-shadow: 0 0 0 0 rgba(238, 0, 18, 0.45); }
+        70% { box-shadow: 0 0 0 11px rgba(238, 0, 18, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(238, 0, 18, 0); }
       }
       @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
       @keyframes floatySm { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
@@ -206,16 +206,16 @@
         transition: transform 340ms var(--ease), box-shadow 340ms var(--ease),
           border-color 340ms var(--ease), background 340ms var(--ease), color 340ms var(--ease);
       }
-      .btn:hover { transform: translateY(-3px); border-color: rgba(23, 169, 124, 0.42); box-shadow: var(--shadow-m); }
+      .btn:hover { transform: translateY(-3px); border-color: rgba(238, 0, 18, 0.42); box-shadow: var(--shadow-m); }
       .btn:active { transform: translateY(-1px) scale(0.985); }
 
       .btn--fill {
         border-color: transparent;
         background: linear-gradient(135deg, var(--jade), var(--jade-2));
         color: #fff;
-        box-shadow: 0 10px 26px rgba(10, 107, 85, 0.24);
+        box-shadow: 0 10px 26px rgba(238, 0, 18, 0.24);
       }
-      .btn--fill:hover { box-shadow: 0 16px 38px rgba(10, 107, 85, 0.32); }
+      .btn--fill:hover { box-shadow: 0 16px 38px rgba(238, 0, 18, 0.32); }
       html[data-theme="dark"] .btn--fill { color: #04150f; }
 
       .btn--ghost { background: transparent; box-shadow: none; }
@@ -304,7 +304,7 @@
         border-radius: 12px;
         background: linear-gradient(140deg, var(--jade), var(--jade-2));
         color: #fff; font-size: 17px; font-weight: 600;
-        box-shadow: 0 8px 20px rgba(10, 107, 85, 0.24);
+        box-shadow: 0 8px 20px rgba(238, 0, 18, 0.24);
         overflow: hidden;
         transition: transform 500ms var(--ease);
       }
@@ -339,7 +339,7 @@
         background: var(--surface); color: var(--ink-2);
         transition: transform 320ms var(--ease), color 320ms var(--ease), border-color 320ms var(--ease);
       }
-      .icon-btn:hover { transform: translateY(-2px); color: var(--jade); border-color: rgba(23, 169, 124, 0.4); }
+      .icon-btn:hover { transform: translateY(-2px); color: var(--jade); border-color: rgba(238, 0, 18, 0.4); }
       .icon-btn svg { width: 19px; height: 19px; }
 
       .lang-switch {
@@ -415,7 +415,7 @@
         opacity: 0.5;
         animation: drift 17s ease-in-out infinite;
       }
-      .aurora i:nth-child(1) { width: 440px; height: 440px; top: -140px; left: -110px; background: rgba(23, 169, 124, 0.4); }
+      .aurora i:nth-child(1) { width: 440px; height: 440px; top: -140px; left: -110px; background: rgba(238, 0, 18, 0.4); }
       .aurora i:nth-child(2) { width: 380px; height: 380px; top: 40px; right: -90px; background: rgba(196, 56, 46, 0.22); animation-delay: -6s; }
       .aurora i:nth-child(3) { width: 340px; height: 340px; bottom: -160px; left: 42%; background: rgba(210, 154, 34, 0.22); animation-delay: -11s; }
       html[data-theme="dark"] .aurora i { opacity: 0.32; }
@@ -651,7 +651,7 @@
         font-size: 14px; font-weight: 500;
         transition: all 330ms var(--ease);
       }
-      .filters button:hover { border-color: rgba(23, 169, 124, 0.4); transform: translateY(-2px); }
+      .filters button:hover { border-color: rgba(238, 0, 18, 0.4); transform: translateY(-2px); }
       .filters button.on { background: var(--ink); color: var(--paper); border-color: transparent; }
 
       .svc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
@@ -717,7 +717,7 @@
         padding: 26px;
         border-radius: 28px;
         background:
-          linear-gradient(150deg, rgba(10, 107, 85, 0.96), rgba(8, 20, 17, 0.97)),
+          linear-gradient(150deg, rgba(238, 0, 18, 0.96), rgba(8, 20, 17, 0.97)),
           linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
           linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
         background-size: auto, 40px 40px, 40px 40px;
@@ -740,7 +740,7 @@
         display: grid; place-items: center;
         border-radius: 50%;
         background: var(--jade-2); color: #06231b;
-        box-shadow: 0 0 0 6px rgba(23, 169, 124, 0.2);
+        box-shadow: 0 0 0 6px rgba(238, 0, 18, 0.2);
         transition: transform 900ms var(--ease-io);
       }
       .rider-pin svg { width: 17px; height: 17px; }
@@ -770,9 +770,9 @@
         padding: 4px 9px; border-radius: 7px;
         background: rgba(255, 255, 255, 0.09); color: rgba(234, 243, 239, 0.62);
       }
-      .tstep.done { border-color: rgba(23, 169, 124, 0.32); background: rgba(23, 169, 124, 0.1); }
+      .tstep.done { border-color: rgba(238, 0, 18, 0.32); background: rgba(238, 0, 18, 0.1); }
       .tstep.done i { background: var(--jade-2); color: #06231b; }
-      .tstep.done em { background: rgba(23, 169, 124, 0.22); color: #9fe9cd; }
+      .tstep.done em { background: rgba(238, 0, 18, 0.22); color: #9fe9cd; }
       .tstep.now { border-color: rgba(210, 154, 34, 0.45); background: rgba(210, 154, 34, 0.12); transform: translateX(5px); }
       .tstep.now i { background: var(--gold); color: #2a1e04; animation: pulseRing 2s ease-out infinite; }
       .tstep.now em { background: rgba(210, 154, 34, 0.24); color: #f5dca0; }
@@ -802,7 +802,7 @@
         font-size: 14px; font-weight: 500;
         transition: all 320ms var(--ease);
       }
-      .role-tabs button.on { background: var(--jade); color: #fff; border-color: transparent; box-shadow: 0 8px 20px rgba(10, 107, 85, 0.22); }
+      .role-tabs button.on { background: var(--jade); color: #fff; border-color: transparent; box-shadow: 0 8px 20px rgba(238, 0, 18, 0.22); }
       html[data-theme="dark"] .role-tabs button.on { color: #04150f; }
 
       .role-panes { position: relative; }
@@ -820,7 +820,7 @@
       .role-row:nth-child(2) { animation-delay: 70ms; }
       .role-row:nth-child(3) { animation-delay: 140ms; }
       .role-row:nth-child(4) { animation-delay: 210ms; }
-      .role-row:hover { border-color: rgba(23, 169, 124, 0.35); transform: translateX(4px); }
+      .role-row:hover { border-color: rgba(238, 0, 18, 0.35); transform: translateX(4px); }
       .role-row i {
         width: 42px; height: 42px; display: grid; place-items: center;
         border-radius: 13px; background: var(--jade-soft); color: var(--jade);
@@ -985,7 +985,7 @@
         color: var(--ink-2); font-size: 13px; font-weight: 500;
         transition: transform 320ms var(--ease), color 320ms var(--ease), border-color 320ms var(--ease);
       }
-      .stack li:hover { transform: translateY(-3px); color: var(--jade); border-color: rgba(23, 169, 124, 0.4); }
+      .stack li:hover { transform: translateY(-3px); color: var(--jade); border-color: rgba(238, 0, 18, 0.4); }
       .stack li i { width: 7px; height: 7px; border-radius: 50%; background: var(--tint, var(--jade-2)); }
 
       .code-card {
@@ -1003,10 +1003,10 @@
       .code-bar u { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.18); }
       .code-bar u:nth-child(1) { background: #e5645a; }
       .code-bar u:nth-child(2) { background: #e8bb55; }
-      .code-bar u:nth-child(3) { background: #4fd7ac; }
+      .code-bar u:nth-child(3) { background: #ff5664; }
       .code-bar span { margin-left: 6px; }
       .code-copy { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: rgba(230,239,234,0.6); font-size: 12.5px; transition: color 300ms var(--ease); }
-      .code-copy:hover { color: #4fd7ac; }
+      .code-copy:hover { color: #ff5664; }
       .code-copy svg { width: 14px; height: 14px; }
       .code-card pre {
         margin: 0; padding: 18px 16px;
@@ -1029,7 +1029,7 @@
         font-size: 13.5px;
         transition: border-color 300ms var(--ease), transform 300ms var(--ease);
       }
-      .api-row:hover { border-color: rgba(23, 169, 124, 0.4); transform: translateX(4px); }
+      .api-row:hover { border-color: rgba(238, 0, 18, 0.4); transform: translateX(4px); }
       .api-row i {
         font-style: normal; text-align: center;
         padding: 4px 0; border-radius: 6px;
@@ -1050,7 +1050,7 @@
         overflow: hidden;
         transition: border-color 380ms var(--ease), box-shadow 380ms var(--ease);
       }
-      .faq-item.open { border-color: rgba(23, 169, 124, 0.38); box-shadow: var(--shadow-s); }
+      .faq-item.open { border-color: rgba(238, 0, 18, 0.38); box-shadow: var(--shadow-s); }
       .faq-q {
         width: 100%;
         display: grid; grid-template-columns: 1fr 26px; gap: 16px; align-items: center;
@@ -1092,7 +1092,7 @@
         background: var(--surface);
         transition: transform 340ms var(--ease), border-color 340ms var(--ease);
       }
-      .info-row:hover { transform: translateX(4px); border-color: rgba(23, 169, 124, 0.35); }
+      .info-row:hover { transform: translateX(4px); border-color: rgba(238, 0, 18, 0.35); }
       .info-row i { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--jade-soft); color: var(--jade); }
       .info-row i svg { width: 19px; height: 19px; }
       .info-row b { display: block; font-size: 14.8px; font-weight: 500; }
@@ -1206,7 +1206,7 @@
         border-radius: 20px;
         background: linear-gradient(140deg, var(--jade), var(--jade-2));
         color: #fff; font-size: 24px; font-weight: 600;
-        box-shadow: 0 16px 40px rgba(10, 107, 85, 0.3);
+        box-shadow: 0 16px 40px rgba(238, 0, 18, 0.3);
         animation: preBeat 1.6s var(--ease) infinite;
       }
       @keyframes preBeat {
@@ -1293,7 +1293,7 @@
         transition: box-shadow 420ms var(--ease), border-color 420ms var(--ease), transform 420ms var(--ease);
         transition-delay: var(--d, 0ms);
       }
-      .tool:hover { box-shadow: var(--shadow-m); border-color: rgba(23, 169, 124, 0.3); }
+      .tool:hover { box-shadow: var(--shadow-m); border-color: rgba(238, 0, 18, 0.3); }
       .tool h3 { display: flex; align-items: center; gap: 10px; }
       .tool h3 i { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; background: var(--jade-soft); color: var(--jade); }
       .tool h3 i svg { width: 18px; height: 18px; }
@@ -1322,12 +1322,12 @@
         width: 20px; height: 20px; margin-top: -7.5px;
         border: 3px solid var(--surface); border-radius: 50%;
         background: var(--jade);
-        box-shadow: 0 3px 10px rgba(10, 107, 85, 0.35);
+        box-shadow: 0 3px 10px rgba(238, 0, 18, 0.35);
         transition: transform 220ms var(--ease);
       }
       input[type="range"]::-moz-range-thumb {
         width: 20px; height: 20px; border: 3px solid var(--surface); border-radius: 50%;
-        background: var(--jade); box-shadow: 0 3px 10px rgba(10, 107, 85, 0.35);
+        background: var(--jade); box-shadow: 0 3px 10px rgba(238, 0, 18, 0.35);
       }
       input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.18); }
 
@@ -1499,7 +1499,7 @@
         width: 52px; height: 52px; display: grid; place-items: center;
         border-radius: 17px;
         background: linear-gradient(135deg, var(--jade), var(--jade-2));
-        color: #fff; box-shadow: 0 14px 30px rgba(10, 107, 85, 0.32);
+        color: #fff; box-shadow: 0 14px 30px rgba(238, 0, 18, 0.32);
         transition: transform 420ms var(--ease);
       }
       .help-fab:hover { transform: translateY(-3px) rotate(-6deg); }
@@ -1535,7 +1535,7 @@
         background: var(--paper); color: var(--ink-2); font-size: 13.5px;
         transition: all 280ms var(--ease);
       }
-      .help-q button:hover { border-color: rgba(23, 169, 124, 0.4); color: var(--jade); transform: translateX(3px); }
+      .help-q button:hover { border-color: rgba(238, 0, 18, 0.4); color: var(--jade); transform: translateX(3px); }
 
       /* ============================================================
          27. EFFECTS: spotlight, parallax, confetti, ring
@@ -2054,7 +2054,7 @@
             <article class="svc rv tilt" data-cat="user" style="--tint: var(--plum); --d: 0ms">
               <span class="svc-ico"><svg><use href="#i-map"/></svg></span>
               <h3 data-i18n="svc.4t">Local directory</h3>
-              <p data-i18n="svc.4p">Doctors, teachers, hospitals, hotels, properties, transport schedules and public notices, kept in one searchable place.</p>
+              <p data-i18n="svc.4p">Workers, restaurants, hotels, properties, transport schedules and community notices, kept in one searchable place.</p>
               <ul class="svc-feats">
                 <li data-i18n="svc.4a">Verified numbers</li><li data-i18n="svc.4b">Chamber times</li><li data-i18n="svc.4c">Launch schedules</li>
               </ul>
@@ -2912,7 +2912,7 @@ curl <span class="k">-X</span> GET <span class="s">"https://api.bholavashi.site/
           "svc.2a": "Catalogue search", "svc.2b": "Prescription upload", "svc.2c": "Priority delivery", "svc.2o": "Pharmacy flow",
           "svc.3t": "Rider portal", "svc.3p": "Delivery requests reach nearby riders with pickup details, route, earnings and OTP confirmation at the door.",
           "svc.3a": "Job broadcast", "svc.3b": "OTP handover", "svc.3c": "Earnings log", "svc.3o": "Delivery network",
-          "svc.4t": "Local directory", "svc.4p": "Doctors, teachers, hospitals, hotels, properties, transport schedules and public notices, kept in one searchable place.",
+          "svc.4t": "Local directory", "svc.4p": "Workers, restaurants, hotels, properties, transport schedules and community notices, kept in one searchable place.",
           "svc.4a": "Verified numbers", "svc.4b": "Chamber times", "svc.4c": "Launch schedules", "svc.4o": "Local discovery",
           "svc.5t": "Merchant tools", "svc.5p": "Restaurants and pharmacies manage menus, stock, incoming orders and daily totals from a panel that works on a phone.",
           "svc.5a": "Order inbox", "svc.5b": "Menu editor", "svc.5c": "Daily report", "svc.5o": "Partner tools",
@@ -3151,10 +3151,10 @@ curl <span class="k">-X</span> GET <span class="s">"https://api.bholavashi.site/
           "svc.1t": "খাবার ডেলিভারি", "svc.1p": "রেস্টুরেন্ট দেখুন, মেনু খুলুন, কার্টে যোগ করে চেকআউট করুন। শেষ পর্যন্ত ডেলিভারির অবস্থা জানতে পারবেন।",
           "svc.1a": "লাইভ মেনু", "svc.1b": "কার্ট ও চেকআউট", "svc.1c": "ক্যাশ বা ডিজিটাল", "svc.1o": "অর্ডারের ধাপ",
           "svc.2t": "ওষুধ ডেলিভারি", "svc.2p": "ফার্মেসির তালিকায় খুঁজুন, প্রেসক্রিপশন আপলোড করুন, ঘরে বসে ওষুধ নিন। যে মুহূর্তগুলো অপেক্ষা করে না, সেগুলোর জন্য।",
-          "svc.2a": "তালিকায় খোঁজা", "svc.2b": "প্রেসক্রিপশন আপলোড", "svc.2c": "জরুরি ডেলিভারি", "svc.2o": "ফার্মেসির ধাপ",
+          "svc.2a": "তালিকায় খোঁজা", "svc.2b": "প্রেসক্রিপশন আপলোড", "svc.2c": "দ্রুত ডেলিভারি", "svc.2o": "ফার্মেসির ধাপ",
           "svc.3t": "রাইডার পোর্টাল", "svc.3p": "ডেলিভারির অনুরোধ কাছের রাইডারদের কাছে যায় — পিকআপের তথ্য, দূরত্ব, আয় আর দরজায় ওটিপি নিশ্চিতকরণসহ।",
           "svc.3a": "জব ব্রডকাস্ট", "svc.3b": "ওটিপি হস্তান্তর", "svc.3c": "আয়ের হিসাব", "svc.3o": "ডেলিভারি নেটওয়ার্ক",
-          "svc.4t": "স্থানীয় ডিরেক্টরি", "svc.4p": "ডাক্তার, শিক্ষক, হাসপাতাল, হোটেল, জমি-বাড়ি, পরিবহনের সময়সূচি আর সরকারি নোটিশ — সব এক জায়গায়, খুঁজে নেওয়ার সুবিধাসহ।",
+          "svc.4t": "স্থানীয় ডিরেক্টরি", "svc.4p": "কর্মী, রেস্টুরেন্ট, হোটেল, জমি-বাড়ি, পরিবহনের সময়সূচি আর কমিউনিটি নোটিশ — সব এক জায়গায়, খুঁজে নেওয়ার সুবিধাসহ।",
           "svc.4a": "যাচাই করা নম্বর", "svc.4b": "চেম্বারের সময়", "svc.4c": "লঞ্চের সময়সূচি", "svc.4o": "স্থানীয় খোঁজ",
           "svc.5t": "ব্যবসায়ীর টুল", "svc.5p": "রেস্টুরেন্ট আর ফার্মেসি ফোন থেকেই মেনু, স্টক, নতুন অর্ডার আর দিনের হিসাব সামলাতে পারে।",
           "svc.5a": "অর্ডার ইনবক্স", "svc.5b": "মেনু সম্পাদনা", "svc.5c": "দৈনিক রিপোর্ট", "svc.5o": "পার্টনার টুল",
@@ -3358,8 +3358,8 @@ curl <span class="k">-X</span> GET <span class="s">"https://api.bholavashi.site/
       };
 
       const MARQ = {
-        en: ["Restaurants", "Pharmacies", "Doctors", "Hospitals", "Riders", "Hotels", "Teachers", "Transport", "Property", "Local shops", "Public notices", "Emergency numbers"],
-        bn: ["রেস্টুরেন্ট", "ফার্মেসি", "ডাক্তার", "হাসপাতাল", "রাইডার", "হোটেল", "শিক্ষক", "পরিবহন", "জমি-বাড়ি", "স্থানীয় দোকান", "সরকারি নোটিশ", "জরুরি নম্বর"]
+        en: ["Restaurants", "Pharmacies", "Workers", "Riders", "Hotels", "Transport", "Property", "Local shops", "Community notices", "Support"],
+        bn: ["রেস্টুরেন্ট", "ফার্মেসি", "কর্মী", "রাইডার", "হোটেল", "পরিবহন", "জমি-বাড়ি", "স্থানীয় দোকান", "কমিউনিটি নোটিশ", "সাপোর্ট"]
       };
 
       const NUM_BN = ["০","১","২","৩","৪","৫","৬","৭","৮","৯"];
@@ -3534,7 +3534,7 @@ curl <span class="k">-X</span> GET <span class="s">"https://api.bholavashi.site/
         store.set("bv_theme", t);
         document.documentElement.setAttribute("data-theme", t);
         const meta = $('meta[name="theme-color"]');
-        if (meta) meta.setAttribute("content", t === "dark" ? "#08120f" : "#0A6B55");
+        if (meta) meta.setAttribute("content", t === "dark" ? "#08120f" : "#ee0012");
         if (announce) toast(t === "dark" ? "t.theme.dark" : "t.theme.light");
       }
       $("#themeBtn").addEventListener("click", () =>
@@ -4025,27 +4025,27 @@ curl <span class="k">-X</span> GET <span class="s">"https://api.bholavashi.site/
 
       const DIRECTORY = {
         en: [
-          { n: "Dr. Kamrul Hasan", m: "Medicine specialist · Sadar Hospital Road", t: "Dr", c: "var(--indigo)", x: "6–9pm" },
-          { n: "Dr. Farhana Yasmin", m: "Gynaecology · Natun Bazar chamber", t: "Dr", c: "var(--indigo)", x: "5–8pm" },
-          { n: "Bhola Sadar Hospital", m: "Government hospital · emergency 24h", t: "Hs", c: "var(--clay)", x: "24h" },
+          { n: "Electrician service", m: "Worker · Sadar Road area", t: "Wr", c: "var(--indigo)", x: "Today" },
+          { n: "Home cleaning service", m: "Worker · Natun Bazar area", t: "Wr", c: "var(--indigo)", x: "Open" },
+          { n: "Local support", m: "Community information · source links", t: "Cm", c: "var(--clay)", x: "Info" },
           { n: "Hotel Meghna Residency", m: "Hotel · Sadar Road", t: "Ho", c: "var(--plum)", x: "৳ 1,200" },
           { n: "Hotel Nadi Bangla", m: "Hotel · near launch ghat", t: "Ho", c: "var(--plum)", x: "৳ 900" },
           { n: "Bhola–Dhaka launch", m: "Transport · departs 7:30pm daily", t: "Tr", c: "var(--gold)", x: "7:30pm" },
           { n: "Bhola–Barishal bus", m: "Transport · every 40 minutes", t: "Tr", c: "var(--gold)", x: "40 min" },
           { n: "Rahim Sir · Maths", m: "Teacher · SSC and HSC tuition", t: "Ed", c: "var(--jade)", x: "Class 8–12" },
-          { n: "Fire service, Bhola", m: "Emergency · 24 hour line", t: "Em", c: "var(--clay)", x: "999" },
+          { n: "Community support", m: "Local help and verified source links", t: "Sp", c: "var(--clay)", x: "Info" },
           { n: "Jamuna Pharmacy", m: "Pharmacy · Sadar Road, open late", t: "Rx", c: "var(--jade)", x: "till 12am" }
         ],
         bn: [
-          { n: "ডাঃ কামরুল হাসান", m: "মেডিসিন বিশেষজ্ঞ · সদর হাসপাতাল রোড", t: "Dr", c: "var(--indigo)", x: "সন্ধ্যা ৬–৯" },
-          { n: "ডাঃ ফারহানা ইয়াসমিন", m: "গাইনি · নতুন বাজার চেম্বার", t: "Dr", c: "var(--indigo)", x: "বিকেল ৫–৮" },
-          { n: "ভোলা সদর হাসপাতাল", m: "সরকারি হাসপাতাল · জরুরি ২৪ ঘণ্টা", t: "Hs", c: "var(--clay)", x: "২৪ ঘণ্টা" },
+          { n: "ইলেকট্রিশিয়ান সার্ভিস", m: "কর্মী · সদর রোড এলাকা", t: "Wr", c: "var(--indigo)", x: "আজ" },
+          { n: "হোম ক্লিনিং সার্ভিস", m: "কর্মী · নতুন বাজার এলাকা", t: "Wr", c: "var(--indigo)", x: "চালু" },
+          { n: "লোকাল সাপোর্ট", m: "কমিউনিটি তথ্য · উৎস লিংক", t: "Cm", c: "var(--clay)", x: "তথ্য" },
           { n: "হোটেল মেঘনা রেসিডেন্সি", m: "হোটেল · সদর রোড", t: "Ho", c: "var(--plum)", x: "৳ ১,২০০" },
           { n: "হোটেল নদী বাংলা", m: "হোটেল · লঞ্চঘাটের কাছে", t: "Ho", c: "var(--plum)", x: "৳ ৯০০" },
           { n: "ভোলা–ঢাকা লঞ্চ", m: "পরিবহন · প্রতিদিন সন্ধ্যা ৭:৩০", t: "Tr", c: "var(--gold)", x: "৭:৩০" },
           { n: "ভোলা–বরিশাল বাস", m: "পরিবহন · প্রতি ৪০ মিনিটে", t: "Tr", c: "var(--gold)", x: "৪০ মিনিট" },
           { n: "রহিম স্যার · গণিত", m: "শিক্ষক · এসএসসি ও এইচএসসি টিউশন", t: "Ed", c: "var(--jade)", x: "ক্লাস ৮–১২" },
-          { n: "ফায়ার সার্ভিস, ভোলা", m: "জরুরি · ২৪ ঘণ্টার লাইন", t: "Em", c: "var(--clay)", x: "৯৯৯" },
+          { n: "কমিউনিটি সাপোর্ট", m: "লোকাল সহায়তা ও যাচাইকৃত উৎস লিংক", t: "Sp", c: "var(--clay)", x: "তথ্য" },
           { n: "যমুনা ফার্মেসি", m: "ফার্মেসি · সদর রোড, রাত পর্যন্ত খোলা", t: "Rx", c: "var(--jade)", x: "রাত ১২টা" }
         ]
       };
@@ -4404,7 +4404,7 @@ curl <span class="k">-X</span> GET <span class="s">"https://api.bholavashi.site/
         if (reduced) return;
         const box = document.createElement("div");
         box.className = "confetti";
-        const colors = ["#17a97c", "#c4382e", "#d29a22", "#3455c8", "#7b3fa8", "#0a6b55"];
+        const colors = ["#ee0012", "#d90010", "#ee0012", "#ee0012", "#ee0012", "#ee0012"];
         for (let i = 0; i < 46; i++) {
           const s = document.createElement("i");
           s.style.left = 30 + Math.random() * 40 + "vw";

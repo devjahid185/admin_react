@@ -4,6 +4,8 @@ import Button from "../../components/Button.jsx";
 import ImageUploadPreview from "../../components/ImageUploadPreview.jsx";
 import Input from "../../components/Input.jsx";
 import Pagination from "../../components/Pagination.jsx";
+import ResourceSelect from "../../components/ResourceSelect.jsx";
+import UserSelect from "../../components/UserSelect.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
 
 const fd2Css = `
@@ -363,6 +365,93 @@ const formatSizePrices = (value) =>
         })
         .join("\n")
     : "";
+
+const relationLabel = (item) => {
+  if (!item) return "";
+  const primary =
+    item.name ||
+    item.title ||
+    item.order_no ||
+    item.code ||
+    item.brand_name ||
+    item.receiver_name ||
+    `#${item.id}`;
+  const meta = [
+    item.phone,
+    item.receiver_phone,
+    item.restaurant?.name,
+    item.status,
+    item.user?.name,
+  ].filter(Boolean);
+  return meta.length ? `${primary} (${meta.join(" / ")})` : `${primary} (#${item.id})`;
+};
+
+function relationForField(activeResource, field) {
+  if (field.key === "restaurant_id") {
+    return {
+      resource: "restaurants",
+      placeholder: "Search restaurant name or phone",
+      selectedFallback: (id) => `Restaurant #${id}`,
+    };
+  }
+  if (field.key === "food_category_id") {
+    return {
+      resource: "food-categories",
+      placeholder: "Search food category",
+      selectedFallback: (id) => `Food category #${id}`,
+    };
+  }
+  if (field.key === "rider_id") {
+    return {
+      resource: "riders",
+      placeholder: "Search rider name or phone",
+      selectedFallback: (id) => `Rider #${id}`,
+    };
+  }
+  if (field.key === "food_item_id") {
+    return {
+      resource: "food-items",
+      placeholder: "Search food item",
+      selectedFallback: (id) => `Food item #${id}`,
+    };
+  }
+  if (field.key === "food_order_id") {
+    return {
+      resource: "food-orders",
+      placeholder: "Search food order number or customer",
+      selectedFallback: (id) => `Food order #${id}`,
+    };
+  }
+  if (field.key === "medicine_order_id") {
+    return {
+      resource: "medicine-orders",
+      placeholder: "Search medicine order number or customer",
+      selectedFallback: (id) => `Medicine order #${id}`,
+    };
+  }
+  if (field.key === "category_id") {
+    const resourceMap = {
+      restaurants: "restaurant-categories",
+      businesses: "business-categories",
+      marketplace: "marketplace-categories",
+      workers: "worker-categories",
+      doctors: "doctor-categories",
+      hospitals: "hospital-categories",
+      hotels: "hotel-categories",
+      property: "property-categories",
+      education: "education-categories",
+    };
+    const categoryResource = resourceMap[activeResource];
+    if (categoryResource) {
+      return {
+        resource: categoryResource,
+        placeholder: "Search category name",
+        selectedFallback: (id) => `Category #${id}`,
+      };
+    }
+  }
+  return null;
+}
 const dateFields = new Set([
   "created_at",
   "updated_at",
@@ -685,13 +774,15 @@ function mapsPointUrl(lat, lng) {
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 }
 
-function FoodOrderViewModal({ loading, order, onClose }) {
+function FoodOrderViewModal({ loading, order, riders = [], assigning = false, assignError = "", onAssignRider, onClose }) {
   const items = order?.items || [];
   const paymentProofUrl = order?.payment_proof_photo_url || order?.payment_proof_photo;
   const deliveryProofUrl = order?.delivery_proof_photo_url || order?.delivery_proof_photo;
   const isMedicine = order?.service_type === "medicine" || order?.order_no?.startsWith?.("MD-") || items.some((item) => item.brand_name);
   const serviceLabel = isMedicine ? "Medicine" : "Food";
   const pickupLabel = isMedicine ? "Medicine Store" : "Restaurant";
+  const [selectedRiderId, setSelectedRiderId] = useState("");
+  const assignable = order && !["delivered", "cancelled", "rejected"].includes(String(order.status || ""));
   const detailRows = [
     ["Order No", order?.order_no],
     ["Status", order?.status],
@@ -881,6 +972,33 @@ function FoodOrderViewModal({ loading, order, onClose }) {
                         : `${order?.pending_rider_requests_count || 0} rider request pending, ${order?.total_rider_requests_count || 0} total request sent.`}
                     </div>
                   </div>
+                  <div className="mt-3 rounded-2xl border border-[#f0f0f0] bg-white p-3">
+                    <label className="text-[11px] font-black uppercase tracking-[0.22em] text-[#6b7280]">Manual rider assign</label>
+                    <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                      <select
+                        value={selectedRiderId}
+                        onChange={(event) => setSelectedRiderId(event.target.value)}
+                        disabled={!assignable || assigning}
+                        className="min-h-[42px] flex-1 rounded-xl border border-[#e5e7eb] bg-white px-3 text-sm font-semibold text-[#111] outline-none transition focus:border-[#ee0012] disabled:bg-[#f9fafb] disabled:text-[#9ca3af]"
+                      >
+                        <option value="">{assignable ? "Select rider" : "Assignment locked for this status"}</option>
+                        {riders.map((rider) => (
+                          <option key={rider.id} value={rider.id}>
+                            #{rider.id} {rider.name || "Rider"} - {rider.phone || "no phone"} ({rider.kyc_status || "-"} / {rider.account_status || "-"} / {rider.availability_status || "-"})
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        type="button"
+                        disabled={!assignable || !selectedRiderId || assigning}
+                        onClick={() => onAssignRider?.(selectedRiderId)}
+                      >
+                        {assigning ? "Assigning..." : "Assign"}
+                      </Button>
+                    </div>
+                    {assignError && <div className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{assignError}</div>}
+                    {!riders.length && <div className="mt-2 text-xs font-semibold text-[#9ca3af]">No rider found. Add or approve riders first.</div>}
+                  </div>
                   {!!order?.rider_requests?.length && (
                     <div className="mt-3 overflow-hidden rounded-2xl border border-[#f0f0f0]">
                       <table className="w-full text-sm">
@@ -916,7 +1034,7 @@ function FoodOrderViewModal({ loading, order, onClose }) {
   );
 }
 
-function FoodOrderFilterBar({ filters, onChange, hideRestaurant = false }) {
+function FoodOrderFilterBar({ token, filters, onChange, hideRestaurant = false }) {
   const update = (key, value) => onChange((prev) => ({ ...prev, [key]: value }));
   const clear = () => onChange({ payment_method: "", payment_status: "", status: "", restaurant_id: "", date_from: "", date_to: "" });
   return (
@@ -948,9 +1066,18 @@ function FoodOrderFilterBar({ filters, onChange, hideRestaurant = false }) {
           </select>
         </FilterField>
         {!hideRestaurant && (
-          <FilterField label="Restaurant ID">
-            <input value={filters.restaurant_id} onChange={(e) => update("restaurant_id", e.target.value)} className={filterInputClass} placeholder="Restaurant ID" />
-          </FilterField>
+          <div className="min-w-[230px] flex-1">
+            <ResourceSelect
+              token={token}
+              resource="restaurants"
+              label="Restaurant"
+              value={filters.restaurant_id}
+              onChange={(id) => update("restaurant_id", id)}
+              placeholder="Search restaurant"
+              formatLabel={relationLabel}
+              selectedFallback={(id) => `Restaurant #${id}`}
+            />
+          </div>
         )}
         <FilterField label="From">
           <input type="date" value={filters.date_from} onChange={(e) => update("date_from", e.target.value)} className={filterInputClass} />
@@ -1180,6 +1307,9 @@ export default function FoodAdminPage({ token, resource }) {
   const [viewOpen, setViewOpen] = useState(false);
   const [viewLoading, setViewLoading] = useState(false);
   const [viewOrder, setViewOrder] = useState(null);
+  const [riders, setRiders] = useState([]);
+  const [assigningRider, setAssigningRider] = useState(false);
+  const [assignError, setAssignError] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [orderFilters, setOrderFilters] = useState({ payment_method: "", payment_status: "", status: "", restaurant_id: "", date_from: "", date_to: "" });
@@ -1215,6 +1345,16 @@ export default function FoodAdminPage({ token, resource }) {
     }
   };
 
+  const loadRiders = async () => {
+    try {
+      const data = await apiRequest("/admin/resources/riders?per_page=100", { token });
+      setRiders(data.data || []);
+    } catch (err) {
+      console.warn("Unable to load riders", err);
+      setRiders([]);
+    }
+  };
+
   useEffect(() => {
     setForm(emptyForm(config));
     setEditingId(null);
@@ -1227,6 +1367,12 @@ export default function FoodAdminPage({ token, resource }) {
   useEffect(() => {
     load();
   }, [resource, search, token, orderFilters, page, perPage]);
+
+  useEffect(() => {
+    if (resource === "food-orders" || resource === "medicine-orders") {
+      loadRiders();
+    }
+  }, [resource, token]);
 
   useEffect(() => {
     setPage(1);
@@ -1291,8 +1437,12 @@ export default function FoodAdminPage({ token, resource }) {
     setViewOpen(true);
     setViewOrder(null);
     setViewLoading(true);
+    setAssignError("");
     setError("");
     try {
+      if (!riders.length) {
+        loadRiders();
+      }
       const data = await apiRequest(`/admin/resources/${resource}/${record.id}`, { token });
       setViewOrder(data);
     } catch (err) {
@@ -1300,6 +1450,25 @@ export default function FoodAdminPage({ token, resource }) {
       setViewOpen(false);
     } finally {
       setViewLoading(false);
+    }
+  };
+
+  const assignRiderToOrder = async (riderId) => {
+    if (!viewOrder?.id || !riderId) return;
+    setAssigningRider(true);
+    setAssignError("");
+    try {
+      const data = await apiRequest(`/admin/resources/${resource}/${viewOrder.id}/assign-rider`, {
+        method: "POST",
+        token,
+        body: { rider_id: Number(riderId) },
+      });
+      setViewOrder(data.record || data);
+      await load();
+    } catch (err) {
+      setAssignError(err.message || "Unable to assign rider.");
+    } finally {
+      setAssigningRider(false);
     }
   };
 
@@ -1387,6 +1556,35 @@ export default function FoodAdminPage({ token, resource }) {
       onChange: (e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value })),
       placeholder: field.placeholder || "",
     };
+    const relation = relationForField(resource, field);
+    if (field.key === "user_id" || field.key === "owner_user_id") {
+      return (
+        <UserSelect
+          token={token}
+          label={field.label}
+          value={form[field.key] ?? ""}
+          onChange={(userId) => setForm((prev) => ({ ...prev, [field.key]: userId }))}
+          required={Boolean(field.required)}
+          error={fieldErrors[field.key]}
+        />
+      );
+    }
+    if (relation) {
+      return (
+        <ResourceSelect
+          token={token}
+          resource={relation.resource}
+          label={field.label.replace(/\s*ID$/i, "")}
+          value={form[field.key] ?? ""}
+          onChange={(id) => setForm((prev) => ({ ...prev, [field.key]: id }))}
+          placeholder={relation.placeholder}
+          required={Boolean(field.required)}
+          error={fieldErrors[field.key]}
+          formatLabel={relationLabel}
+          selectedFallback={relation.selectedFallback}
+        />
+      );
+    }
     if (field.type === "checkbox") {
       return (
         <label className="flex items-center gap-3 rounded-xl border border-[#ececec] bg-white px-3.5 py-3 text-sm font-semibold text-[#111] transition hover:border-[#ee0012]/30">
@@ -1435,6 +1633,14 @@ export default function FoodAdminPage({ token, resource }) {
     const value = record[col];
     if (col === "image_url") {
       return value ? <img src={value} alt="" className="h-12 w-16 rounded-lg border border-[#ececec] object-cover" /> : <span className="text-[#9ca3af]">No image</span>;
+    }
+    if (col === "restaurant_id") {
+      const name = record.restaurant?.name || record.restaurant_name;
+      return (
+        <span className="font-semibold text-[#111]">
+          {value || "-"}{name ? ` (${name})` : ""}
+        </span>
+      );
     }
     if (col === "payment_proof_photo_url") {
       return value ? (
@@ -1515,7 +1721,7 @@ export default function FoodAdminPage({ token, resource }) {
       )}
 
       {(resource === "food-orders" || resource === "medicine-orders") && (
-        <FoodOrderFilterBar filters={orderFilters} onChange={setOrderFilters} hideRestaurant={resource === "medicine-orders"} />
+        <FoodOrderFilterBar token={token} filters={orderFilters} onChange={setOrderFilters} hideRestaurant={resource === "medicine-orders"} />
       )}
 
       <div className="fd2-rise">
@@ -1653,7 +1859,7 @@ export default function FoodAdminPage({ token, resource }) {
                     {field.type === "addons" && <p className="mt-1 text-xs text-[#9ca3af]">One add-on per line, format: Extra Sauce:20</p>}
                     {field.type === "size_prices" && <p className="mt-1 text-xs text-[#9ca3af]">One size per line, format: Regular:120. Keep empty if this item has no size option.</p>}
                     {field.type === "tags" && <p className="mt-1 text-xs text-[#9ca3af]">Separate values with comma.</p>}
-                    {fieldErrors[field.key] && <p className="mt-1 text-xs font-semibold text-[#ee0012]">{fieldErrors[field.key]}</p>}
+                    {field.key !== "user_id" && field.key !== "owner_user_id" && fieldErrors[field.key] && <p className="mt-1 text-xs font-semibold text-[#ee0012]">{fieldErrors[field.key]}</p>}
                   </div>
                 ))}
               </div>
@@ -1675,9 +1881,14 @@ export default function FoodAdminPage({ token, resource }) {
         <FoodOrderViewModal
           loading={viewLoading}
           order={viewOrder}
+          riders={riders}
+          assigning={assigningRider}
+          assignError={assignError}
+          onAssignRider={assignRiderToOrder}
           onClose={() => {
             setViewOpen(false);
             setViewOrder(null);
+            setAssignError("");
           }}
         />
       )}

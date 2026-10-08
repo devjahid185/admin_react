@@ -45,6 +45,7 @@ import MapSettingsPage from "./services/MapSettingsPage.jsx";
 import AppVersionSettingsPage from "./services/AppVersionSettingsPage.jsx";
 import DeliveryIncomePage from "./services/DeliveryIncomePage.jsx";
 import AiSocialAutomationPage from "./services/AiSocialAutomationPage.jsx";
+import AnalyticsPage from "./AnalyticsPage.jsx";
 
 const MODULE_ALIASES = {
   ai_social: "ai-social",
@@ -64,6 +65,7 @@ function moduleSlugFromPath() {
 
 const DEFAULT_ADMIN_MODULES = [
   { name: "Dashboard", slug: "dashboard", group_name: "Core", route: "/admin" },
+  { name: "Analytics", slug: "analytics", group_name: "Core", route: "/admin/analytics" },
   { name: "Profile", slug: "profile", group_name: "Core", route: "/admin/profile" },
   { name: "Users", slug: "users", group_name: "Core", route: "/admin/users" },
   { name: "Staff Management", slug: "staff-management", group_name: "Core", route: "/admin/staff-management" },
@@ -1095,6 +1097,7 @@ export default function DashboardPage({ token, onLogout }) {
 
   const servicePageMap = {
     users: UsersPage,
+    analytics: AnalyticsPage,
     "staff-management": StaffManagementPage,
     profile: ProfilePage,
     workers: WorkersPage,

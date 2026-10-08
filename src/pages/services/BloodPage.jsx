@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
+import UserSelect from "../../components/UserSelect.jsx";
 import { apiRequest } from "../../lib/api.js";
 
 const emptyForm = {
@@ -236,14 +237,12 @@ export default function BloodPage({ token }) {
               </button>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <div>
-                <label className="text-xs text-[#64748b]">User ID</label>
-                <input
-                  className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm"
-                  value={form.user_id}
-                  onChange={(e) => setForm({ ...form, user_id: e.target.value })}
-                />
-              </div>
+              <UserSelect
+                token={token}
+                label="Donor user"
+                value={form.user_id}
+                onChange={(userId) => setForm({ ...form, user_id: userId })}
+              />
               <div>
                 <label className="text-xs text-[#64748b]">Blood Group</label>
                 <input
@@ -289,6 +288,5 @@ export default function BloodPage({ token }) {
     </div>
   );
 }
-
 
 

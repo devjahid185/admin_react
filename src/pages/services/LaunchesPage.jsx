@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
+import UserSelect from "../../components/UserSelect.jsx";
 import { apiRequest } from "../../lib/api.js";
 
 const emptyForm = {
@@ -162,10 +163,19 @@ export default function LaunchesPage({ token }) {
   };
 
   const input = (key, label, type = "text", span = "") => (
+    key === "user_id" ? (
+      <UserSelect
+        token={token}
+        label="Launch owner"
+        value={form.user_id}
+        onChange={(userId) => setForm({ ...form, user_id: userId })}
+      />
+    ) : (
     <div className={span}>
       <label className="text-xs text-[#64748b]">{label}</label>
       <input className="mt-1 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm" type={type} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
     </div>
+    )
   );
 
   const check = (key, label) => (
