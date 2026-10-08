@@ -1289,11 +1289,32 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
   const [files, setFiles] = useState([]);
   const [notes, setNotes] = useState("");
   const [currentImport, setCurrentImport] = useState(null);
+  const [imports, setImports] = useState([]);
   const [draftItems, setDraftItems] = useState([]);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
 
   const selectedCount = draftItems.filter((item) => item.selected).length;
+
+  const loadImports = async () => {
+    try {
+      const data = await apiRequest("/admin/food-menu-imports?limit=20", { token });
+      setImports(data.data || []);
+    } catch (err) {
+      setError(err.message || "Unable to load menu import drafts.");
+    }
+  };
+
+  useEffect(() => {
+    loadImports();
+  }, []);
+
+  const loadImport = async (entry) => {
+    setCurrentImport(entry);
+    setRestaurantId(entry.restaurant_id ? String(entry.restaurant_id) : "");
+    setDraftItems((entry.extracted_items || []).map((item) => ({ ...item, selected: Boolean(item.selected) })));
+    setError("");
+  };
 
   const updateDraft = (index, patch) => {
     setDraftItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
@@ -1323,6 +1344,7 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
       const extracted = await apiRequest(`/admin/food-menu-imports/${uploaded.import.id}/extract`, { method: "POST", token });
       setCurrentImport(extracted.import);
       setDraftItems((extracted.import?.extracted_items || []).map((item) => ({ ...item, selected: Boolean(item.selected) })));
+      await loadImports();
     } catch (err) {
       setError(err.message || "AI menu import failed.");
     } finally {
@@ -1332,6 +1354,10 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
 
   const createItems = async () => {
     if (!currentImport?.id) return;
+    if (!restaurantId) {
+      setError("Select the target restaurant before approving this draft.");
+      return;
+    }
     if (!selectedCount) {
       setError("Select at least one draft item to create.");
       return;
@@ -1342,7 +1368,7 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
       await apiRequest(`/admin/food-menu-imports/${currentImport.id}/create-items`, {
         method: "POST",
         token,
-        body: { items: draftItems },
+        body: { restaurant_id: restaurantId, items: draftItems },
       });
       await onCreated?.();
       onClose();
@@ -1412,11 +1438,29 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
             </div>
 
             <div className="rounded-2xl border border-[#ececec] bg-white p-4">
-              <h4 className="font-black text-[#111]">How it works</h4>
-              <div className="mt-3 grid gap-3 text-sm text-[#6b7280]">
-                <div className="rounded-xl bg-[#fafafa] p-3"><b className="text-[#111]">1.</b> Upload restaurant menu card photo.</div>
-                <div className="rounded-xl bg-[#fafafa] p-3"><b className="text-[#111]">2.</b> Existing OpenAI key reads item name, category and price.</div>
-                <div className="rounded-xl bg-[#fafafa] p-3"><b className="text-[#111]">3.</b> Admin edits draft rows and creates selected items only.</div>
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="font-black text-[#111]">Draft imports</h4>
+                <button type="button" className="text-xs font-black text-[#ee0012]" onClick={loadImports}>Refresh</button>
+              </div>
+              <div className="mt-3 max-h-52 space-y-2 overflow-y-auto pr-1">
+                {imports.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => loadImport(entry)}
+                    className={`w-full rounded-xl border px-3 py-2 text-left transition ${currentImport?.id === entry.id ? "border-[#ee0012]/40 bg-[#fef2f2]" : "border-[#ececec] bg-[#fafafa] hover:border-[#ee0012]/30"}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-black text-[#111]">Import #{entry.id}</span>
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-[#6b7280]">{entry.status}</span>
+                    </div>
+                    <div className="mt-1 truncate text-xs font-semibold text-[#6b7280]">
+                      {entry.restaurant?.name || "Restaurant not selected"} · {(entry.extracted_items || []).length} items
+                    </div>
+                    {entry.notes ? <div className="mt-1 line-clamp-1 text-xs text-[#9ca3af]">{entry.notes}</div> : null}
+                  </button>
+                ))}
+                {!imports.length && <div className="rounded-xl bg-[#fafafa] p-3 text-sm text-[#9ca3af]">No draft import found yet.</div>}
               </div>
               {currentImport ? (
                 <div className="mt-4 rounded-2xl border border-[#ececec] bg-[#fafafa] p-3 text-sm">
@@ -1436,6 +1480,7 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
                   <th className="px-3 py-3 text-left">Name</th>
                   <th className="px-3 py-3 text-left">Category</th>
                   <th className="px-3 py-3 text-left">Price</th>
+                  <th className="px-3 py-3 text-left">Size prices</th>
                   <th className="px-3 py-3 text-left">Discount</th>
                   <th className="px-3 py-3 text-left">Confidence</th>
                   <th className="px-3 py-3 text-left">Note</th>
@@ -1478,6 +1523,14 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
                       <input className="w-28 rounded-lg border border-[#ececec] px-2.5 py-2 outline-none focus:border-[#ee0012]/40" type="number" value={item.price ?? ""} onChange={(event) => updateDraft(index, { price: event.target.value })} />
                     </td>
                     <td className="px-3 py-3">
+                      <textarea
+                        className="min-h-[88px] w-44 rounded-lg border border-[#ececec] px-2.5 py-2 outline-none focus:border-[#ee0012]/40"
+                        value={formatSizePrices(item.size_options)}
+                        onChange={(event) => updateDraft(index, { size_options: parseSizePrices(event.target.value) })}
+                        placeholder={"1 person:330\n2 person:980\n3 person:1630"}
+                      />
+                    </td>
+                    <td className="px-3 py-3">
                       <input className="w-28 rounded-lg border border-[#ececec] px-2.5 py-2 outline-none focus:border-[#ee0012]/40" type="number" value={item.discount_price ?? ""} onChange={(event) => updateDraft(index, { discount_price: event.target.value })} />
                     </td>
                     <td className="px-3 py-3">
@@ -1492,7 +1545,7 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
                 ))}
                 {!draftItems.length && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-[#9ca3af]">
+                    <td colSpan={8} className="px-4 py-8 text-center text-sm text-[#9ca3af]">
                       Upload menu card images to generate editable draft items.
                     </td>
                   </tr>
