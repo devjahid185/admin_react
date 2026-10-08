@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiRequest, apiUpload } from "../../lib/api.js";
 import Button from "../../components/Button.jsx";
 import ImageUploadPreview from "../../components/ImageUploadPreview.jsx";
+import { formatDateTime } from "../../lib/formatters.js";
 
 export default function NotificationsPage({ token, onUnauthorized }) {
   const [target, setTarget] = useState("all");
@@ -234,7 +235,7 @@ export default function NotificationsPage({ token, onUnauthorized }) {
                   <td className="px-3 py-2 md:px-4">{n.title || "-"}</td>
                   <td className="px-3 py-2 md:px-4">{n.message || "-"}</td>
                   <td className="px-3 py-2 md:px-4">{n.user?.name || n.user_id || "-"}</td>
-                  <td className="px-3 py-2 md:px-4">{n.created_at || "-"}</td>
+                  <td className="px-3 py-2 md:px-4">{formatDateTime(n.created_at)}</td>
                 </tr>
               ))}
               {!notifications.length && (
@@ -251,5 +252,4 @@ export default function NotificationsPage({ token, onUnauthorized }) {
     </div>
   );
 }
-
 

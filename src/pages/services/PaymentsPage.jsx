@@ -4,6 +4,7 @@ import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import UserSelect from "../../components/UserSelect.jsx";
 import { apiRequest } from "../../lib/api.js";
+import { formatDateTime } from "../../lib/formatters.js";
 
 const emptyForm = {
   user_id: "",
@@ -205,7 +206,7 @@ export default function PaymentsPage({ token }) {
                 <td className="px-3 py-2 md:px-4">{pay.amount}</td>
                 <td className="px-3 py-2 md:px-4">{pay.method}</td>
                 <td className="px-3 py-2 md:px-4">{pay.status}</td>
-                <td className="px-3 py-2 md:px-4">{pay.created_at || "-"}</td>
+                <td className="px-3 py-2 md:px-4">{formatDateTime(pay.created_at)}</td>
                 <td className="px-3 py-2 md:px-4 md:text-right">
                   <div className="flex flex-col md:flex-row md:justify-end gap-2">
                     <Button variant="ghost" onClick={() => openEdit(pay)}>
@@ -324,5 +325,4 @@ export default function PaymentsPage({ token }) {
     </div>
   );
 }
-
 

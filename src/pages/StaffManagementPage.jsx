@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Button from "../components/Button.jsx";
 import Input from "../components/Input.jsx";
 import { apiRequest } from "../lib/api.js";
+import { formatDateTime } from "../lib/formatters.js";
 
 const ACTION_LABELS = {
   view: "View",
@@ -186,7 +187,7 @@ export default function StaffManagementPage({ token, onUnauthorized }) {
                       {admin.is_active !== false ? "Active" : "Inactive"}
                     </span>
                   </td>
-                  <td className="px-4 py-4 text-[#64748b]">{admin.last_login_at ? new Date(admin.last_login_at).toLocaleString() : "-"}</td>
+                  <td className="px-4 py-4 text-[#64748b]">{formatDateTime(admin.last_login_at)}</td>
                   <td className="px-4 py-4">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" onClick={() => openEdit(admin)}>Edit</Button>

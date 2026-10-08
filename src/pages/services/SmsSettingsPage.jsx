@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Input from "../../components/Input.jsx";
 import { apiRequest } from "../../lib/api.js";
+import { formatDateTime } from "../../lib/formatters.js";
 
 const defaultForm = {
   is_enabled: false,
@@ -264,7 +265,7 @@ export default function SmsSettingsPage({ token, onUnauthorized }) {
                 logs.map((log) => (
                   <tr key={log.id} className="align-top">
                     <td className="whitespace-nowrap px-4 py-3 text-[#53637a]">
-                      {log.created_at || "-"}
+                      {formatDateTime(log.created_at)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 font-medium text-[#24324a]">
                       {log.phone || "-"}
@@ -301,4 +302,3 @@ export default function SmsSettingsPage({ token, onUnauthorized }) {
     </div>
   );
 }
-

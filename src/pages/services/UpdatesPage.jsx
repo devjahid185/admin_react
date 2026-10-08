@@ -5,6 +5,7 @@ import ImageUploadPreview from "../../components/ImageUploadPreview.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import QuillEditor from "../../components/QuillEditor.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
+import { formatDateTime } from "../../lib/formatters.js";
 
 const emptyForm = {
   title: "",
@@ -360,7 +361,7 @@ export default function UpdatesPage({ token }) {
                 <td className="px-3 py-2 md:px-4">{post.title}</td>
                 <td className="px-3 py-2 md:px-4">{post.slug}</td>
                 <td className="px-3 py-2 md:px-4">{post.is_published ? "Yes" : "No"}</td>
-                <td className="px-3 py-2 md:px-4">{post.published_at || "-"}</td>
+                <td className="px-3 py-2 md:px-4">{formatDateTime(post.published_at)}</td>
                 <td className="px-3 py-2 md:px-4 md:text-right">
                   <div className="flex flex-col md:flex-row md:justify-end gap-2">
                     <Button variant="ghost" onClick={() => openEdit(post)}>
@@ -557,5 +558,4 @@ export default function UpdatesPage({ token }) {
     </div>
   );
 }
-
 

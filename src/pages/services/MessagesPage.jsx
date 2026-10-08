@@ -3,6 +3,7 @@ import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionStat
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest } from "../../lib/api.js";
+import { formatDateTime } from "../../lib/formatters.js";
 
 const emptyForm = {
   sender_id: "",
@@ -199,7 +200,7 @@ export default function MessagesPage({ token }) {
                 <td className="px-3 py-2 md:px-4">{msg.sender_id}</td>
                 <td className="px-3 py-2 md:px-4">{msg.receiver_id}</td>
                 <td className="px-3 py-2 md:px-4">{msg.seen ? "Yes" : "No"}</td>
-                <td className="px-3 py-2 md:px-4">{msg.created_at || "-"}</td>
+                <td className="px-3 py-2 md:px-4">{formatDateTime(msg.created_at)}</td>
                 <td className="px-3 py-2 md:px-4 md:text-right">
                   <div className="flex flex-col md:flex-row md:justify-end gap-2">
                     <Button variant="ghost" onClick={() => openEdit(msg)}>
@@ -316,6 +317,5 @@ export default function MessagesPage({ token }) {
     </div>
   );
 }
-
 
 

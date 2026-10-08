@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../../components/BulkDeleteBar.jsx";
 import Button from "../../components/Button.jsx";
 import { apiRequest } from "../../lib/api.js";
+import { formatDateTime, isDateTimeKey } from "../../lib/formatters.js";
 
 export default function ServicePage({ token, resource }) {
   const [records, setRecords] = useState([]);
@@ -190,6 +191,8 @@ export default function ServicePage({ token, resource }) {
                   const text =
                     value === null || value === undefined
                       ? "-"
+                      : isDateTimeKey(col)
+                      ? formatDateTime(value)
                       : typeof value === "object"
                       ? JSON.stringify(value)
                       : String(value);
@@ -251,5 +254,4 @@ export default function ServicePage({ token, resource }) {
     </div>
   );
 }
-
 

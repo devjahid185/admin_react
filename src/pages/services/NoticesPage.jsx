@@ -3,6 +3,7 @@ import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionStat
 import Button from "../../components/Button.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest } from "../../lib/api.js";
+import { formatDateTime } from "../../lib/formatters.js";
 
 const emptyForm = {
   title: "",
@@ -190,7 +191,7 @@ export default function NoticesPage({ token }) {
                 <td className="px-3 py-2 md:px-4">{n.id}</td>
                 <td className="px-3 py-2 md:px-4">{n.title}</td>
                 <td className="px-3 py-2 md:px-4">{n.category || "-"}</td>
-                <td className="px-3 py-2 md:px-4">{n.created_at || "-"}</td>
+                <td className="px-3 py-2 md:px-4">{formatDateTime(n.created_at)}</td>
                 <td className="px-3 py-2 md:px-4 md:text-right">
                   <div className="flex flex-col md:flex-row md:justify-end gap-2">
                     <Button variant="ghost" onClick={() => openEdit(n)}>
@@ -280,6 +281,5 @@ export default function NoticesPage({ token }) {
     </div>
   );
 }
-
 
 
