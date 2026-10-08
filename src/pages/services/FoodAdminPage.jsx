@@ -1286,8 +1286,6 @@ function SummaryLine({ label, value, strong = false }) {
 
 function AiMenuImportModal({ token, onClose, onCreated }) {
   const [restaurantId, setRestaurantId] = useState("");
-  const [files, setFiles] = useState([]);
-  const [notes, setNotes] = useState("");
   const [currentImport, setCurrentImport] = useState(null);
   const [imports, setImports] = useState([]);
   const [draftItems, setDraftItems] = useState([]);
@@ -1318,38 +1316,6 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
 
   const updateDraft = (index, patch) => {
     setDraftItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
-  };
-
-  const uploadAndExtract = async () => {
-    if (!restaurantId) {
-      setError("Please select a restaurant first.");
-      return;
-    }
-    if (!files.length) {
-      setError("Please select at least one menu card image.");
-      return;
-    }
-
-    setError("");
-    setBusy("upload");
-    try {
-      const formData = new FormData();
-      formData.append("restaurant_id", restaurantId);
-      formData.append("notes", notes);
-      files.forEach((file) => formData.append("images[]", file));
-      const uploaded = await apiUpload("/admin/food-menu-imports", { token, formData });
-      setCurrentImport(uploaded.import);
-
-      setBusy("extract");
-      const extracted = await apiRequest(`/admin/food-menu-imports/${uploaded.import.id}/extract`, { method: "POST", token });
-      setCurrentImport(extracted.import);
-      setDraftItems((extracted.import?.extracted_items || []).map((item) => ({ ...item, selected: Boolean(item.selected) })));
-      await loadImports();
-    } catch (err) {
-      setError(err.message || "AI menu import failed.");
-    } finally {
-      setBusy("");
-    }
   };
 
   const createItems = async () => {
@@ -1396,45 +1362,35 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
         <div className="overflow-y-auto p-5">
           {error && <div className="mb-4 rounded-2xl border border-[#ee0012]/20 bg-[#fef2f2] px-4 py-3 text-sm font-semibold text-[#b91c1c]">{error}</div>}
 
-          <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+          <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="rounded-2xl border border-[#ececec] bg-[#fafafa] p-4">
-              <ResourceSelect
-                token={token}
-                resource="restaurants"
-                label="Restaurant"
-                value={restaurantId}
-                onChange={setRestaurantId}
-                placeholder="Search restaurant name or phone"
-                required
-                formatLabel={relationLabel}
-                selectedFallback={(id) => `Restaurant #${id}`}
-              />
-              <label className="mt-4 block text-sm font-bold text-[#111]">
-                Menu card images
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="mt-2 block w-full rounded-xl border border-[#ececec] bg-white px-3 py-2 text-sm"
-                  onChange={(event) => setFiles(Array.from(event.target.files || []))}
+              <h4 className="font-black text-[#111]">Approve chat draft</h4>
+              <p className="mt-2 text-sm font-medium text-[#6b7280]">
+                Send menu-card image in chat. I will create an editable draft here. Then select restaurant, check rows, and approve selected items.
+              </p>
+              <div className="mt-4">
+                <ResourceSelect
+                  token={token}
+                  resource="restaurants"
+                  label="Target restaurant"
+                  value={restaurantId}
+                  onChange={setRestaurantId}
+                  placeholder="Search restaurant name or phone"
+                  required
+                  formatLabel={relationLabel}
+                  selectedFallback={(id) => `Restaurant #${id}`}
                 />
-              </label>
-              <textarea
-                className="mt-4 min-h-[84px] w-full rounded-xl border border-[#ececec] bg-white px-3.5 py-2.5 text-sm text-[#111] outline-none transition focus:border-[#ee0012]/50 focus:ring-4 focus:ring-[#ee0012]/10"
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="Optional note for admin reference"
-              />
-              <div className="mt-4 flex flex-wrap gap-2">
-                {files.map((file) => (
-                  <span key={`${file.name}-${file.size}`} className="rounded-full border border-[#ececec] bg-white px-3 py-1 text-xs font-bold text-[#6b7280]">
-                    {file.name}
-                  </span>
-                ))}
               </div>
-              <Button onClick={uploadAndExtract} disabled={Boolean(busy)} className="mt-4">
-                {busy === "upload" ? "Uploading..." : busy === "extract" ? "AI extracting..." : "Upload & Extract"}
-              </Button>
+              {currentImport ? (
+                <div className="mt-4 rounded-2xl border border-[#ececec] bg-white p-3 text-sm">
+                  <div className="font-black text-[#111]">Selected import #{currentImport.id}</div>
+                  <div className="mt-1 text-[#6b7280]">{(currentImport.extracted_items || []).length} draft items ready for review</div>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-dashed border-[#dfe6ef] bg-white p-4 text-sm font-semibold text-[#9ca3af]">
+                  Select a draft from the list.
+                </div>
+              )}
             </div>
 
             <div className="rounded-2xl border border-[#ececec] bg-white p-4">
@@ -1442,7 +1398,7 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
                 <h4 className="font-black text-[#111]">Draft imports</h4>
                 <button type="button" className="text-xs font-black text-[#ee0012]" onClick={loadImports}>Refresh</button>
               </div>
-              <div className="mt-3 max-h-52 space-y-2 overflow-y-auto pr-1">
+              <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
                 {imports.map((entry) => (
                   <button
                     key={entry.id}
@@ -1462,16 +1418,8 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
                 ))}
                 {!imports.length && <div className="rounded-xl bg-[#fafafa] p-3 text-sm text-[#9ca3af]">No draft import found yet.</div>}
               </div>
-              {currentImport ? (
-                <div className="mt-4 rounded-2xl border border-[#ececec] bg-[#fafafa] p-3 text-sm">
-                  <div className="font-black text-[#111]">Import #{currentImport.id}</div>
-                  <div className="mt-1 text-[#6b7280]">Status: {currentImport.status}</div>
-                  {currentImport.error_message ? <div className="mt-2 text-[#b91c1c]">{currentImport.error_message}</div> : null}
-                </div>
-              ) : null}
             </div>
           </div>
-
           <div className="mt-5 overflow-x-auto rounded-2xl border border-[#ececec]">
             <table className="min-w-[980px] w-full text-sm">
               <thead>
