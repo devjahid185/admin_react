@@ -1284,6 +1284,238 @@ function SummaryLine({ label, value, strong = false }) {
   );
 }
 
+function AiMenuImportModal({ token, onClose, onCreated }) {
+  const [restaurantId, setRestaurantId] = useState("");
+  const [files, setFiles] = useState([]);
+  const [notes, setNotes] = useState("");
+  const [currentImport, setCurrentImport] = useState(null);
+  const [draftItems, setDraftItems] = useState([]);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+
+  const selectedCount = draftItems.filter((item) => item.selected).length;
+
+  const updateDraft = (index, patch) => {
+    setDraftItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+  };
+
+  const uploadAndExtract = async () => {
+    if (!restaurantId) {
+      setError("Please select a restaurant first.");
+      return;
+    }
+    if (!files.length) {
+      setError("Please select at least one menu card image.");
+      return;
+    }
+
+    setError("");
+    setBusy("upload");
+    try {
+      const formData = new FormData();
+      formData.append("restaurant_id", restaurantId);
+      formData.append("notes", notes);
+      files.forEach((file) => formData.append("images[]", file));
+      const uploaded = await apiUpload("/admin/food-menu-imports", { token, formData });
+      setCurrentImport(uploaded.import);
+
+      setBusy("extract");
+      const extracted = await apiRequest(`/admin/food-menu-imports/${uploaded.import.id}/extract`, { method: "POST", token });
+      setCurrentImport(extracted.import);
+      setDraftItems((extracted.import?.extracted_items || []).map((item) => ({ ...item, selected: Boolean(item.selected) })));
+    } catch (err) {
+      setError(err.message || "AI menu import failed.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const createItems = async () => {
+    if (!currentImport?.id) return;
+    if (!selectedCount) {
+      setError("Select at least one draft item to create.");
+      return;
+    }
+    setError("");
+    setBusy("create");
+    try {
+      await apiRequest(`/admin/food-menu-imports/${currentImport.id}/create-items`, {
+        method: "POST",
+        token,
+        body: { items: draftItems },
+      });
+      await onCreated?.();
+      onClose();
+    } catch (err) {
+      setError(err.message || "Unable to create food items.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  return (
+    <div className="fd2-fade fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 backdrop-blur-sm">
+      <div className="fd2-pop flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-[26px] border border-[#ececec] bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[#ececec] px-5 py-4">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#ee0012]">AI menu import</p>
+            <h3 className="mt-1 text-lg font-black text-[#111]">Create food items from restaurant menu card</h3>
+            <p className="mt-1 text-xs font-medium text-[#9ca3af]">Admin review required. AI draft will not publish anything until you create selected items.</p>
+          </div>
+          <button className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-lg font-bold text-[#9ca3af] transition hover:bg-[#f3f4f6] hover:text-[#111]" onClick={onClose} aria-label="Close">
+            ×
+          </button>
+        </div>
+
+        <div className="overflow-y-auto p-5">
+          {error && <div className="mb-4 rounded-2xl border border-[#ee0012]/20 bg-[#fef2f2] px-4 py-3 text-sm font-semibold text-[#b91c1c]">{error}</div>}
+
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+            <div className="rounded-2xl border border-[#ececec] bg-[#fafafa] p-4">
+              <ResourceSelect
+                token={token}
+                resource="restaurants"
+                label="Restaurant"
+                value={restaurantId}
+                onChange={setRestaurantId}
+                placeholder="Search restaurant name or phone"
+                required
+                formatLabel={relationLabel}
+                selectedFallback={(id) => `Restaurant #${id}`}
+              />
+              <label className="mt-4 block text-sm font-bold text-[#111]">
+                Menu card images
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="mt-2 block w-full rounded-xl border border-[#ececec] bg-white px-3 py-2 text-sm"
+                  onChange={(event) => setFiles(Array.from(event.target.files || []))}
+                />
+              </label>
+              <textarea
+                className="mt-4 min-h-[84px] w-full rounded-xl border border-[#ececec] bg-white px-3.5 py-2.5 text-sm text-[#111] outline-none transition focus:border-[#ee0012]/50 focus:ring-4 focus:ring-[#ee0012]/10"
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="Optional note for admin reference"
+              />
+              <div className="mt-4 flex flex-wrap gap-2">
+                {files.map((file) => (
+                  <span key={`${file.name}-${file.size}`} className="rounded-full border border-[#ececec] bg-white px-3 py-1 text-xs font-bold text-[#6b7280]">
+                    {file.name}
+                  </span>
+                ))}
+              </div>
+              <Button onClick={uploadAndExtract} disabled={Boolean(busy)} className="mt-4">
+                {busy === "upload" ? "Uploading..." : busy === "extract" ? "AI extracting..." : "Upload & Extract"}
+              </Button>
+            </div>
+
+            <div className="rounded-2xl border border-[#ececec] bg-white p-4">
+              <h4 className="font-black text-[#111]">How it works</h4>
+              <div className="mt-3 grid gap-3 text-sm text-[#6b7280]">
+                <div className="rounded-xl bg-[#fafafa] p-3"><b className="text-[#111]">1.</b> Upload restaurant menu card photo.</div>
+                <div className="rounded-xl bg-[#fafafa] p-3"><b className="text-[#111]">2.</b> Existing OpenAI key reads item name, category and price.</div>
+                <div className="rounded-xl bg-[#fafafa] p-3"><b className="text-[#111]">3.</b> Admin edits draft rows and creates selected items only.</div>
+              </div>
+              {currentImport ? (
+                <div className="mt-4 rounded-2xl border border-[#ececec] bg-[#fafafa] p-3 text-sm">
+                  <div className="font-black text-[#111]">Import #{currentImport.id}</div>
+                  <div className="mt-1 text-[#6b7280]">Status: {currentImport.status}</div>
+                  {currentImport.error_message ? <div className="mt-2 text-[#b91c1c]">{currentImport.error_message}</div> : null}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-5 overflow-x-auto rounded-2xl border border-[#ececec]">
+            <table className="min-w-[980px] w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#f0f0f0] bg-[#fafafa] text-[11px] uppercase tracking-wider text-[#6b7280]">
+                  <th className="px-3 py-3 text-left">Use</th>
+                  <th className="px-3 py-3 text-left">Name</th>
+                  <th className="px-3 py-3 text-left">Category</th>
+                  <th className="px-3 py-3 text-left">Price</th>
+                  <th className="px-3 py-3 text-left">Discount</th>
+                  <th className="px-3 py-3 text-left">Confidence</th>
+                  <th className="px-3 py-3 text-left">Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {draftItems.map((item, index) => (
+                  <tr key={`${item.name}-${index}`} className="border-t border-[#f3f4f6] align-top">
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-[#ee0012]"
+                        checked={Boolean(item.selected)}
+                        onChange={(event) => updateDraft(index, { selected: event.target.checked })}
+                      />
+                    </td>
+                    <td className="px-3 py-3">
+                      <input className="w-52 rounded-lg border border-[#ececec] px-2.5 py-2 font-semibold outline-none focus:border-[#ee0012]/40" value={item.name || ""} onChange={(event) => updateDraft(index, { name: event.target.value })} />
+                      {item.duplicate_food_item_id ? <div className="mt-1 text-xs font-bold text-[#ee0012]">Duplicate item #{item.duplicate_food_item_id}</div> : null}
+                    </td>
+                    <td className="px-3 py-3">
+                      <ResourceSelect
+                        token={token}
+                        resource="food-categories"
+                        label=""
+                        value={item.food_category_id || ""}
+                        onChange={(id) => updateDraft(index, { food_category_id: id, category_name: item.category_name || "" })}
+                        placeholder="Search category"
+                        formatLabel={relationLabel}
+                        selectedFallback={(id) => `Category #${id}`}
+                      />
+                      <input
+                        className="mt-2 w-44 rounded-lg border border-[#ececec] px-2.5 py-2 outline-none focus:border-[#ee0012]/40"
+                        value={item.category_name || ""}
+                        onChange={(event) => updateDraft(index, { category_name: event.target.value })}
+                        placeholder="New category name"
+                      />
+                    </td>
+                    <td className="px-3 py-3">
+                      <input className="w-28 rounded-lg border border-[#ececec] px-2.5 py-2 outline-none focus:border-[#ee0012]/40" type="number" value={item.price ?? ""} onChange={(event) => updateDraft(index, { price: event.target.value })} />
+                    </td>
+                    <td className="px-3 py-3">
+                      <input className="w-28 rounded-lg border border-[#ececec] px-2.5 py-2 outline-none focus:border-[#ee0012]/40" type="number" value={item.discount_price ?? ""} onChange={(event) => updateDraft(index, { discount_price: event.target.value })} />
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="rounded-full border border-[#ececec] bg-[#fafafa] px-2.5 py-1 text-xs font-black text-[#111]">
+                        {Math.round(Number(item.confidence || 0) * 100)}%
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <textarea className="min-h-[70px] w-52 rounded-lg border border-[#ececec] px-2.5 py-2 outline-none focus:border-[#ee0012]/40" value={item.description || item.notes || ""} onChange={(event) => updateDraft(index, { description: event.target.value })} />
+                    </td>
+                  </tr>
+                ))}
+                {!draftItems.length && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-[#9ca3af]">
+                      Upload menu card images to generate editable draft items.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#ececec] px-5 py-4">
+          <p className="text-sm font-semibold text-[#6b7280]">{selectedCount} selected from {draftItems.length} draft items</p>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button onClick={createItems} disabled={!selectedCount || Boolean(busy)}>
+              {busy === "create" ? "Creating..." : "Create Selected Items"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function FoodAdminPage({ token, resource }) {
   const config = RESOURCE_CONFIG[resource] || RESOURCE_CONFIG["food-items"];
   const resourceGroup = resource.startsWith("medicine") ? "Medicine Delivery" : "Food Delivery";
@@ -1312,6 +1544,7 @@ export default function FoodAdminPage({ token, resource }) {
   const [assignError, setAssignError] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [aiImportOpen, setAiImportOpen] = useState(false);
   const [orderFilters, setOrderFilters] = useState({ payment_method: "", payment_status: "", status: "", restaurant_id: "", date_from: "", date_to: "" });
 
   const orderQueryString = () => {
@@ -1712,6 +1945,11 @@ export default function FoodAdminPage({ token, resource }) {
               />
             </div>
             <Button onClick={openCreate}>Create New</Button>
+            {resource === "food-items" && (
+              <Button variant="ghost" onClick={() => setAiImportOpen(true)}>
+                AI Menu Import
+              </Button>
+            )}
           </div>
         </div>
       </section>
@@ -1875,6 +2113,14 @@ export default function FoodAdminPage({ token, resource }) {
             </div>
           </div>
         </div>
+      )}
+
+      {aiImportOpen && (
+        <AiMenuImportModal
+          token={token}
+          onClose={() => setAiImportOpen(false)}
+          onCreated={load}
+        />
       )}
 
       {viewOpen && (
