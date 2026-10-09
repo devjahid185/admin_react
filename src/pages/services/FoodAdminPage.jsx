@@ -1318,6 +1318,32 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
     setDraftItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
   };
 
+  const uploadDraftImage = async (index, file) => {
+    if (!currentImport?.id || !file) return;
+    setError("");
+    setBusy(`image-${index}`);
+    try {
+      const formData = new FormData();
+      formData.append("index", String(index));
+      formData.append("image", file);
+      const data = await apiUpload(`/admin/food-menu-imports/${currentImport.id}/upload-item-image`, { token, formData });
+      const image = data.image || {};
+      updateDraft(index, {
+        image_url: image.image_url || "",
+        image_path: image.image_path || "",
+        image_name: image.image_name || file.name,
+      });
+      if (data.import) {
+        setCurrentImport(data.import);
+        setImports((prev) => prev.map((entry) => (entry.id === data.import.id ? data.import : entry)));
+      }
+    } catch (err) {
+      setError(err.message || "Unable to upload draft item image.");
+    } finally {
+      setBusy("");
+    }
+  };
+
   const createItems = async () => {
     if (!currentImport?.id) return;
     if (!restaurantId) {
@@ -1425,6 +1451,7 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
               <thead>
                 <tr className="border-b border-[#f0f0f0] bg-[#fafafa] text-[11px] uppercase tracking-wider text-[#6b7280]">
                   <th className="px-3 py-3 text-left">Use</th>
+                  <th className="px-3 py-3 text-left">Image</th>
                   <th className="px-3 py-3 text-left">Name</th>
                   <th className="px-3 py-3 text-left">Category</th>
                   <th className="px-3 py-3 text-left">Price</th>
@@ -1444,6 +1471,42 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
                         checked={Boolean(item.selected)}
                         onChange={(event) => updateDraft(index, { selected: event.target.checked })}
                       />
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="w-32">
+                        <div className="overflow-hidden rounded-xl border border-[#ececec] bg-[#fafafa]">
+                          {item.image_url ? (
+                            <img src={item.image_url} alt={item.name || "Draft item"} className="h-24 w-full object-cover" />
+                          ) : (
+                            <div className="flex h-24 w-full items-center justify-center bg-[#f8fafc] text-center text-[11px] font-bold text-[#9ca3af]">
+                              No image
+                            </div>
+                          )}
+                        </div>
+                        <label className="mt-2 block cursor-pointer rounded-lg border border-[#ececec] bg-white px-2.5 py-2 text-center text-[11px] font-black text-[#111] transition hover:border-[#ee0012]/35 hover:text-[#ee0012]">
+                          {busy === `image-${index}` ? "Uploading..." : item.image_url ? "Replace" : "Upload"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={busy === `image-${index}`}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              event.target.value = "";
+                              uploadDraftImage(index, file);
+                            }}
+                          />
+                        </label>
+                        {item.image_url ? (
+                          <button
+                            type="button"
+                            className="mt-1 w-full text-[11px] font-bold text-[#9ca3af] hover:text-[#ee0012]"
+                            onClick={() => updateDraft(index, { image_url: "", image_path: "", image_name: "" })}
+                          >
+                            Clear
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-3 py-3">
                       <input className="w-52 rounded-lg border border-[#ececec] px-2.5 py-2 font-semibold outline-none focus:border-[#ee0012]/40" value={item.name || ""} onChange={(event) => updateDraft(index, { name: event.target.value })} />
@@ -1493,7 +1556,7 @@ function AiMenuImportModal({ token, onClose, onCreated }) {
                 ))}
                 {!draftItems.length && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-sm text-[#9ca3af]">
+                    <td colSpan={9} className="px-4 py-8 text-center text-sm text-[#9ca3af]">
                       Upload menu card images to generate editable draft items.
                     </td>
                   </tr>
