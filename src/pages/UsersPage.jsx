@@ -102,13 +102,17 @@ export default function UsersPage({ token, onUnauthorized }) {
   const saveUser = async () => {
     setError("");
     try {
+      if (!form.name.trim() || !form.phone.trim()) {
+        setError("Name and phone number are required.");
+        return;
+      }
       if (mode === "create") {
         const payload = {
-          name: form.name,
+          name: form.name.trim(),
           email: form.email || null,
-          phone: form.phone || null,
+          phone: form.phone.trim(),
           role: form.role,
-          password: form.password,
+          password: form.password || null,
           verified: form.verified,
           is_blocked: form.is_blocked,
         };
@@ -116,9 +120,9 @@ export default function UsersPage({ token, onUnauthorized }) {
         setRecords((prev) => [data.user, ...prev]);
       } else if (editingId) {
         const payload = {
-          name: form.name,
+          name: form.name.trim(),
           email: form.email || null,
-          phone: form.phone || null,
+          phone: form.phone.trim(),
           role: form.role,
           verified: form.verified,
           is_blocked: form.is_blocked,
@@ -328,7 +332,7 @@ export default function UsersPage({ token, onUnauthorized }) {
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="text-xs font-bold uppercase tracking-wide text-[#6b7280]">Name</label>
+                <label className="text-xs font-bold uppercase tracking-wide text-[#6b7280]">Name *</label>
                 <input
                   className="mt-1.5 w-full rounded-xl border border-[#ececec] px-3.5 py-2.5 text-sm text-[#111] outline-none transition focus:border-[#ee0012]/50 focus:ring-4 focus:ring-[#ee0012]/10"
                   value={form.name}
@@ -336,7 +340,7 @@ export default function UsersPage({ token, onUnauthorized }) {
                 />
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wide text-[#6b7280]">Email</label>
+                <label className="text-xs font-bold uppercase tracking-wide text-[#6b7280]">Email optional</label>
                 <input
                   className="mt-1.5 w-full rounded-xl border border-[#ececec] px-3.5 py-2.5 text-sm text-[#111] outline-none transition focus:border-[#ee0012]/50 focus:ring-4 focus:ring-[#ee0012]/10"
                   value={form.email}
@@ -344,7 +348,7 @@ export default function UsersPage({ token, onUnauthorized }) {
                 />
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wide text-[#6b7280]">Phone</label>
+                <label className="text-xs font-bold uppercase tracking-wide text-[#6b7280]">Phone *</label>
                 <input
                   className="mt-1.5 w-full rounded-xl border border-[#ececec] px-3.5 py-2.5 text-sm text-[#111] outline-none transition focus:border-[#ee0012]/50 focus:ring-4 focus:ring-[#ee0012]/10"
                   value={form.phone}
@@ -366,13 +370,14 @@ export default function UsersPage({ token, onUnauthorized }) {
               </div>
               {mode === "create" && (
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wide text-[#6b7280]">Password</label>
+                  <label className="text-xs font-bold uppercase tracking-wide text-[#6b7280]">Password optional</label>
                   <input
                     type="password"
                     className="mt-1.5 w-full rounded-xl border border-[#ececec] px-3.5 py-2.5 text-sm text-[#111] outline-none transition focus:border-[#ee0012]/50 focus:ring-4 focus:ring-[#ee0012]/10"
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                   />
+                  <p className="mt-1 text-xs font-medium text-[#9ca3af]">Blank রাখলে system auto password create করবে। OTP/Google login user-এর জন্য দরকার নেই।</p>
                 </div>
               )}
               <label className="flex items-center gap-2.5 rounded-xl border border-[#ececec] px-3.5 py-2.5 text-sm font-semibold text-[#111] transition hover:border-[#ee0012]/35">
