@@ -7,6 +7,8 @@ const defaultForm = {
   phone: "",
   email: "",
   whatsapp: "",
+  facebook_group_prompt_enabled: false,
+  facebook_group_url: "",
   availability: "",
   note: "",
 };
@@ -95,6 +97,26 @@ export default function SupportSettingsPage({ token, onUnauthorized }) {
             onChange={(e) => updateField("whatsapp", e.target.value)}
             placeholder="017XXXXXXXX"
           />
+          <Input
+            label="Facebook group link"
+            value={form.facebook_group_url || ""}
+            onChange={(e) => updateField("facebook_group_url", e.target.value)}
+            placeholder="https://www.facebook.com/share/g/1Eyr3yxGqM/"
+          />
+          <label className="flex items-start gap-3 rounded-[14px] border border-[#dfe6ef] bg-[#f8fafc] p-4 text-sm font-semibold text-[#24324a]">
+            <input
+              type="checkbox"
+              className="mt-1 h-5 w-5 accent-red-700"
+              checked={Boolean(form.facebook_group_prompt_enabled)}
+              onChange={(e) => updateField("facebook_group_prompt_enabled", e.target.checked)}
+            />
+            <span>
+              Show food page Facebook group popup
+              <span className="mt-1 block text-xs font-medium text-[#64748b]">
+                When enabled, food delivery users will see a join prompt until they mark that they already joined.
+              </span>
+            </span>
+          </label>
           <Input
             label="Support time"
             value={form.availability || ""}
