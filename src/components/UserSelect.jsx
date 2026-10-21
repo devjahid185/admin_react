@@ -13,6 +13,7 @@ export default function UserSelect({
   label = "User",
   value,
   onChange,
+  onSelect,
   placeholder = "Search name, phone, or email",
   required = false,
   error = "",
@@ -85,6 +86,7 @@ export default function UserSelect({
     setResults([]);
     setOpen(false);
     onChange?.(user ? String(user.id) : "");
+    onSelect?.(user || null);
   };
 
   return (

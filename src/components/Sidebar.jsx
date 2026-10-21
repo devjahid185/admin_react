@@ -36,6 +36,7 @@ const ICONS = {
   "medicine-payment-settings": "MP",
   "sms-settings": "SM",
   "email-settings": "EM",
+  "telegram-settings": "TG",
   riders: "RD",
 };
 

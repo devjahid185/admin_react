@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout.jsx";
 import { apiRequest } from "../lib/api.js";
 import { API_BASE } from "../lib/config.js";
+import { connectAdminLive } from "../lib/adminLive.js";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../components/BulkDeleteBar.jsx";
 import Button from "../components/Button.jsx";
 import UsersPage from "./UsersPage.jsx";
@@ -33,6 +34,7 @@ import MessagesPage from "./services/MessagesPage.jsx";
 import PaymentsPage from "./services/PaymentsPage.jsx";
 import SmsSettingsPage from "./services/SmsSettingsPage.jsx";
 import EmailSettingsPage from "./services/EmailSettingsPage.jsx";
+import TelegramSettingsPage from "./services/TelegramSettingsPage.jsx";
 import ProfilePage from "./ProfilePage.jsx";
 import ServicePage from "./services/ServicePage.jsx";
 import FoodAdminPage from "./services/FoodAdminPage.jsx";
@@ -41,6 +43,7 @@ import MedicinePaymentSettingsPage from "./services/MedicinePaymentSettingsPage.
 import RiderAdminPage from "./services/RiderAdminPage.jsx";
 import RiderSettingsPage from "./services/RiderSettingsPage.jsx";
 import SupportSettingsPage from "./services/SupportSettingsPage.jsx";
+import SupportTicketsPage from "./services/SupportTicketsPage.jsx";
 import MapSettingsPage from "./services/MapSettingsPage.jsx";
 import AppVersionSettingsPage from "./services/AppVersionSettingsPage.jsx";
 import DeliveryIncomePage from "./services/DeliveryIncomePage.jsx";
@@ -112,7 +115,9 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Payments", slug: "payments", group_name: "Finance", route: "/admin/payments" },
   { name: "SMS Settings", slug: "sms-settings", group_name: "System", route: "/admin/sms-settings" },
   { name: "Email Settings", slug: "email-settings", group_name: "System", route: "/admin/email-settings" },
+  { name: "Telegram Alerts", slug: "telegram-settings", group_name: "System", route: "/admin/telegram-settings" },
   { name: "Map Settings", slug: "map-settings", group_name: "System", route: "/admin/map-settings" },
+  { name: "Support Tickets", slug: "support-tickets", group_name: "Moderation", route: "/admin/support-tickets" },
   { name: "Support Settings", slug: "support-settings", group_name: "System", route: "/admin/support-settings" },
   { name: "App Versions", slug: "app-version-settings", group_name: "System", route: "/admin/app-version-settings" },
 ];
@@ -134,6 +139,7 @@ function mergeAdminModules(apiModules = []) {
 const compact = (value) => Number(value || 0).toLocaleString();
 const money = (value) => `BDT ${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 const ADMIN_ALERT_STORAGE_KEY = "bv_admin_alert_counters";
+const ADMIN_ALERT_SOUND_KEY = "bv_admin_alert_sound_enabled";
 
 const MONITORED_COUNTERS = [
   { key: "food_orders", label: "New food order", slug: "food-orders", type: "Order" },
@@ -184,6 +190,20 @@ function saveStoredCounters(counters) {
   } catch {}
 }
 
+function readAlertSoundPreference() {
+  try {
+    return localStorage.getItem(ADMIN_ALERT_SOUND_KEY) !== "off";
+  } catch {
+    return true;
+  }
+}
+
+function saveAlertSoundPreference(enabled) {
+  try {
+    localStorage.setItem(ADMIN_ALERT_SOUND_KEY, enabled ? "on" : "off");
+  } catch {}
+}
+
 function countersFromStats(stats = {}) {
   return MONITORED_COUNTERS.reduce((acc, item) => {
     acc[item.key] = Number(stats?.[item.key] || 0);
@@ -223,6 +243,13 @@ async function fetchAdminStatsSilently(token) {
   });
   if (!res.ok) throw new Error("Unable to poll admin stats");
   return res.json();
+}
+
+function isEditingAdminPage() {
+  const active = document.activeElement;
+  if (active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName)) return true;
+  if (document.querySelector('[role="dialog"], .modal, [data-live-refresh-paused="true"]')) return true;
+  return false;
 }
 
 const CARD = "rounded-2xl border border-[#ececec] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]";
@@ -596,7 +623,7 @@ function DataTable({ label, headers, records, selectedIds, setSelectedIds, selec
   );
 }
 
-function DashboardOverview({ stats, recent, onOpen }) {
+function DashboardOverview({ stats, recent, onOpen, liveStatus }) {
   const charts = stats?.charts || {};
   const daily = charts.daily_visits || [];
   const monthly = charts.monthly_visits || [];
@@ -613,7 +640,7 @@ function DashboardOverview({ stats, recent, onOpen }) {
     { label: "Pending Food", value: stats?.food_orders_pending, note: `${compact(stats?.food_unassigned_orders)} unassigned`, slug: "food-orders", icon: "FO", spark: spark("orders"), danger: Number(stats?.food_orders_pending || 0) > 0 },
     { label: "Pending Medicine", value: stats?.medicine_orders_pending, note: `${compact(stats?.medicine_unassigned_orders)} unassigned`, slug: "medicine-orders", icon: "MO", spark: spark("medicine_orders"), danger: Number(stats?.medicine_orders_pending || 0) > 0 },
     { label: "SMS Failed", value: stats?.sms_failed, note: `${compact(stats?.sms_today)} SMS today`, slug: "sms-settings", icon: "SM", danger: Number(stats?.sms_failed || 0) > 0 },
-    { label: "Open Support", value: Number(stats?.food_support_open || 0) + Number(stats?.rider_support_open || 0), note: "Food + rider tickets", slug: "support-settings", icon: "SP", danger: Number(stats?.food_support_open || 0) + Number(stats?.rider_support_open || 0) > 0 },
+    { label: "Open Support", value: Number(stats?.food_support_open || 0) + Number(stats?.rider_support_open || 0), note: "Food + rider tickets", slug: "support-tickets", icon: "SP", danger: Number(stats?.food_support_open || 0) + Number(stats?.rider_support_open || 0) > 0 },
   ];
 
   const groups = [
@@ -691,8 +718,8 @@ function DashboardOverview({ stats, recent, onOpen }) {
           <p className="text-sm text-[#6b7280]">Real-time performance across delivery, services and system health.</p>
         </div>
         <span className="inline-flex items-center gap-2 rounded-full border border-[#ececec] bg-white px-3 py-1.5 text-xs font-semibold text-[#374151]">
-          <span className="dash-ring h-2 w-2 rounded-full bg-[#ee0012]" />
-          Live · refreshes every 5s
+          <span className={`h-2 w-2 rounded-full ${liveStatus === "connected" ? "dash-ring bg-[#16a34a]" : "bg-[#ee0012]"}`} />
+          Live · {liveStatus === "connected" ? "realtime SSE" : liveStatus}
         </span>
       </div>
 
@@ -817,6 +844,8 @@ export default function DashboardPage({ token, onLogout }) {
   const [modules, setModules] = useState([]);
   const [error, setError] = useState("");
   const [activeModule, setActiveModuleState] = useState(moduleSlugFromPath);
+  const activeModuleRef = useRef(activeModule);
+  activeModuleRef.current = activeModule;
   const [coreRecords, setCoreRecords] = useState([]);
   const [coreMeta, setCoreMeta] = useState(null);
   const [coreLoading, setCoreLoading] = useState(false);
@@ -825,7 +854,10 @@ export default function DashboardPage({ token, onLogout }) {
   const [coreSelectedIds, setCoreSelectedIds] = useState([]);
   const [coreBulkDeleting, setCoreBulkDeleting] = useState(false);
   const [liveAlert, setLiveAlert] = useState(null);
+  const [liveVersion, setLiveVersion] = useState(0);
+  const [liveStatus, setLiveStatus] = useState("connecting");
   const [soundReady, setSoundReady] = useState(false);
+  const [soundEnabled] = useState(readAlertSoundPreference);
   const [notificationReady, setNotificationReady] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
   const alertCountersRef = useRef(readStoredCounters());
   const audioRef = useRef(null);
@@ -847,14 +879,21 @@ export default function DashboardPage({ token, onLogout }) {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  const unlockAudio = async () => {
+  const unlockAudio = async (force = false) => {
+    if (!force && !soundEnabled) return false;
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) return;
+      if (!AudioContextClass) return false;
       if (!audioRef.current) audioRef.current = new AudioContextClass();
       if (audioRef.current.state === "suspended") await audioRef.current.resume();
-      setSoundReady(audioRef.current.state === "running");
-    } catch {}
+      const ready = audioRef.current.state === "running";
+      setSoundReady(ready);
+      if (ready) saveAlertSoundPreference(true);
+      return ready;
+    } catch {
+      setSoundReady(false);
+      return false;
+    }
   };
 
   const requestNotifications = async () => {
@@ -869,20 +908,21 @@ export default function DashboardPage({ token, onLogout }) {
     }
   };
 
-  const armAlerts = () => {
-    unlockAudio();
-    requestNotifications();
-  };
-
   useEffect(() => {
-    const handler = () => armAlerts();
-    window.addEventListener("pointerdown", handler, { once: true });
-    window.addEventListener("keydown", handler, { once: true });
+    if (!soundEnabled || soundReady) return undefined;
+    const handler = () => {
+      unlockAudio(true);
+      requestNotifications();
+    };
+    window.addEventListener("pointerdown", handler);
+    window.addEventListener("keydown", handler);
+    window.addEventListener("touchstart", handler);
     return () => {
       window.removeEventListener("pointerdown", handler);
       window.removeEventListener("keydown", handler);
+      window.removeEventListener("touchstart", handler);
     };
-  }, []);
+  }, [soundEnabled, soundReady]);
 
   useEffect(() => () => {
     if (titleTimerRef.current) clearInterval(titleTimerRef.current);
@@ -904,8 +944,16 @@ export default function DashboardPage({ token, onLogout }) {
       createdAt: new Date().toISOString(),
     });
 
-    if (audioRef.current?.state === "running") {
-      createAlertTone(audioRef.current);
+    if (soundEnabled) {
+      if (audioRef.current?.state === "running") {
+        createAlertTone(audioRef.current);
+      } else {
+        unlockAudio(true).then((ready) => {
+          if (ready && audioRef.current?.state === "running") {
+            createAlertTone(audioRef.current);
+          }
+        });
+      }
     }
 
     if (typeof Notification !== "undefined" && Notification.permission === "granted") {
@@ -992,18 +1040,72 @@ export default function DashboardPage({ token, onLogout }) {
   }, [activeModule, token]);
 
   useEffect(() => {
-    let stopped = false;
-    const poll = async () => {
-      try {
-        const data = await fetchAdminStatsSilently(token);
-        if (!stopped) applyStatsPayload(data, true);
-      } catch (_) {}
+    let latestVersion = null;
+    let pendingPayload = null;
+
+    const affectsActivePage = (payload) => {
+      const changedModules = Array.isArray(payload?.modules) ? payload.modules : [];
+      return changedModules.length === 0
+        || changedModules.includes("*")
+        || changedModules.includes(activeModuleRef.current);
     };
-    poll();
-    const timer = setInterval(poll, 5000);
+
+    const refreshActivePage = (payload) => {
+      if (!affectsActivePage(payload)) return;
+      if (isEditingAdminPage()) {
+        pendingPayload = payload;
+        return;
+      }
+
+      pendingPayload = null;
+      setLiveVersion((value) => value + 1);
+      window.dispatchEvent(new CustomEvent("bholavashi:admin-live-update", { detail: payload }));
+    };
+
+    const refreshFromLive = async (payload) => {
+      if (payload?.version && payload.version === latestVersion) return;
+      latestVersion = payload?.version || `${Date.now()}`;
+
+      const changedModules = Array.isArray(payload?.modules) ? payload.modules : [];
+      const monitoredSlugs = new Set(MONITORED_COUNTERS.map((item) => item.slug));
+      const shouldRefreshStats = activeModuleRef.current === "dashboard"
+        || changedModules.length === 0
+        || changedModules.some((module) => monitoredSlugs.has(module));
+      const locationOnlyUpdate = `${payload?.reason || ""}`.includes("riders/location");
+      if (shouldRefreshStats && !locationOnlyUpdate) {
+        try {
+          const data = await fetchAdminStatsSilently(token);
+          applyStatsPayload(data, true);
+        } catch (_) {}
+      }
+
+      refreshActivePage(payload);
+    };
+
+    const stop = connectAdminLive({
+      token,
+      onStatus: setLiveStatus,
+      onUpdate: refreshFromLive,
+    });
+
+    const flushPending = () => {
+      if (!pendingPayload || isEditingAdminPage()) return;
+      const payload = pendingPayload;
+      pendingPayload = null;
+      refreshActivePage({ ...payload, reason: payload?.reason || "pending-flush" });
+    };
+
+    window.addEventListener("focus", flushPending);
+    window.addEventListener("focusout", flushPending);
+    document.addEventListener("visibilitychange", flushPending);
+    const pendingTimer = window.setInterval(flushPending, 1000);
+
     return () => {
-      stopped = true;
-      clearInterval(timer);
+      stop();
+      window.clearInterval(pendingTimer);
+      window.removeEventListener("focus", flushPending);
+      window.removeEventListener("focusout", flushPending);
+      document.removeEventListener("visibilitychange", flushPending);
     };
   }, [token]);
 
@@ -1053,7 +1155,7 @@ export default function DashboardPage({ token, onLogout }) {
       }
     };
     fetchModuleData();
-  }, [activeModule, token, admin]);
+  }, [activeModule, token, admin, liveVersion]);
 
   const moduleTitle = useMemo(() => {
     if (activeModule === "users") return "Users";
@@ -1127,10 +1229,12 @@ export default function DashboardPage({ token, onLogout }) {
     payments: PaymentsPage,
     "sms-settings": SmsSettingsPage,
     "email-settings": EmailSettingsPage,
+    "telegram-settings": TelegramSettingsPage,
     "food-delivery-settings": FoodDeliverySettingsPage,
     "medicine-payment-settings": MedicinePaymentSettingsPage,
     "map-settings": MapSettingsPage,
     "support-settings": SupportSettingsPage,
+    "support-tickets": SupportTicketsPage,
     "app-version-settings": AppVersionSettingsPage,
     "ai-social": AiSocialAutomationPage,
     "delivery-income": DeliveryIncomePage,
@@ -1162,15 +1266,6 @@ export default function DashboardPage({ token, onLogout }) {
       <style>{DASH_CSS}</style>
       {error && (
         <div className="dash-fade mb-4 rounded-xl border border-[#ee0012]/20 bg-[#fef2f2] px-4 py-3 text-sm font-semibold text-[#b91c1c]">{error}</div>
-      )}
-      {!soundReady && (
-        <div className={`dash-rise mb-4 flex flex-col gap-3 border-l-4 border-l-[#ee0012] p-4 text-sm md:flex-row md:items-center md:justify-between ${CARD}`}>
-          <div>
-            <p className="font-bold text-[#111]">Live alert sound is waiting for browser permission.</p>
-            <p className="mt-1 text-[#6b7280]">Click enable once so new order, delivery and service alerts can play the 5 second tone.</p>
-          </div>
-          <Button type="button" variant="ghost" onClick={armAlerts}>Enable live alerts</Button>
-        </div>
       )}
       {liveAlert && (
         <div className="dash-fade fixed inset-0 z-[100] grid place-items-center bg-black/40 px-4 py-6 backdrop-blur-sm">
@@ -1229,7 +1324,7 @@ export default function DashboardPage({ token, onLogout }) {
                 </Button>
               </div>
               <p className="mt-3 text-xs text-[#9ca3af]">
-                Browser notification: {notificationReady ? "enabled" : "not enabled"} · Sound: {soundReady ? "enabled" : "needs one click"}
+                Browser notification: {notificationReady ? "enabled" : "not enabled"} · Sound: {soundReady ? "ready" : "auto arming"} · Live: {liveStatus}
               </p>
             </div>
           </div>
@@ -1247,7 +1342,7 @@ export default function DashboardPage({ token, onLogout }) {
         </div>
       )}
       {activeModule === "dashboard" && (
-        <DashboardOverview stats={dashboardStats} recent={dashboardRecent} onOpen={setActiveModule} />
+        <DashboardOverview stats={dashboardStats} recent={dashboardRecent} onOpen={setActiveModule} liveStatus={liveStatus} />
       )}
 
       {activeModule === "admins" && (
@@ -1343,9 +1438,9 @@ export default function DashboardPage({ token, onLogout }) {
       {!ServiceComponent &&
         !["dashboard", "admins", "reports", "reviews"].includes(activeModule) && (
           activeModule?.startsWith("food-") || activeModule?.startsWith("medicine-") ? (
-            <FoodAdminPage token={token} resource={activeModule} />
+            <FoodAdminPage key={`${activeModule}-${liveVersion}`} token={token} resource={activeModule} />
           ) : genericResourceModules.includes(activeModule) ? (
-            <ServicePage token={token} resource={activeModule} />
+            <ServicePage key={`${activeModule}-${liveVersion}`} token={token} resource={activeModule} />
           ) : (
             <div className={`dash-rise ${CARD} p-6 text-sm text-[#6b7280]`}>
               This module will be converted to a full form-based admin screen next.
@@ -1353,7 +1448,7 @@ export default function DashboardPage({ token, onLogout }) {
           )
         )}
 
-      {ServiceComponent && <ServiceComponent token={token} onUnauthorized={onLogout} />}
+      {ServiceComponent && <ServiceComponent key={`${activeModule}-${liveVersion}`} token={token} onUnauthorized={onLogout} />}
     </DashboardLayout>
   );
 }

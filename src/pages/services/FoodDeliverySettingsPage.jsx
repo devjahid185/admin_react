@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Input from "../../components/Input.jsx";
-import { apiRequest } from "../../lib/api.js";
+import { apiRequest, apiUpload } from "../../lib/api.js";
 
 const defaultForm = {
   is_enabled: true,
@@ -10,6 +10,9 @@ const defaultForm = {
   municipality_fixed_charge: 50,
   rider_fixed_earning: 50,
   municipality_extra_per_km_charge: 15,
+  municipality_long_distance_enabled: false,
+  municipality_long_distance_threshold_km: 8,
+  municipality_long_distance_per_km_charge: 15,
   rider_per_km_earning: 15,
   municipality_center_lat: 22.686,
   municipality_center_lng: 90.644,
@@ -49,6 +52,16 @@ const defaultForm = {
   max_delivery_distance_km: "",
   store_lat: "",
   store_lng: "",
+  checkout_image_notice_enabled: true,
+  checkout_image_notice_text:
+    "খাবারের ছবিগুলো অনেক ক্ষেত্রে AI/ইলাস্ট্রেশন হিসেবে ব্যবহার করা হয়েছে। রেস্টুরেন্টের প্রস্তুত খাবার ছবির সাথে সামান্য ভিন্ন হতে পারে। অর্ডার নিশ্চিত করলে আপনি বিষয়টি বুঝে সম্মত হচ্ছেন।",
+  messenger_enabled: false,
+  messenger_url: "",
+  user_manual_video_enabled: false,
+  user_manual_video_url: "",
+  user_manual_video_title: "কীভাবে খাবার অর্ডার করবেন",
+  user_manual_video_description:
+    "ভোলাবাসী অ্যাপে খুব সহজে খাবার অর্ডার করার পুরো নিয়ম এই ভিডিওতে দেখুন।",
   note: "",
 };
 
@@ -57,6 +70,8 @@ const numericFields = [
   "municipality_fixed_charge",
   "rider_fixed_earning",
   "municipality_extra_per_km_charge",
+  "municipality_long_distance_threshold_km",
+  "municipality_long_distance_per_km_charge",
   "rider_per_km_earning",
   "municipality_center_lat",
   "municipality_center_lng",
@@ -155,6 +170,8 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [polygonText, setPolygonText] = useState("");
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoUploading, setVideoUploading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -179,6 +196,47 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const uploadManualVideo = async () => {
+    if (!videoFile || videoUploading) return;
+    if (videoFile.size > 100 * 1024 * 1024) {
+      setError("Video file 100 MB-এর মধ্যে হতে হবে।");
+      return;
+    }
+    setVideoUploading(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("video", videoFile);
+      formData.append("title", form.user_manual_video_title || "");
+      formData.append("description", form.user_manual_video_description || "");
+      const data = await apiUpload("/admin/food-delivery-settings/user-manual-video", { token, formData });
+      setForm((prev) => ({ ...prev, ...(data.settings || {}) }));
+      setVideoFile(null);
+    } catch (err) {
+      setError(err.message || "Video upload করা যায়নি।");
+    } finally {
+      setVideoUploading(false);
+    }
+  };
+
+  const removeManualVideo = async () => {
+    if (!form.user_manual_video_url || !window.confirm("Uploaded user manual video remove করবেন?")) return;
+    setVideoUploading(true);
+    setError("");
+    try {
+      const data = await apiRequest("/admin/food-delivery-settings/user-manual-video", {
+        method: "DELETE",
+        token,
+      });
+      setForm((prev) => ({ ...prev, ...(data.settings || {}) }));
+      setVideoFile(null);
+    } catch (err) {
+      setError(err.message || "Video remove করা যায়নি।");
+    } finally {
+      setVideoUploading(false);
+    }
   };
 
   const save = async (event) => {
@@ -236,7 +294,11 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
     : "Distance based fee";
 
   const ruleText = form.municipality_rule_enabled
-    ? `Inside pourashava BDT ${form.municipality_fixed_charge || 0}; rider gets BDT ${form.rider_fixed_earning || 0}. Outside extra BDT ${form.municipality_extra_per_km_charge || 0}/KM; rider gets BDT ${form.rider_per_km_earning || 0}/KM.`
+    ? `Inside pourashava BDT ${form.municipality_fixed_charge || 0}; outside extra BDT ${form.municipality_extra_per_km_charge || 0}/KM. ${
+        form.municipality_long_distance_enabled
+          ? `If outside distance is above ${form.municipality_long_distance_threshold_km || 0} KM, total route distance uses BDT ${form.municipality_long_distance_per_km_charge || 0}/KM.`
+          : "Long distance slab is off."
+      } Rider gets fixed BDT ${form.rider_fixed_earning || 0} and BDT ${form.rider_per_km_earning || 0}/KM where applicable.`
     : form.charge_mode === "fixed"
     ? `Every delivery order gets BDT ${form.fixed_charge || 0}; rider gets BDT ${form.rider_fixed_earning || 0}.`
     : `Fee = base ${form.base_charge || 0} + distance x ${form.per_km_charge || 0}; rider gets fixed BDT ${form.rider_fixed_earning || 0} + BDT ${form.rider_per_km_earning || 0}/KM.`;
@@ -348,6 +410,30 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
                   <FieldGroup label="Rider gets per KM">
                     <input className={inputCls} type="number" value={form.rider_per_km_earning ?? ""} onChange={(e) => updateField("rider_per_km_earning", e.target.value)} />
                   </FieldGroup>
+                  <div className="rounded-2xl border border-[#ececec] bg-[#fafafa] p-4 sm:col-span-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="text-xs font-black uppercase tracking-wide text-[#111]">Outside long distance slab</div>
+                        <p className="mt-1 text-xs font-semibold leading-5 text-[#6b7280]">
+                          Outside distance threshold cross korle fixed + outside extra bad diye total route distance x long distance rate hobe.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold text-[#111]">{form.municipality_long_distance_enabled ? "On" : "Off"}</span>
+                        <Toggle checked={form.municipality_long_distance_enabled} onChange={(v) => updateField("municipality_long_distance_enabled", v)} />
+                      </div>
+                    </div>
+                    {form.municipality_long_distance_enabled && (
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <FieldGroup label="Long distance starts after (KM)">
+                          <input className={inputCls} type="number" value={form.municipality_long_distance_threshold_km ?? ""} onChange={(e) => updateField("municipality_long_distance_threshold_km", e.target.value)} />
+                        </FieldGroup>
+                        <FieldGroup label="Long distance rate per KM">
+                          <input className={inputCls} type="number" value={form.municipality_long_distance_per_km_charge ?? ""} onChange={(e) => updateField("municipality_long_distance_per_km_charge", e.target.value)} />
+                        </FieldGroup>
+                      </div>
+                    )}
+                  </div>
                   <FieldGroup label="Boundary radius (KM)" hint="Optional">
                     <input className={inputCls} type="number" value={form.municipality_radius_km ?? ""} onChange={(e) => updateField("municipality_radius_km", e.target.value)} placeholder="Optional" />
                   </FieldGroup>
@@ -380,6 +466,139 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
                 </div>
               </div>
             )}
+          </section>
+
+          <section className="fd-rise rounded-[26px] border border-[#ececec] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6" style={{ "--d": "140ms" }}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm font-black uppercase tracking-wide text-[#111]">Checkout image notice</h2>
+                <p className="mt-1 text-xs font-semibold text-[#6b7280]">
+                  Customer order confirm করার আগে AI/illustration image notice দেখাবে।
+                </p>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl border border-[#ececec] bg-[#fafafa] px-4 py-3">
+                <span className="text-sm font-bold text-[#111]">{form.checkout_image_notice_enabled ? "On" : "Off"}</span>
+                <Toggle checked={form.checkout_image_notice_enabled} onChange={(v) => updateField("checkout_image_notice_enabled", v)} />
+              </div>
+            </div>
+            <div className="mt-4">
+              <FieldGroup label="Notice text">
+                <textarea
+                  className={`${inputCls} min-h-24`}
+                  value={form.checkout_image_notice_text || ""}
+                  onChange={(e) => updateField("checkout_image_notice_text", e.target.value)}
+                  placeholder="Checkout image notice text"
+                />
+              </FieldGroup>
+            </div>
+          </section>
+
+          <section className="fd-rise rounded-[26px] border border-[#ececec] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6" style={{ "--d": "150ms" }}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm font-black uppercase tracking-wide text-[#111]">Food ordering video guide</h2>
+                <p className="mt-1 text-xs font-semibold text-[#6b7280]">
+                  App-এর Food Home page-এ “অর্ডার গাইড” FAB থেকে এই ভিডিওটি খুলবে।
+                </p>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl border border-[#ececec] bg-[#fafafa] px-4 py-3">
+                <span className="text-sm font-bold text-[#111]">{form.user_manual_video_enabled ? "On" : "Off"}</span>
+                <Toggle checked={form.user_manual_video_enabled} onChange={(v) => updateField("user_manual_video_enabled", v)} />
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.9fr)]">
+              <div className="space-y-4">
+                <FieldGroup label="বাংলা শিরোনাম" hint="Customer ভিডিও window-এর ওপরে এটি দেখবে।">
+                  <input
+                    className={inputCls}
+                    value={form.user_manual_video_title || ""}
+                    onChange={(e) => updateField("user_manual_video_title", e.target.value)}
+                    maxLength={200}
+                    placeholder="কীভাবে খাবার অর্ডার করবেন"
+                  />
+                </FieldGroup>
+                <FieldGroup label="বাংলা বিবরণ" hint="ভিডিওতে কী শেখানো হয়েছে, সংক্ষেপে লিখুন।">
+                  <textarea
+                    className={`${inputCls} min-h-24`}
+                    value={form.user_manual_video_description || ""}
+                    onChange={(e) => updateField("user_manual_video_description", e.target.value)}
+                    maxLength={1000}
+                    placeholder="খুব সহজে খাবার অর্ডার করার নিয়ম এই ভিডিওতে দেখুন।"
+                  />
+                </FieldGroup>
+                <FieldGroup label="Video file" hint="MP4 (H.264), সর্বোচ্চ 100 MB। ছোট optimized video ব্যবহার করলে customer-এর data কম খরচ হবে।">
+                  <input
+                    className={inputCls}
+                    type="file"
+                    accept="video/mp4,.mp4"
+                    onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                  />
+                </FieldGroup>
+                {videoFile && (
+                  <div className="flex flex-wrap items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">
+                    <span className="min-w-0 flex-1 truncate">Selected: {videoFile.name}</span>
+                    <span>{(videoFile.size / 1024 / 1024).toFixed(1)} MB</span>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" disabled={!videoFile || videoUploading} onClick={uploadManualVideo}>
+                    {videoUploading ? "Uploading..." : form.user_manual_video_url ? "Replace video" : "Upload video"}
+                  </Button>
+                  {form.user_manual_video_url && (
+                    <Button type="button" variant="ghost" disabled={videoUploading} onClick={removeManualVideo}>Remove video</Button>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[#6b7280]">Current video preview</p>
+                {form.user_manual_video_url ? (
+                  <video
+                    key={form.user_manual_video_url}
+                    src={form.user_manual_video_url}
+                    controls
+                    preload="metadata"
+                    className="aspect-video w-full rounded-2xl border border-[#ececec] bg-black object-contain"
+                  />
+                ) : (
+                  <div className="grid aspect-video w-full place-items-center rounded-2xl border border-dashed border-[#d1d5db] bg-[#fafafa] px-6 text-center text-xs font-semibold text-[#9ca3af]">
+                    এখনো কোনো user manual video upload করা হয়নি।
+                  </div>
+                )}
+                <div className="mt-3 rounded-xl border border-[#ececec] bg-[#fafafa] p-3">
+                  <p className="font-black text-[#111]">{form.user_manual_video_title || "ভিডিও শিরোনাম"}</p>
+                  <p className="mt-1 text-xs leading-5 text-[#6b7280]">{form.user_manual_video_description || "ভিডিওর সংক্ষিপ্ত বিবরণ"}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="fd-rise rounded-[26px] border border-[#ececec] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6" style={{ "--d": "150ms" }}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm font-black uppercase tracking-wide text-[#111]">Messenger contact</h2>
+                <p className="mt-1 text-xs font-semibold text-[#6b7280]">
+                  Food home page-e customer-er jonno Messenger chat icon দেখাবে।
+                </p>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl border border-[#ececec] bg-[#fafafa] px-4 py-3">
+                <span className="text-sm font-bold text-[#111]">{form.messenger_enabled ? "On" : "Off"}</span>
+                <Toggle checked={form.messenger_enabled} onChange={(v) => updateField("messenger_enabled", v)} />
+              </div>
+            </div>
+            <div className="mt-4">
+              <FieldGroup label="Messenger page or chat link" hint="Use an HTTPS link such as https://m.me/your-page-username">
+                <input
+                  className={inputCls}
+                  type="url"
+                  value={form.messenger_url || ""}
+                  onChange={(e) => updateField("messenger_url", e.target.value)}
+                  placeholder="https://m.me/your-page-username"
+                  required={Boolean(form.messenger_enabled)}
+                />
+              </FieldGroup>
+            </div>
           </section>
 
           <div className="fd-rise flex justify-end" style={{ "--d": "160ms" }}>

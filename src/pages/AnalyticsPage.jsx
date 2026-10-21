@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiRequest } from "../lib/api.js";
 
 const CARD = "rounded-2xl border border-[#ececec] bg-white shadow-[0_18px_45px_rgba(17,17,17,0.06)]";
@@ -17,6 +17,13 @@ function formatTime(value) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatDateInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function StatCard({ label, value, hint, accent = false }) {
@@ -59,7 +66,7 @@ function RankedList({ title, items = [], labelKey }) {
   );
 }
 
-function HourlyChart({ data = [] }) {
+function TrendChart({ data = [], mode = "hours" }) {
   const max = Math.max(...data.map((item) => Number(item.events || 0)), 1);
 
   return (
@@ -67,7 +74,7 @@ function HourlyChart({ data = [] }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-black text-[#111]">Realtime trend</h3>
-          <p className="mt-1 text-sm font-semibold text-[#777]">Events grouped by hour</p>
+          <p className="mt-1 text-sm font-semibold text-[#777]">Events grouped by {mode === "date" ? "date" : "hour"}</p>
         </div>
         <span className="rounded-full border border-[#ee0012]/20 bg-white px-3 py-1 text-xs font-black text-[#ee0012]">Auto refresh</span>
       </div>
@@ -84,7 +91,7 @@ function HourlyChart({ data = [] }) {
                 style={{ height }}
                 title={`${item.bucket}: ${item.events} events`}
               />
-              <span className="text-[10px] font-bold text-[#999]">{String(item.bucket || "").slice(11, 13)}</span>
+              <span className="text-[10px] font-bold text-[#999]">{mode === "date" ? String(item.bucket || "").slice(5) : String(item.bucket || "").slice(11, 13)}</span>
             </div>
           );
         })}
@@ -137,16 +144,24 @@ function RecentLog({ items = [] }) {
 
 export default function AnalyticsPage({ token }) {
   const [hours, setHours] = useState(24);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  const load = async (silent = false) => {
+  const hasDateFilter = Boolean(dateFrom || dateTo);
+
+  const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError("");
     try {
-      const response = await apiRequest(`/admin/analytics/overview?hours=${hours}`, { token });
+      const params = new URLSearchParams();
+      params.set("hours", String(hours));
+      if (dateFrom) params.set("date_from", dateFrom);
+      if (dateTo) params.set("date_to", dateTo);
+      const response = await apiRequest(`/admin/analytics/overview?${params.toString()}`, { token });
       setData(response);
       setLastUpdated(new Date());
     } catch (err) {
@@ -154,16 +169,33 @@ export default function AnalyticsPage({ token }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateFrom, dateTo, hours, token]);
 
   useEffect(() => {
     load();
     const timer = window.setInterval(() => load(true), 15000);
     return () => window.clearInterval(timer);
-  }, [hours]);
+  }, [load]);
+
+  const setQuickRange = (days) => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - (days - 1));
+    setDateFrom(formatDateInput(start));
+    setDateTo(formatDateInput(end));
+  };
+
+  const clearDateFilter = () => {
+    setDateFrom("");
+    setDateTo("");
+  };
 
   const summary = data?.summary || {};
   const trend = useMemo(() => data?.hourly || [], [data]);
+  const rangeMode = summary.range_mode || (hasDateFilter ? "date" : "hours");
+  const eventHint = hasDateFilter
+    ? `${dateFrom || "Start"} to ${dateTo || "Today"}`
+    : `Last ${hours === 168 ? "7 days" : `${hours} hours`}`;
 
   return (
     <div className="space-y-5">
@@ -182,9 +214,12 @@ export default function AnalyticsPage({ token }) {
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setHours(value)}
+                  onClick={() => {
+                    clearDateFilter();
+                    setHours(value);
+                  }}
                   className={`rounded-xl px-4 py-2 text-sm font-black transition ${
-                    hours === value ? "bg-white text-[#ee0012]" : "bg-white/12 text-white hover:bg-white/20"
+                    !hasDateFilter && hours === value ? "bg-white text-[#ee0012]" : "bg-white/12 text-white hover:bg-white/20"
                   }`}
                 >
                   {value === 168 ? "7 days" : `${value}h`}
@@ -193,11 +228,34 @@ export default function AnalyticsPage({ token }) {
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm font-semibold text-[#777]">
-          <span>{lastUpdated ? `Last updated ${lastUpdated.toLocaleTimeString()}` : "Waiting for first refresh"}</span>
-          <button type="button" onClick={() => load()} className="rounded-xl border border-[#ececec] bg-white px-4 py-2 font-black text-[#111] transition hover:border-[#ee0012]/40 hover:text-[#ee0012]">
-            Refresh now
-          </button>
+        <div className="flex flex-wrap items-end justify-between gap-3 p-4 text-sm font-semibold text-[#777]">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-black uppercase tracking-[0.12em] text-[#999]">From</span>
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 rounded-xl border border-[#ececec] bg-white px-3 font-bold text-[#222] outline-none transition focus:border-[#ee0012]/40" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-black uppercase tracking-[0.12em] text-[#999]">To</span>
+              <input type="date" value={dateTo} min={dateFrom || undefined} onChange={(e) => setDateTo(e.target.value)} className="h-10 rounded-xl border border-[#ececec] bg-white px-3 font-bold text-[#222] outline-none transition focus:border-[#ee0012]/40" />
+            </label>
+            <button type="button" onClick={() => setQuickRange(7)} className="h-10 rounded-xl border border-[#ececec] bg-white px-4 font-black text-[#111] transition hover:border-[#ee0012]/40 hover:text-[#ee0012]">
+              Last 7 days
+            </button>
+            <button type="button" onClick={() => setQuickRange(30)} className="h-10 rounded-xl border border-[#ececec] bg-white px-4 font-black text-[#111] transition hover:border-[#ee0012]/40 hover:text-[#ee0012]">
+              Last 30 days
+            </button>
+            {hasDateFilter && (
+              <button type="button" onClick={clearDateFilter} className="h-10 rounded-xl bg-[#fef2f2] px-4 font-black text-[#ee0012] transition hover:bg-[#fee2e2]">
+                Clear dates
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span>{lastUpdated ? `Last updated ${lastUpdated.toLocaleTimeString()}` : "Waiting for first refresh"}</span>
+            <button type="button" onClick={() => load()} className="rounded-xl border border-[#ececec] bg-white px-4 py-2 font-black text-[#111] transition hover:border-[#ee0012]/40 hover:text-[#ee0012]">
+              Refresh now
+            </button>
+          </div>
         </div>
       </div>
 
@@ -208,14 +266,14 @@ export default function AnalyticsPage({ token }) {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <StatCard label="Events" value={summary.events_window} hint={`Last ${hours === 168 ? "7 days" : `${hours} hours`}`} accent />
+            <StatCard label="Events" value={summary.events_window} hint={eventHint} accent />
             <StatCard label="Active sessions" value={summary.active_sessions_window} hint="Unique sessions" />
             <StatCard label="Active users" value={summary.active_users_window} hint="Logged in users" />
             <StatCard label="Today" value={summary.events_today} hint="All events today" />
             <StatCard label="7 days" value={summary.events_week} hint="Weekly total" />
           </div>
 
-          <HourlyChart data={trend} />
+          <TrendChart data={trend} mode={rangeMode} />
 
           <div className="grid gap-5 xl:grid-cols-2">
             <RankedList title="Top events" items={data?.top_events || []} labelKey="event_name" />

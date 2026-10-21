@@ -8,28 +8,46 @@ const statusBn = {
   pending: "অপেক্ষমাণ",
   approved: "অনুমোদিত",
   rejected: "বাতিল",
+  accepted: "গ্রহণ করেছে",
+  expired: "মেয়াদ শেষ",
+  cancelled: "বাতিল",
   active: "সক্রিয়",
   suspended: "সাময়িক বন্ধ",
   blocked: "ব্লক",
   offline: "অফলাইন",
   online: "অনলাইন",
   busy: "ব্যস্ত",
+  delivered: "ডেলিভারড",
+  picked_up: "পিকড আপ",
+  on_the_way: "পথে আছে",
+  preparing: "প্রস্তুত হচ্ছে",
+  open: "ওপেন",
+  reviewing: "রিভিউ",
+  resolved: "সমাধান",
+  closed: "বন্ধ",
 };
 
 const vehicleBn = { cycle: "সাইকেল", bike: "মোটরসাইকেল", car: "গাড়ি" };
 const money = (value) => `৳${Number(value || 0).toLocaleString("bn-BD")}`;
+const numberBn = (value) => Number(value || 0).toLocaleString("bn-BD");
+const dateTime = (value) => (value ? new Date(value).toLocaleString("bn-BD") : "-");
+const shortText = (value, fallback = "-") => value || fallback;
 const toCoord = (value) => {
   if (value === null || value === undefined || value === "") return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 };
 const mapsPointUrl = (lat, lng) => {
-  if (lat === null || lng === null) return null;
-  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  const safeLat = toCoord(lat);
+  const safeLng = toCoord(lng);
+  if (safeLat === null || safeLng === null) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${safeLat},${safeLng}`;
 };
 const mapsEmbedPointUrl = (lat, lng) => {
-  if (lat === null || lng === null) return null;
-  return `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+  const safeLat = toCoord(lat);
+  const safeLng = toCoord(lng);
+  if (safeLat === null || safeLng === null) return null;
+  return `https://maps.google.com/maps?q=${safeLat},${safeLng}&z=15&output=embed`;
 };
 
 function Field({ label, children }) {
@@ -50,12 +68,50 @@ function InfoCard({ label, value, tone = "default" }) {
   return (
     <div className={`rounded-[14px] border p-4 ${toneClass}`}>
       <p className="text-xs font-semibold opacity-70">{label}</p>
-      <p className="mt-1 text-xl font-black">{value}</p>
+      <p className="mt-1 break-words text-xl font-black">{value}</p>
     </div>
   );
 }
 
-function RiderLiveMapCard({ rider }) {
+function EmptyState({ children }) {
+  return (
+    <div className="rounded-[16px] border border-dashed border-[#cbd5e1] bg-[#f8fafc] p-6 text-center text-sm text-[#64748b]">
+      {children}
+    </div>
+  );
+}
+
+function HistoryTable({ columns, rows, empty }) {
+  if (!rows?.length) return <EmptyState>{empty}</EmptyState>;
+  return (
+    <div className="overflow-hidden rounded-[16px] border border-[#dfe6ef] bg-white">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-[#edf1f6] text-left text-sm">
+          <thead className="bg-[#f8fafc] text-xs uppercase tracking-wide text-[#64748b]">
+            <tr>
+              {columns.map((column) => (
+                <th key={column.key} className="whitespace-nowrap px-4 py-3 font-black">{column.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#edf1f6]">
+            {rows.map((row) => (
+              <tr key={row.id} className="align-top">
+                {columns.map((column) => (
+                  <td key={column.key} className="px-4 py-3 text-[#24324a]">
+                    {column.render ? column.render(row) : shortText(row[column.key])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function RiderLiveMapCard({ rider, locations }) {
   const lat = toCoord(rider.last_lat);
   const lng = toCoord(rider.last_lng);
   const pointUrl = mapsPointUrl(lat, lng);
@@ -68,7 +124,7 @@ function RiderLiveMapCard({ rider }) {
           <h4 className="text-lg font-black text-[#101827]">লাইভ লোকেশন</h4>
           <p className="mt-1 text-sm text-[#64748b]">
             {lat !== null && lng !== null
-              ? `${lat}, ${lng}${rider.last_location_at ? ` • Updated ${rider.last_location_at}` : ""}`
+              ? `${lat}, ${lng}${rider.last_location_at ? ` • Updated ${dateTime(rider.last_location_at)}` : ""}`
               : "রাইডার এখনো live location পাঠায়নি।"}
           </p>
         </div>
@@ -96,11 +152,29 @@ function RiderLiveMapCard({ rider }) {
           Location available হলে এখানে map preview দেখা যাবে।
         </div>
       )}
+      {!!locations?.length && (
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {locations.slice(0, 6).map((location) => (
+            <a
+              key={location.id}
+              href={mapsPointUrl(location.lat, location.lng)}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-[12px] border border-[#edf1f6] bg-[#f8fafc] p-3 text-xs font-semibold text-[#53637a] hover:border-emerald-200 hover:bg-emerald-50"
+            >
+              {location.lat}, {location.lng}
+              <span className="mt-1 block font-normal">{dateTime(location.created_at)}</span>
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function RiderDetails({ rider, token, onClose, onSaved }) {
+function RiderDetails({ detail, token, onClose, onSaved }) {
+  const rider = detail.rider || detail;
+  const stats = detail.stats || {};
   const [tab, setTab] = useState("overview");
   const [form, setForm] = useState({
     kyc_status: rider.kyc_status || "pending",
@@ -136,9 +210,21 @@ function RiderDetails({ rider, token, onClose, onSaved }) {
     }
   };
 
+  const tabs = [
+    ["overview", "ওভারভিউ"],
+    ["kyc", "KYC"],
+    ["orders", "অর্ডার"],
+    ["wallet", "ওয়ালেট"],
+    ["requests", "রিকোয়েস্ট"],
+    ["ratings", "রেটিং"],
+    ["support", "সাপোর্ট"],
+    ["locations", "লোকেশন"],
+    ["deal", "চুক্তি"],
+  ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3">
-      <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-[20px] border border-[#dfe6ef] bg-white shadow-2xl shadow-slate-900/20">
+      <div className="flex max-h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-[20px] border border-[#dfe6ef] bg-white shadow-2xl shadow-slate-900/20">
         <div className="flex items-start justify-between gap-4 border-b border-[#edf1f6] px-5 py-4">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-[#ee0012]">Rider Management</p>
@@ -150,13 +236,7 @@ function RiderDetails({ rider, token, onClose, onSaved }) {
 
         <div className="border-b border-[#edf1f6] px-5 py-3">
           <div className="flex flex-wrap gap-2">
-            {[
-              ["overview", "ওভারভিউ"],
-              ["kyc", "KYC ডকুমেন্ট"],
-              ["deal", "চুক্তি ও কমিশন"],
-              ["wallet", "ওয়ালেট"],
-              ["support", "সাপোর্ট"],
-            ].map(([key, label]) => (
+            {tabs.map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setTab(key)}
@@ -170,19 +250,26 @@ function RiderDetails({ rider, token, onClose, onSaved }) {
 
         <div className="overflow-y-auto p-5">
           {tab === "overview" && (
-            <div className="grid gap-5 xl:grid-cols-[0.8fr,1.2fr]">
+            <div className="grid gap-5 xl:grid-cols-[0.85fr,1.15fr]">
               <div className="rounded-[18px] border border-[#dfe6ef] bg-[#f8fafc] p-5">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <InfoCard label="KYC" value={statusBn[rider.kyc_status] || rider.kyc_status} />
                   <InfoCard label="অ্যাকাউন্ট" value={statusBn[rider.account_status] || rider.account_status} />
                   <InfoCard label="অনলাইন অবস্থা" value={statusBn[rider.availability_status] || rider.availability_status} />
-                  <InfoCard label="রেটিং" value={rider.rating || "0.00"} />
+                  <InfoCard label="রেটিং" value={`${rider.rating || "0.00"} (${numberBn(rider.rating_count)})`} />
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <InfoCard label="মোট অর্ডার" value={numberBn(stats.total_orders)} />
+                  <InfoCard label="ডেলিভারড" value={numberBn(stats.delivered_orders)} />
+                  <InfoCard label="Active Order" value={numberBn(stats.active_orders)} />
+                  <InfoCard label="মোট আয়" value={money(stats.total_earning)} />
                 </div>
                 <div className="mt-4 rounded-[14px] bg-white p-4 text-sm text-[#53637a]">
                   <p><b>ঠিকানা:</b> {[rider.district, rider.upazila, rider.address].filter(Boolean).join(", ") || "-"}</p>
                   <p className="mt-2"><b>যানবাহন:</b> {vehicleBn[rider.vehicle_type] || "-"} • {rider.vehicle_number || "নম্বর নেই"}</p>
                   <p className="mt-2"><b>জরুরি যোগাযোগ:</b> {rider.emergency_contact_name || "-"} • {rider.emergency_contact_phone || "-"}</p>
                   <p className="mt-2"><b>bKash/Nagad:</b> {rider.bkash_number || "-"} • {rider.nagad_number || "-"}</p>
+                  <p className="mt-2"><b>User:</b> {rider.user?.name || "-"} • {rider.user?.email || rider.email || "-"}</p>
                 </div>
               </div>
 
@@ -225,7 +312,7 @@ function RiderDetails({ rider, token, onClose, onSaved }) {
                 </div>
               </div>
               <div className="xl:col-span-2">
-                <RiderLiveMapCard rider={rider} />
+                <RiderLiveMapCard rider={rider} locations={detail.locations || []} />
               </div>
             </div>
           )}
@@ -263,44 +350,126 @@ function RiderDetails({ rider, token, onClose, onSaved }) {
                       </div>
                     </div>
                   ))}
-                  {!docs.length && <div className="rounded-[16px] border border-dashed border-[#cbd5e1] p-6 text-sm text-[#64748b]">এখনো KYC ডকুমেন্ট আপলোড হয়নি।</div>}
+                  {!docs.length && <EmptyState>এখনো KYC ডকুমেন্ট আপলোড হয়নি।</EmptyState>}
                 </div>
               </div>
               <div className="rounded-[18px] border border-[#dfe6ef] bg-white p-5">
                 <h4 className="text-lg font-black text-[#101827]">রাইডার পেমেন্ট তথ্য</h4>
                 <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  <Field label="bKash Number">
-                    <input className={inputClass()} value={form.bkash_number} onChange={(e) => setForm({ ...form, bkash_number: e.target.value })} />
-                  </Field>
-                  <Field label="Nagad Number">
-                    <input className={inputClass()} value={form.nagad_number} onChange={(e) => setForm({ ...form, nagad_number: e.target.value })} />
-                  </Field>
-                  <Field label="Bank Account Name">
-                    <input className={inputClass()} value={form.bank_account_name} onChange={(e) => setForm({ ...form, bank_account_name: e.target.value })} />
-                  </Field>
-                  <Field label="Bank Account Number">
-                    <input className={inputClass()} value={form.bank_account_number} onChange={(e) => setForm({ ...form, bank_account_number: e.target.value })} />
-                  </Field>
-                  <Field label="Bank Name">
-                    <input className={inputClass()} value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} />
-                  </Field>
-                  <Field label="Branch">
-                    <input className={inputClass()} value={form.bank_branch} onChange={(e) => setForm({ ...form, bank_branch: e.target.value })} />
-                  </Field>
+                  <Field label="bKash Number"><input className={inputClass()} value={form.bkash_number} onChange={(e) => setForm({ ...form, bkash_number: e.target.value })} /></Field>
+                  <Field label="Nagad Number"><input className={inputClass()} value={form.nagad_number} onChange={(e) => setForm({ ...form, nagad_number: e.target.value })} /></Field>
+                  <Field label="Bank Account Name"><input className={inputClass()} value={form.bank_account_name} onChange={(e) => setForm({ ...form, bank_account_name: e.target.value })} /></Field>
+                  <Field label="Bank Account Number"><input className={inputClass()} value={form.bank_account_number} onChange={(e) => setForm({ ...form, bank_account_number: e.target.value })} /></Field>
+                  <Field label="Bank Name"><input className={inputClass()} value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} /></Field>
+                  <Field label="Branch"><input className={inputClass()} value={form.bank_branch} onChange={(e) => setForm({ ...form, bank_branch: e.target.value })} /></Field>
                 </div>
-                <div className="mt-4">
+                <div className="mt-4 flex flex-wrap gap-2">
                   <Button onClick={() => save()} disabled={saving}>{saving ? "Saving..." : "Save Payment Info"}</Button>
-                </div>
-              </div>
-              <div className="rounded-[18px] border border-[#dfe6ef] bg-white p-5">
-                <Field label="KYC নোট">
-                  <textarea className={`${inputClass()} min-h-[90px]`} value={form.kyc_note} onChange={(e) => setForm({ ...form, kyc_note: e.target.value })} />
-                </Field>
-                <div className="mt-4 flex gap-2">
-                  <Button onClick={() => save({ kyc_status: "approved", account_status: "active" })}>KYC Approve</Button>
+                  <Button variant="ghost" onClick={() => save({ kyc_status: "approved", account_status: "active" })}>KYC Approve</Button>
                   <Button variant="ghost" onClick={() => save({ kyc_status: "rejected", account_status: "pending" })}>Reject</Button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {tab === "orders" && (
+            <HistoryTable
+              rows={detail.orders || []}
+              empty="এই রাইডারের কোনো অর্ডার history নেই।"
+              columns={[
+                { key: "order_no", label: "Order" },
+                { key: "service_type", label: "Service", render: (row) => row.service_type === "medicine" ? "Medicine" : "Food" },
+                { key: "status", label: "Status", render: (row) => <StatusBadge value={row.status} /> },
+                { key: "receiver_name", label: "Customer", render: (row) => <span>{row.receiver_name}<br /><small>{row.receiver_phone}</small></span> },
+                { key: "merchant_name", label: "Merchant" },
+                { key: "grand_total", label: "Total", render: (row) => money(row.grand_total) },
+                { key: "rider_earning", label: "Earning", render: (row) => money(row.rider_earning) },
+                { key: "created_at", label: "Date", render: (row) => dateTime(row.created_at) },
+              ]}
+            />
+          )}
+
+          {tab === "wallet" && (
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-4">
+                <InfoCard label="Wallet Balance" value={money(rider.wallet_balance)} />
+                <InfoCard label="Pending Payout" value={money(rider.pending_payout)} />
+                <InfoCard label="Cash In Hand" value={money(rider.cash_in_hand)} tone="red" />
+                <InfoCard label="Total Earning" value={money(stats.total_earning)} />
+              </div>
+              <HistoryTable
+                rows={detail.wallet_entries || []}
+                empty="এই রাইডারের wallet transaction নেই।"
+                columns={[
+                  { key: "created_at", label: "Date", render: (row) => dateTime(row.created_at) },
+                  { key: "type", label: "Type" },
+                  { key: "title", label: "Title" },
+                  { key: "amount", label: "Amount", render: (row) => money(row.amount) },
+                  { key: "balance_after", label: "Balance", render: (row) => money(row.balance_after) },
+                  { key: "payout_status", label: "Payout", render: (row) => shortText(row.payout_status) },
+                ]}
+              />
+            </div>
+          )}
+
+          {tab === "requests" && (
+            <HistoryTable
+              rows={detail.order_requests || []}
+              empty="এই রাইডারের dispatch request history নেই।"
+              columns={[
+                { key: "order_no", label: "Order" },
+                { key: "service_type", label: "Service", render: (row) => row.service_type === "medicine" ? "Medicine" : "Food" },
+                { key: "status", label: "Request", render: (row) => <StatusBadge value={row.status} /> },
+                { key: "order_status", label: "Order Status" },
+                { key: "distance_km", label: "Distance", render: (row) => row.distance_km ? `${row.distance_km} km` : "-" },
+                { key: "notified_at", label: "Notified", render: (row) => dateTime(row.notified_at) },
+                { key: "responded_at", label: "Response", render: (row) => dateTime(row.responded_at) },
+              ]}
+            />
+          )}
+
+          {tab === "ratings" && (
+            <HistoryTable
+              rows={detail.ratings || []}
+              empty="এই রাইডারের rating history নেই।"
+              columns={[
+                { key: "created_at", label: "Date", render: (row) => dateTime(row.created_at) },
+                { key: "rating", label: "Rating", render: (row) => `${row.rating}/5` },
+                { key: "review", label: "Review", render: (row) => shortText(row.review) },
+                { key: "food_order_id", label: "Food Order", render: (row) => shortText(row.food_order_id) },
+                { key: "user_id", label: "User", render: (row) => shortText(row.user_id) },
+              ]}
+            />
+          )}
+
+          {tab === "support" && (
+            <HistoryTable
+              rows={detail.support_tickets || []}
+              empty="এই রাইডারের support ticket নেই।"
+              columns={[
+                { key: "created_at", label: "Date", render: (row) => dateTime(row.created_at) },
+                { key: "subject", label: "Subject" },
+                { key: "status", label: "Status", render: (row) => <StatusBadge value={row.status} /> },
+                { key: "message", label: "Message" },
+                { key: "admin_reply", label: "Admin Reply", render: (row) => shortText(row.admin_reply) },
+              ]}
+            />
+          )}
+
+          {tab === "locations" && (
+            <div className="space-y-4">
+              <RiderLiveMapCard rider={rider} locations={detail.locations || []} />
+              <HistoryTable
+                rows={detail.locations || []}
+                empty="এই রাইডারের location history নেই।"
+                columns={[
+                  { key: "created_at", label: "Date", render: (row) => dateTime(row.created_at) },
+                  { key: "lat", label: "Latitude" },
+                  { key: "lng", label: "Longitude" },
+                  { key: "accuracy", label: "Accuracy", render: (row) => row.accuracy ? `${row.accuracy}m` : "-" },
+                  { key: "map", label: "Map", render: (row) => <a className="font-bold text-emerald-700" href={mapsPointUrl(row.lat, row.lng)} target="_blank" rel="noreferrer">Open</a> },
+                ]}
+              />
             </div>
           )}
 
@@ -328,26 +497,12 @@ function RiderDetails({ rider, token, onClose, onSaved }) {
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-3">
                 <InfoCard label="চুক্তি" value={rider.agreement_accepted ? "গ্রহণ করেছে" : "গ্রহণ করেনি"} />
-                <InfoCard label="পেন্ডিং পেআউট" value={money(rider.pending_payout)} />
-                <InfoCard label="ক্যাশ ইন হ্যান্ড" value={money(rider.cash_in_hand)} />
+                <InfoCard label="Agreement Status" value={statusBn[rider.agreement_status] || rider.agreement_status || "-"} />
+                <InfoCard label="Payment Cycle" value={rider.payment_cycle || "-"} />
               </div>
               <div className="mt-4">
-                <Button onClick={() => save()} disabled={saving}>Save Deal</Button>
+                <Button onClick={() => save()} disabled={saving}>{saving ? "Saving..." : "Save Deal"}</Button>
               </div>
-            </div>
-          )}
-
-          {tab === "wallet" && (
-            <div className="grid gap-4 md:grid-cols-3">
-              <InfoCard label="Wallet Balance" value={money(rider.wallet_balance)} />
-              <InfoCard label="Pending Payout" value={money(rider.pending_payout)} />
-              <InfoCard label="Cash In Hand" value={money(rider.cash_in_hand)} tone="red" />
-            </div>
-          )}
-
-          {tab === "support" && (
-            <div className="rounded-[18px] border border-[#dfe6ef] bg-white p-5 text-sm text-[#64748b]">
-              Rider support tickets menu থেকে সব ticket manage করা যাবে। এই rider-এর ID: <b>{rider.id}</b>
             </div>
           )}
         </div>
@@ -385,7 +540,7 @@ export default function RiderAdminPage({ token }) {
     setDetailLoading(true);
     setError("");
     try {
-      const data = await apiRequest(`/admin/resources/riders/${rider.id}`, { token });
+      const data = await apiRequest(`/admin/riders/${rider.id}/details`, { token });
       setSelected(data);
     } catch (err) {
       setError(err.message || "রাইডার বিস্তারিত লোড করা যায়নি।");
@@ -408,7 +563,7 @@ export default function RiderAdminPage({ token }) {
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#ee0012]">Rider System</p>
             <h2 className="mt-1 text-2xl font-black text-[#101827]">রাইডার ম্যানেজমেন্ট</h2>
-            <p className="mt-1 text-sm text-[#64748b]">KYC, চুক্তি, অনলাইন অবস্থা, কমিশন, পেআউট ও পারফরম্যান্স এক জায়গায়।</p>
+            <p className="mt-1 text-sm text-[#64748b]">KYC, চুক্তি, অর্ডার history, wallet, dispatch, support ও location এক জায়গায়।</p>
           </div>
           <input
             placeholder="নাম, ফোন, উপজেলা বা যানবাহন নম্বর খুঁজুন"
@@ -444,7 +599,7 @@ export default function RiderAdminPage({ token }) {
               <div className="rounded-[12px] bg-[#f8fafc] p-3 text-sm"><b>পেআউট</b><br />{money(rider.pending_payout)}</div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={() => openRider(rider)} disabled={detailLoading}>Manage Rider</Button>
+              <Button onClick={() => openRider(rider)} disabled={detailLoading}>{detailLoading ? "Loading..." : "Full Details"}</Button>
               {rider.last_lat && rider.last_lng && (
                 <a className="inline-flex items-center rounded-[14px] border border-[#dfe6ef] bg-white px-4 py-2.5 text-sm font-semibold text-[#24324a]" href={mapsPointUrl(rider.last_lat, rider.last_lng)} target="_blank" rel="noreferrer">
                   Live Map
@@ -461,7 +616,7 @@ export default function RiderAdminPage({ token }) {
         </div>
       )}
 
-      {selected && <RiderDetails rider={selected} token={token} onClose={() => setSelected(null)} onSaved={load} />}
+      {selected && <RiderDetails detail={selected} token={token} onClose={() => setSelected(null)} onSaved={load} />}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import Pagination from "../../components/Pagination.jsx";
 import ResourceSelect from "../../components/ResourceSelect.jsx";
 import UserSelect from "../../components/UserSelect.jsx";
 import { apiRequest } from "../../lib/api.js";
+import EducationRequestsPanel from "./EducationRequestsPanel.jsx";
 
 const emptyForm = {
   user_id: "",
@@ -23,6 +24,9 @@ const emptyForm = {
 };
 
 export default function EducationPage({ token }) {
+  const [activeView, setActiveView] = useState(
+    new URLSearchParams(window.location.search).get("tab") === "institutes" ? "institutes" : "requests",
+  );
   const [records, setRecords] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -165,6 +169,10 @@ export default function EducationPage({ token }) {
   };
 
   const selectionState = visibleSelectionState(records, selectedIds);
+  if (activeView === "requests") {
+    return <EducationRequestsPanel token={token} onShowInstitutes={() => setActiveView("institutes")} />;
+  }
+
   return (
     <div className="space-y-4">
       {error && <div className="text-sm text-red-600">{error}</div>}
@@ -180,6 +188,7 @@ export default function EducationPage({ token }) {
         />
         <div className="flex items-center gap-2">
           <span className="text-xs text-[#64748b]">Total: {meta?.total || records.length}</span>
+          <Button variant="ghost" onClick={() => setActiveView("requests")}>Education Requests</Button>
           <Button onClick={openCreate}>Add Institute</Button>
         </div>
       </div>

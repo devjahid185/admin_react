@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { apiRequest } from "../lib/api.js";
 
 function defaultLabel(item) {
@@ -38,6 +39,8 @@ export default function ResourceSelect({
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState(null);
+  const inputRef = useRef(null);
 
   const selectedId = value ? String(value) : "";
   const displayText = useMemo(
@@ -95,6 +98,43 @@ export default function ResourceSelect({
     };
   }, [open, query, resource, token]);
 
+  useEffect(() => {
+    if (!open) {
+      setDropdownPosition(null);
+      return undefined;
+    }
+
+    const positionDropdown = () => {
+      const input = inputRef.current;
+      if (!input) return;
+
+      const rect = input.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom - 12;
+      const spaceAbove = rect.top - 12;
+      const openUpward = spaceBelow < 220 && spaceAbove > spaceBelow;
+      const maxHeight = Math.max(120, Math.min(288, openUpward ? spaceAbove : spaceBelow));
+
+      setDropdownPosition({
+        left: rect.left,
+        width: rect.width,
+        maxHeight,
+        ...(openUpward
+          ? { bottom: viewportHeight - rect.top + 8 }
+          : { top: rect.bottom + 8 }),
+      });
+    };
+
+    positionDropdown();
+    window.addEventListener("resize", positionDropdown);
+    window.addEventListener("scroll", positionDropdown, true);
+
+    return () => {
+      window.removeEventListener("resize", positionDropdown);
+      window.removeEventListener("scroll", positionDropdown, true);
+    };
+  }, [open, selectedId]);
+
   const choose = (item) => {
     setSelected(item);
     setQuery("");
@@ -130,6 +170,7 @@ export default function ResourceSelect({
       ) : null}
 
       <input
+        ref={inputRef}
         className="mt-2 w-full rounded-[14px] border border-[#dfe6ef] px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-red-300 focus:ring-4 focus:ring-red-500/10"
         value={query}
         placeholder={selectedId ? "Search to replace selection" : placeholder}
@@ -143,8 +184,11 @@ export default function ResourceSelect({
 
       {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : null}
 
-      {open ? (
-        <div className="absolute z-[70] mt-2 max-h-72 w-full overflow-y-auto rounded-[14px] border border-[#dfe6ef] bg-white p-1 shadow-xl shadow-slate-900/12">
+      {open && dropdownPosition ? createPortal(
+        <div
+          className="fixed z-[9999] overflow-y-auto rounded-[14px] border border-[#dfe6ef] bg-white p-1 shadow-xl shadow-slate-900/12"
+          style={dropdownPosition}
+        >
           {loading ? <div className="px-3 py-2 text-sm text-[#64748b]">Loading options...</div> : null}
           {!loading && results.length === 0 ? (
             <div className="px-3 py-2 text-sm text-[#64748b]">
@@ -172,7 +216,8 @@ export default function ResourceSelect({
               </span>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );
