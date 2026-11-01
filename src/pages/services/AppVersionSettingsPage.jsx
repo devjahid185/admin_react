@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Input from "../../components/Input.jsx";
 import { apiRequest } from "../../lib/api.js";
+import { bdDateTimeInputToIso, toBdDateTimeInput } from "../../lib/formatters.js";
 
 const defaultForm = {
   platform: "android",
@@ -40,7 +41,12 @@ export default function AppVersionSettingsPage({ token, onUnauthorized }) {
     setError("");
     try {
       const data = await apiRequest(`/admin/app-version-settings?platform=${platform}`, { token });
-      setForm({ ...defaultForm, ...(data.settings || {}), platform });
+      setForm({
+        ...defaultForm,
+        ...(data.settings || {}),
+        platform,
+        maintenance_until: toBdDateTimeInput(data.settings?.maintenance_until),
+      });
     } catch (err) {
       const msg = err.message || "Unable to load app version settings.";
       setError(msg);
@@ -66,14 +72,19 @@ export default function AppVersionSettingsPage({ token, onUnauthorized }) {
         latest_build: Number(form.latest_build || 1),
         minimum_supported_build: Number(form.minimum_supported_build || 1),
         store_url: form.store_url || null,
-        maintenance_until: form.maintenance_until || null,
+        maintenance_until: bdDateTimeInputToIso(form.maintenance_until),
       };
       const data = await apiRequest("/admin/app-version-settings", {
         method: "PUT",
         token,
         body: payload,
       });
-      setForm({ ...defaultForm, ...(data.settings || {}), platform: form.platform });
+      setForm({
+        ...defaultForm,
+        ...(data.settings || {}),
+        platform: form.platform,
+        maintenance_until: toBdDateTimeInput(data.settings?.maintenance_until),
+      });
     } catch (err) {
       setError(err.message || "Unable to save app version settings.");
     } finally {

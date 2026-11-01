@@ -4,6 +4,7 @@ import Button from "../../components/Button.jsx";
 import ImageUploadPreview from "../../components/ImageUploadPreview.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
+import { bdDateTimeInputToIso, toBdDateTimeInput } from "../../lib/formatters.js";
 
 const emptyForm = {
   title: "",
@@ -73,8 +74,8 @@ export default function HomeBannersPage({ token }) {
       button_text: record.button_text || "",
       sort_order: String(record.sort_order ?? 0),
       is_active: Boolean(record.is_active),
-      starts_at: record.starts_at ? String(record.starts_at).slice(0, 16) : "",
-      ends_at: record.ends_at ? String(record.ends_at).slice(0, 16) : "",
+      starts_at: toBdDateTimeInput(record.starts_at),
+      ends_at: toBdDateTimeInput(record.ends_at),
     });
     setImageFile(null);
     setImagePreview(record.image_url || "");
@@ -94,8 +95,8 @@ export default function HomeBannersPage({ token }) {
         button_text: form.button_text.trim() || null,
         sort_order: Number(form.sort_order || 0),
         is_active: Boolean(form.is_active),
-        starts_at: form.starts_at || null,
-        ends_at: form.ends_at || null,
+        starts_at: bdDateTimeInputToIso(form.starts_at),
+        ends_at: bdDateTimeInputToIso(form.ends_at),
       };
 
       const res = editingId

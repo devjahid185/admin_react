@@ -3,6 +3,7 @@ import DashboardLayout from "../layouts/DashboardLayout.jsx";
 import { apiRequest } from "../lib/api.js";
 import { API_BASE } from "../lib/config.js";
 import { connectAdminLive } from "../lib/adminLive.js";
+import { formatShortDateTime } from "../lib/formatters.js";
 import BulkDeleteBar, { toggleSelectedId, toggleVisibleIds, visibleSelectionState } from "../components/BulkDeleteBar.jsx";
 import Button from "../components/Button.jsx";
 import UsersPage from "./UsersPage.jsx";
@@ -40,6 +41,7 @@ import ServicePage from "./services/ServicePage.jsx";
 import FoodAdminPage from "./services/FoodAdminPage.jsx";
 import FoodDeliverySettingsPage from "./services/FoodDeliverySettingsPage.jsx";
 import MedicinePaymentSettingsPage from "./services/MedicinePaymentSettingsPage.jsx";
+import { GasDealersPage, GasOrdersPage, GasOverviewPage, GasProductsPage, GasSettingsPage } from "./services/GasDeliveryAdminPage.jsx";
 import RiderAdminPage from "./services/RiderAdminPage.jsx";
 import RiderSettingsPage from "./services/RiderSettingsPage.jsx";
 import SupportSettingsPage from "./services/SupportSettingsPage.jsx";
@@ -53,6 +55,7 @@ import AnalyticsPage from "./AnalyticsPage.jsx";
 const MODULE_ALIASES = {
   ai_social: "ai-social",
   "ai-social-automation": "ai-social",
+  "gas-delivery": "gas-overview",
 };
 
 function normalizeModuleSlug(slug) {
@@ -93,6 +96,11 @@ const DEFAULT_ADMIN_MODULES = [
   { name: "Medicine Items", slug: "medicine-items", group_name: "Medicine Delivery", route: "/admin/medicine-items" },
   { name: "Medicine Orders", slug: "medicine-orders", group_name: "Medicine Delivery", route: "/admin/medicine-orders" },
   { name: "Medicine Payments", slug: "medicine-payment-settings", group_name: "Medicine Delivery", route: "/admin/medicine-payment-settings" },
+  { name: "Gas Overview", slug: "gas-overview", group_name: "Gas Delivery", route: "/admin/gas-overview" },
+  { name: "Gas Orders", slug: "gas-orders", group_name: "Gas Delivery", route: "/admin/gas-orders" },
+  { name: "Gas Products", slug: "gas-products", group_name: "Gas Delivery", route: "/admin/gas-products" },
+  { name: "Gas Dealers", slug: "gas-dealers", group_name: "Gas Delivery", route: "/admin/gas-dealers" },
+  { name: "Gas Settings", slug: "gas-settings", group_name: "Gas Delivery", route: "/admin/gas-settings" },
   { name: "Rider Management", slug: "riders", group_name: "Rider System", route: "/admin/riders" },
   { name: "Rider Settings", slug: "rider-settings", group_name: "Rider System", route: "/admin/rider-settings" },
   { name: "Income Reconciliation", slug: "delivery-income", group_name: "Finance", route: "/admin/delivery-income" },
@@ -123,17 +131,24 @@ const DEFAULT_ADMIN_MODULES = [
 ];
 
 function mergeAdminModules(apiModules = []) {
-  const hidden = new Set(["rider-documents", "rider-wallet", "rider-support-tickets", "rider-ratings", "rider-locations"]);
+  const hidden = new Set(["rider-documents", "rider-wallet", "rider-support-tickets", "rider-ratings", "rider-locations", "gas-delivery"]);
   if (!apiModules.length) {
     return DEFAULT_ADMIN_MODULES.filter((item) => !hidden.has(item.slug));
   }
   const defaults = new Map(DEFAULT_ADMIN_MODULES.map((item) => [item.slug, item]));
-  return apiModules.map((item) => {
+  const merged = apiModules.map((item) => {
     if (item?.slug && !hidden.has(item.slug)) {
       return { ...defaults.get(item.slug), ...item };
     }
     return null;
   }).filter(Boolean);
+  const hasGasAccess = apiModules.some((item) => item?.slug === "gas-delivery" || item?.group_name === "Gas Delivery");
+  if (hasGasAccess) {
+    DEFAULT_ADMIN_MODULES
+      .filter((item) => item.group_name === "Gas Delivery" && !merged.some((current) => current.slug === item.slug))
+      .forEach((item) => merged.push(item));
+  }
+  return merged;
 }
 
 const compact = (value) => Number(value || 0).toLocaleString();
@@ -165,15 +180,7 @@ const MONITORED_COUNTERS = [
 ];
 
 function formatDate(value) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatShortDateTime(value);
 }
 
 function readStoredCounters() {
@@ -1232,6 +1239,11 @@ export default function DashboardPage({ token, onLogout }) {
     "telegram-settings": TelegramSettingsPage,
     "food-delivery-settings": FoodDeliverySettingsPage,
     "medicine-payment-settings": MedicinePaymentSettingsPage,
+    "gas-overview": GasOverviewPage,
+    "gas-orders": GasOrdersPage,
+    "gas-products": GasProductsPage,
+    "gas-dealers": GasDealersPage,
+    "gas-settings": GasSettingsPage,
     "map-settings": MapSettingsPage,
     "support-settings": SupportSettingsPage,
     "support-tickets": SupportTicketsPage,

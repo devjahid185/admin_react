@@ -4,6 +4,7 @@ import Pagination from "../../components/Pagination.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import { apiRequest } from "../../lib/api.js";
 import { connectAdminLive } from "../../lib/adminLive.js";
+import { formatDateTime } from "../../lib/formatters.js";
 
 const REQUEST_TYPES = {
   "teacher-requests": {
@@ -21,11 +22,7 @@ const REQUEST_TYPES = {
 };
 
 function displayDate(value) {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("en-BD", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return formatDateTime(value);
 }
 
 function Detail({ label, value, wide = false }) {

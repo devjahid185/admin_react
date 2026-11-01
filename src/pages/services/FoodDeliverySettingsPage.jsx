@@ -48,6 +48,7 @@ const defaultForm = {
   base_charge: 0,
   per_km_charge: 15,
   minimum_charge: 30,
+  cross_restaurant_item_fee: 20,
   free_delivery_min_order: "",
   max_delivery_distance_km: "",
   store_lat: "",
@@ -79,6 +80,7 @@ const numericFields = [
   "base_charge",
   "per_km_charge",
   "minimum_charge",
+  "cross_restaurant_item_fee",
   "free_delivery_min_order",
   "max_delivery_distance_km",
   "store_lat",
@@ -378,6 +380,25 @@ export default function FoodDeliverySettingsPage({ token, onUnauthorized }) {
                   value={form.note || ""}
                   onChange={(e) => updateField("note", e.target.value)}
                   placeholder="Example: Fixed rate for Bhola Sadar, per-KM outside city."
+                />
+              </FieldGroup>
+            </div>
+          </section>
+
+          <section className="fd-rise rounded-[26px] border border-[#ececec] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6" style={{ "--d": "90ms" }}>
+            <h2 className="text-sm font-black uppercase tracking-wide text-[#111]">Admin multi-restaurant order edits</h2>
+            <p className="mt-1 text-xs font-semibold leading-5 text-[#6b7280]">
+              Admin কোনো order-এ মূল restaurant ছাড়া অন্য restaurant-এর item যোগ করলে এই fee একবার যোগ হবে।
+            </p>
+            <div className="mt-4 max-w-sm">
+              <FieldGroup label="Extra fee for another restaurant" hint="Per order, not per item. অন্য restaurant-এর সব item সরালে fee-টিও উঠে যাবে।">
+                <input
+                  className={inputCls}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.cross_restaurant_item_fee ?? ""}
+                  onChange={(e) => updateField("cross_restaurant_item_fee", e.target.value)}
                 />
               </FieldGroup>
             </div>

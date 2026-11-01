@@ -5,6 +5,7 @@ import Pagination from "../../components/Pagination.jsx";
 import ResourceSelect from "../../components/ResourceSelect.jsx";
 import UserSelect from "../../components/UserSelect.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
+import { bdDateTimeInputToIso, toBdDateTimeInput } from "../../lib/formatters.js";
 
 const DEFAULT_MAP_CENTER = { lat: 22.6859, lng: 90.6482 };
 const GOOGLE_MAPS_WEB_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_WEB_API_KEY || "";
@@ -389,8 +390,8 @@ export default function RestaurantsPage({ token }) {
       is_promoted: Boolean(r.is_promoted),
       promotion_priority: r.promotion_priority ?? "0",
       promotion_badge: r.promotion_badge || "Featured",
-      promotion_starts_at: r.promotion_starts_at ? String(r.promotion_starts_at).replace(" ", "T").slice(0, 16) : "",
-      promotion_ends_at: r.promotion_ends_at ? String(r.promotion_ends_at).replace(" ", "T").slice(0, 16) : "",
+      promotion_starts_at: toBdDateTimeInput(r.promotion_starts_at),
+      promotion_ends_at: toBdDateTimeInput(r.promotion_ends_at),
       promotion_note: r.promotion_note || "",
       commission_enabled: r.commission_enabled === undefined ? true : Boolean(r.commission_enabled),
       commission_type: r.commission_type || "percentage",
@@ -514,8 +515,8 @@ export default function RestaurantsPage({ token }) {
       is_promoted: Boolean(form.is_promoted),
       promotion_priority: form.promotion_priority ? Number(form.promotion_priority) : 0,
       promotion_badge: form.promotion_badge || null,
-      promotion_starts_at: form.promotion_starts_at ? form.promotion_starts_at.replace("T", " ") : null,
-      promotion_ends_at: form.promotion_ends_at ? form.promotion_ends_at.replace("T", " ") : null,
+      promotion_starts_at: bdDateTimeInputToIso(form.promotion_starts_at),
+      promotion_ends_at: bdDateTimeInputToIso(form.promotion_ends_at),
       promotion_note: form.promotion_note || null,
       commission_enabled: Boolean(form.commission_enabled),
       commission_type: form.commission_type || "percentage",

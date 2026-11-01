@@ -15,6 +15,17 @@ const AUTOMATION_CAMPAIGNS = {
   personalized: ["Personalized suggestion", "Recommendation based on order history"],
   free_delivery: ["Free delivery campaign", "Bhola municipality free delivery; outside municipality gets Tk 40 off delivery charge"],
   discovery: ["Food discovery fallback", "Keeps the 10-minute schedule active when no higher-priority campaign is eligible"],
+  medicine_service: ["Medicine service discovery", "Introduces medicine ordering and home delivery"],
+  gas_service: ["Gas cylinder discovery", "Introduces new cylinder and refill delivery"],
+  marketplace_service: ["Marketplace discovery", "Promotes local buy-and-sell listings"],
+  worker_service: ["Worker and tutor discovery", "Helps users find local skilled workers and tutors"],
+  business_service: ["Local business discovery", "Promotes nearby businesses and service providers"],
+  jobs_service: ["Local jobs discovery", "Introduces relevant local job posts"],
+  property_service: ["Property discovery", "Promotes local rent and sale listings"],
+  health_service: ["Health service discovery", "Introduces blood donor and doctor directories"],
+  travel_service: ["Travel and transport discovery", "Introduces hotel, vehicle, launch and courier services"],
+  local_updates_service: ["Local updates discovery", "Promotes district news and important notices"],
+  all_services: ["All-services reach campaign", "Introduces multiple Bholavashi services to all eligible users in safe batches"],
 };
 
 export default function NotificationsPage({ token, onUnauthorized }) {
@@ -101,33 +112,46 @@ export default function NotificationsPage({ token, onUnauthorized }) {
     setAutomation((current) => ({ ...current, [field]: value }));
   };
 
-  const saveAutomation = async () => {
-    if (!automation) return;
+  const saveAutomation = async (settings = automation) => {
+    if (!settings) return;
     setSavingAutomation(true);
     setError("");
     try {
       const body = {
-        is_enabled: Boolean(automation.is_enabled),
-        use_ai_copy: Boolean(automation.use_ai_copy),
-        timezone: automation.timezone || "Asia/Dhaka",
-        quiet_hours_start: String(automation.quiet_hours_start || "21:00").slice(0, 5),
-        quiet_hours_end: String(automation.quiet_hours_end || "10:45").slice(0, 5),
-        max_promotional_per_day: Number(automation.max_promotional_per_day || 1),
-        max_promotional_per_week: Number(automation.max_promotional_per_week || 4),
-        minimum_gap_hours: Number(automation.minimum_gap_hours || 20),
-        batch_limit: Number(automation.batch_limit || 50),
+        is_enabled: Boolean(settings.is_enabled),
+        use_ai_copy: Boolean(settings.use_ai_copy),
+        timezone: settings.timezone || "Asia/Dhaka",
+        quiet_hours_start: String(settings.quiet_hours_start || "21:00").slice(0, 5),
+        quiet_hours_end: String(settings.quiet_hours_end || "10:45").slice(0, 5),
+        max_promotional_per_day: Number(settings.max_promotional_per_day || 1),
+        max_promotional_per_week: Number(settings.max_promotional_per_week || 4),
+        minimum_gap_hours: Number(settings.minimum_gap_hours || 20),
+        batch_limit: Number(settings.batch_limit || 50),
         campaigns: Object.fromEntries(
-          Object.keys(AUTOMATION_CAMPAIGNS).map((key) => [key, automation.campaigns?.[key] !== false]),
+          Object.keys(AUTOMATION_CAMPAIGNS).map((key) => [key, settings.campaigns?.[key] !== false]),
         ),
       };
       const data = await apiRequest("/admin/notifications/automation", { method: "PUT", token, body });
-      setAutomation(data?.settings || automation);
+      setAutomation(data?.settings || settings);
       await loadAutomation();
     } catch (err) {
       setError(err.message || "Unable to save AI notification automation.");
     } finally {
       setSavingAutomation(false);
     }
+  };
+
+  const toggleFreeDeliveryCampaign = async () => {
+    if (!automation || savingAutomation) return;
+    const next = {
+      ...automation,
+      campaigns: {
+        ...automation.campaigns,
+        free_delivery: automation.campaigns?.free_delivery === false,
+      },
+    };
+    setAutomation(next);
+    await saveAutomation(next);
   };
 
   const runAutomation = async () => {
@@ -233,6 +257,39 @@ export default function NotificationsPage({ token, onUnauthorized }) {
             </div>
           </div>
 
+          <div className="border-b border-[#e8edf4] bg-[#fffaf5] px-5 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <span className={`mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${automation.campaigns?.free_delivery !== false ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
+                  <span className="text-base font-bold">%</span>
+                </span>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-semibold text-[#101827]">Free delivery offer notifications</h3>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${automation.campaigns?.free_delivery !== false ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
+                      {automation.campaigns?.free_delivery !== false ? "ON" : "OFF"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-[#64748b]">
+                    Offer শেষ হলে এটি OFF রাখুন। OFF করলে AI আর free-delivery বা delivery-discount campaign পাঠাবে না।
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={toggleFreeDeliveryCampaign}
+                disabled={savingAutomation}
+                className={`min-w-[150px] rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${automation.campaigns?.free_delivery !== false ? "bg-red-700 hover:bg-red-800" : "bg-emerald-700 hover:bg-emerald-800"}`}
+              >
+                {savingAutomation
+                  ? "Saving..."
+                  : automation.campaigns?.free_delivery !== false
+                    ? "Turn campaign OFF"
+                    : "Turn campaign ON"}
+              </button>
+            </div>
+          </div>
+
           <div className="grid gap-px bg-[#e8edf4] lg:grid-cols-4">
             {[
               ["Sent", automationStats?.sent],
@@ -300,7 +357,7 @@ export default function NotificationsPage({ token, onUnauthorized }) {
                   </label>
                 ))}
               </div>
-              <Button className="mt-4 w-full" onClick={saveAutomation} disabled={savingAutomation}>
+              <Button className="mt-4 w-full" onClick={() => saveAutomation()} disabled={savingAutomation}>
                 {savingAutomation ? "Saving..." : "Save automation settings"}
               </Button>
             </div>

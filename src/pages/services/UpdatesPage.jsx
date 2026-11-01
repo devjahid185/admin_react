@@ -5,7 +5,7 @@ import ImageUploadPreview from "../../components/ImageUploadPreview.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import QuillEditor from "../../components/QuillEditor.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
-import { formatDateTime } from "../../lib/formatters.js";
+import { bdDateTimeInputToIso, formatDateTime, toBdDateTimeInput } from "../../lib/formatters.js";
 
 const emptyForm = {
   title: "",
@@ -101,7 +101,7 @@ export default function UpdatesPage({ token }) {
       cover_url: post.cover_url || "",
       body: post.body || "",
       tags: Array.isArray(post.tags) ? post.tags.join(", ") : "",
-      published_at: post.published_at || "",
+      published_at: toBdDateTimeInput(post.published_at),
       is_published: post.is_published !== false,
     });
     setFieldErrors({});
@@ -222,7 +222,7 @@ export default function UpdatesPage({ token }) {
       cover_url: form.cover_url || null,
       body: form.body,
       tags: form.tags ? parseTags(form.tags) : [],
-      published_at: form.published_at || null,
+      published_at: bdDateTimeInputToIso(form.published_at),
       is_published: !!form.is_published,
     };
     try {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiRequest } from "../lib/api.js";
+import { formatBdDateInput, formatBdTime, formatShortDateTime } from "../lib/formatters.js";
 
 const CARD = "rounded-2xl border border-[#ececec] bg-white shadow-[0_18px_45px_rgba(17,17,17,0.06)]";
 
@@ -8,22 +9,11 @@ function formatNumber(value) {
 }
 
 function formatTime(value) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatShortDateTime(value);
 }
 
 function formatDateInput(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return formatBdDateInput(date);
 }
 
 function StatCard({ label, value, hint, accent = false }) {
@@ -251,7 +241,7 @@ export default function AnalyticsPage({ token }) {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <span>{lastUpdated ? `Last updated ${lastUpdated.toLocaleTimeString()}` : "Waiting for first refresh"}</span>
+            <span>{lastUpdated ? `Last updated ${formatBdTime(lastUpdated)} (BD)` : "Waiting for first refresh"}</span>
             <button type="button" onClick={() => load()} className="rounded-xl border border-[#ececec] bg-white px-4 py-2 font-black text-[#111] transition hover:border-[#ee0012]/40 hover:text-[#ee0012]">
               Refresh now
             </button>

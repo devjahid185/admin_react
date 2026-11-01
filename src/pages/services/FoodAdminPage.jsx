@@ -4,8 +4,10 @@ import ImageUploadPreview from "../../components/ImageUploadPreview.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import ResourceSelect from "../../components/ResourceSelect.jsx";
 import UserSelect from "../../components/UserSelect.jsx";
+import Customer360ProfileModal from "./Customer360ProfileModal.jsx";
 import { apiRequest, apiUpload } from "../../lib/api.js";
 import { API_BASE } from "../../lib/config.js";
+import { BD_TIME_ZONE, bdDateTimeInputToIso, toBdDateTimeInput } from "../../lib/formatters.js";
 
 const DEFAULT_MAP_CENTER = { lat: 22.6859, lng: 90.6482 };
 const GOOGLE_MAPS_WEB_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_WEB_API_KEY || "";
@@ -801,6 +803,7 @@ function formatDateTime(value) {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
+    timeZone: BD_TIME_ZONE,
   }).format(date);
 }
 
@@ -920,11 +923,7 @@ function emptyForm(config) {
 }
 
 function toLocalDateTimeInput(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value).replace(" ", "T").slice(0, 16);
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return localDate.toISOString().slice(0, 16);
+  return toBdDateTimeInput(value);
 }
 
 function normalizeRecord(record, config) {
@@ -956,7 +955,7 @@ function buildPayload(form, config) {
     } else if (field.type === "size_prices") {
       value = parseSizePrices(value);
     } else if (field.type === "datetime-local") {
-      value = value ? new Date(value).toISOString() : null;
+      value = bdDateTimeInputToIso(value);
     } else if (typeof value === "string") {
       value = value.trim();
       if (value === "" && !field.required) value = null;
@@ -1649,7 +1648,7 @@ function FoodReviewViewModal({ loading, review, onClose, onEdit }) {
   );
 }
 
-function FoodOrderViewModal({ loading, order, riders = [], assigning = false, assignError = "", updatingItemId = null, itemUpdateError = "", onAssignRider, onUpdateItemQuantity, onPreviewDeliveryLocation, onUpdateDeliveryLocation, onClose }) {
+function FoodOrderViewModal({ loading, order, token, riders = [], assigning = false, assignError = "", updatingItemId = null, addingItem = false, itemUpdateError = "", onAssignRider, onUpdateItemQuantity, onAddOrderItem, onPreviewDeliveryLocation, onUpdateDeliveryLocation, onOpenCustomerProfile, onClose }) {
   const items = order?.items || [];
   const paymentProofUrl = order?.payment_proof_photo_url || order?.payment_proof_photo;
   const deliveryProofUrl = order?.delivery_proof_photo_url || order?.delivery_proof_photo;
@@ -1658,6 +1657,16 @@ function FoodOrderViewModal({ loading, order, riders = [], assigning = false, as
   const pickupLabel = isMedicine ? "Medicine Store" : "Restaurant";
   const [tab, setTab] = useState("overview");
   const [selectedRiderId, setSelectedRiderId] = useState("");
+  const [itemPickerOpen, setItemPickerOpen] = useState(false);
+  const [catalogRestaurants, setCatalogRestaurants] = useState([]);
+  const [catalogItems, setCatalogItems] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState("");
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogRestaurantId, setCatalogRestaurantId] = useState("");
+  const [selectedFoodItemId, setSelectedFoodItemId] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
+  const [addQuantity, setAddQuantity] = useState(1);
   const assignable = order && !["delivered", "cancelled", "rejected"].includes(String(order.status || ""));
   const riderName = order?.accepted_rider_name || order?.rider?.name;
   const pendingRequests = Number(order?.pending_rider_requests_count || 0);
@@ -1666,11 +1675,62 @@ function FoodOrderViewModal({ loading, order, riders = [], assigning = false, as
   const canEditItems = !isMedicine
     && ["pending", "accepted", "preparing"].includes(String(order?.status || ""))
     && String(order?.payment_status || "") !== "paid";
+  const selectedFoodItem = catalogItems.find((item) => String(item.id) === String(selectedFoodItemId));
+  const isCrossRestaurant = selectedFoodItem && Number(selectedFoodItem.restaurant_id) !== Number(order?.restaurant_id);
+
+  useEffect(() => {
+    if (!itemPickerOpen || !token || isMedicine) return undefined;
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      setCatalogLoading(true);
+      setCatalogError("");
+      try {
+        const params = new URLSearchParams({ per_page: "100", status: "active", is_available: "1" });
+        if (catalogSearch.trim()) params.set("search", catalogSearch.trim());
+        if (catalogRestaurantId) params.set("restaurant_id", catalogRestaurantId);
+        const requests = [apiRequest(`/admin/resources/food-items?${params.toString()}`, { token })];
+        if (!catalogRestaurants.length) requests.push(apiRequest("/admin/resources/restaurants?per_page=100&status=active", { token }));
+        const [itemsResponse, restaurantsResponse] = await Promise.all(requests);
+        if (!active) return;
+        setCatalogItems(itemsResponse.data || []);
+        if (restaurantsResponse) setCatalogRestaurants(restaurantsResponse.data || []);
+      } catch (err) {
+        if (active) setCatalogError(err.message || "Unable to load the menu catalog.");
+      } finally {
+        if (active) setCatalogLoading(false);
+      }
+    }, 250);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [catalogRestaurantId, catalogRestaurants.length, catalogSearch, isMedicine, itemPickerOpen, token]);
+
+  useEffect(() => {
+    setSelectedSize("");
+  }, [selectedFoodItemId]);
 
   const changeItemQuantity = (item, nextQuantity) => {
     if (!onUpdateItemQuantity || updatingItemId !== null) return;
     if (nextQuantity === 0 && !window.confirm(`Remove ${item.name || "this item"} from the order?`)) return;
     onUpdateItemQuantity(item, nextQuantity);
+  };
+
+  const submitAddedItem = async () => {
+    if (!selectedFoodItemId || !onAddOrderItem || addingItem) return;
+    try {
+      await onAddOrderItem({
+        food_item_id: Number(selectedFoodItemId),
+        quantity: Number(addQuantity),
+        size: selectedSize || null,
+      });
+      setSelectedFoodItemId("");
+      setSelectedSize("");
+      setAddQuantity(1);
+      setItemPickerOpen(false);
+    } catch {
+      // The parent keeps the API error visible beside the order items.
+    }
   };
 
   const tabs = [
@@ -1703,7 +1763,11 @@ function FoodOrderViewModal({ loading, order, riders = [], assigning = false, as
             </div>
             <div className="fd-sum">
               <span className="fd-sum-k">Customer</span>
-              <span className="fd-sum-v">{order?.receiver_name || "-"}<small>{order?.receiver_phone || "-"}</small></span>
+              {order?.user_id ? (
+                <button type="button" className="fd-sum-v text-left transition hover:text-[#E10613]" onClick={() => onOpenCustomerProfile?.(order)} title="Open complete customer profile">
+                  {order?.receiver_name || "-"}<small>{order?.receiver_phone || "-"} · View profile</small>
+                </button>
+              ) : <span className="fd-sum-v">{order?.receiver_name || "-"}<small>{order?.receiver_phone || "-"}</small></span>}
             </div>
             <div className="fd-sum">
               <span className="fd-sum-k">Payment</span>
@@ -1737,7 +1801,68 @@ function FoodOrderViewModal({ loading, order, riders = [], assigning = false, as
             {tab === "overview" && (
               <div className="grid gap-5 lg:grid-cols-[1.35fr,1fr]">
                 <div className="fd-panel">
-                  <h4 className="fd-panel-title">Ordered {serviceLabel.toLowerCase()} items</h4>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h4 className="fd-panel-title">Ordered {serviceLabel.toLowerCase()} items</h4>
+                    {canEditItems && (
+                      <button type="button" className="fd-btn fd-btn-ghost fd-btn-sm" onClick={() => setItemPickerOpen((value) => !value)}>
+                        {itemPickerOpen ? "Close item picker" : "+ Add menu item"}
+                      </button>
+                    )}
+                  </div>
+                  {itemPickerOpen && (
+                    <div className="mt-4 border-y border-[#ECEDF0] bg-[#F7F7F8] px-3 py-4 sm:px-4">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="fd-label block">
+                          Restaurant
+                          <select className="fd-input mt-1" value={catalogRestaurantId} onChange={(event) => { setCatalogRestaurantId(event.target.value); setSelectedFoodItemId(""); }}>
+                            <option value="">All restaurants</option>
+                            {catalogRestaurants.map((restaurant) => <option key={restaurant.id} value={restaurant.id}>{restaurant.name}</option>)}
+                          </select>
+                        </label>
+                        <label className="fd-label block">
+                          Search menu
+                          <input className="fd-input mt-1" value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Type an item name" />
+                        </label>
+                      </div>
+                      <label className="fd-label mt-3 block">
+                        Menu item
+                        <select className="fd-input mt-1" value={selectedFoodItemId} onChange={(event) => setSelectedFoodItemId(event.target.value)} disabled={catalogLoading}>
+                          <option value="">{catalogLoading ? "Loading items..." : "Select an available item"}</option>
+                          {catalogItems.map((item) => (
+                            <option key={item.id} value={item.id}>{item.name} - {item.restaurant?.name || `Restaurant #${item.restaurant_id}`} - BDT {item.discount_price || item.price}</option>
+                          ))}
+                        </select>
+                      </label>
+                      {selectedFoodItem && (
+                        <div className="mt-3 grid items-end gap-3 sm:grid-cols-[1fr,140px]">
+                          <label className="fd-label block">
+                            Size
+                            <select className="fd-input mt-1" value={selectedSize} onChange={(event) => setSelectedSize(event.target.value)}>
+                              <option value="">Regular / default price</option>
+                              {(selectedFoodItem.size_options || []).map((option) => {
+                                const name = typeof option === "string" ? option : option.name || option.label;
+                                const price = typeof option === "object" ? option.price : null;
+                                return <option key={name} value={name}>{name}{price ? ` - BDT ${price}` : ""}</option>;
+                              })}
+                            </select>
+                          </label>
+                          <label className="fd-label block">
+                            Quantity
+                            <input className="fd-input mt-1" type="number" min="1" max="99" value={addQuantity} onChange={(event) => setAddQuantity(Math.max(1, Math.min(99, Number(event.target.value) || 1)))} />
+                          </label>
+                        </div>
+                      )}
+                      {isCrossRestaurant && (
+                        <div className="mt-3 border-l-4 border-[#E10613] bg-white px-3 py-2 text-xs font-bold text-[#6C717A]">
+                          This item is from {selectedFoodItem.restaurant?.name || "another restaurant"}. A one-time BDT {order?.cross_restaurant_fee_rate ?? 20} extra fee will apply to this order.
+                        </div>
+                      )}
+                      {catalogError && <p className="fd-error mt-3">{catalogError}</p>}
+                      <div className="mt-4 flex justify-end">
+                        <Btn disabled={!selectedFoodItemId || addingItem} onClick={submitAddedItem}>{addingItem ? "Adding..." : "Add to order"}</Btn>
+                      </div>
+                    </div>
+                  )}
                   <table className="fd-itemtable mt-4">
                     <thead>
                       <tr>
@@ -1756,6 +1881,11 @@ function FoodOrderViewModal({ loading, order, riders = [], assigning = false, as
                               <div className="mt-0.5 text-xs text-[#9AA0A8]">{[item.generic_name, item.strength, item.company].filter(Boolean).join(" · ")}</div>
                             )}
                             {item.note && <div className="mt-0.5 text-xs text-[#9AA0A8]">Note: {item.note}</div>}
+                            {!isMedicine && item.source_restaurant && (
+                              <div className="mt-0.5 text-xs font-bold text-[#6C717A]">
+                                {Number(item.source_restaurant_id) === Number(order?.restaurant_id) ? "Primary restaurant" : `From ${item.source_restaurant.name}`}
+                              </div>
+                            )}
                           </td>
                           <td className="text-right font-semibold">
                             {canEditItems ? (
@@ -1780,6 +1910,7 @@ function FoodOrderViewModal({ loading, order, riders = [], assigning = false, as
                   <div className="mt-4 space-y-2.5 border-t border-[#ECEDF0] pt-4">
                     <SummaryLine label="Items total" value={`BDT ${order?.items_total || 0}`} />
                     <SummaryLine label="Delivery fee" value={`BDT ${order?.delivery_fee || 0}`} />
+                    {Number(order?.cross_restaurant_fee || 0) > 0 && <SummaryLine label="Other restaurant fee" value={`BDT ${order.cross_restaurant_fee}`} />}
                     {discount > 0 && <SummaryLine label="Discount" value={`- BDT ${discount}`} />}
                     <div className="border-t border-dashed border-[#D6D9DE] pt-3">
                       <SummaryLine label="Grand total" value={`BDT ${order?.grand_total || 0}`} strong />
@@ -1789,7 +1920,14 @@ function FoodOrderViewModal({ loading, order, riders = [], assigning = false, as
 
                 <div className="space-y-5">
                   <div className="fd-panel">
-                    <h4 className="fd-panel-title mb-4">Customer & delivery address</h4>
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                      <h4 className="fd-panel-title">Customer & delivery address</h4>
+                      {order?.user_id ? (
+                        <button type="button" className="fd-btn fd-btn-ghost fd-btn-sm" onClick={() => onOpenCustomerProfile?.(order)}>
+                          View 360° profile
+                        </button>
+                      ) : <span className="text-xs font-bold text-[#9AA0A8]">No linked account</span>}
+                    </div>
                     <dl className="fd-kvlist">
                       <KV label="Name">{order?.receiver_name}</KV>
                       <KV label="Phone">{order?.receiver_phone}</KV>
@@ -1950,6 +2088,7 @@ function FoodOrderViewModal({ loading, order, riders = [], assigning = false, as
                     <BillGroup title="Customer pays">
                       <SummaryLine label="Items total" value={`BDT ${order?.items_total || 0}`} />
                       <SummaryLine label="Delivery fee" value={`BDT ${order?.delivery_fee || 0}`} />
+                      {Number(order?.cross_restaurant_fee || 0) > 0 && <SummaryLine label="Other restaurant fee" value={`BDT ${order.cross_restaurant_fee}`} />}
                       <SummaryLine label="Discount" value={`- BDT ${discount}`} />
                       <div className="border-t border-[#ECEDF0] pt-3">
                         <SummaryLine label="Grand total" value={`BDT ${order?.grand_total || 0}`} strong />
@@ -2683,6 +2822,7 @@ export default function FoodAdminPage({ token, resource }) {
   const [viewOpen, setViewOpen] = useState(false);
   const [viewLoading, setViewLoading] = useState(false);
   const [viewOrder, setViewOrder] = useState(null);
+  const [customerProfile, setCustomerProfile] = useState(null);
   const [viewReview, setViewReview] = useState(null);
   const [reviewViewOpen, setReviewViewOpen] = useState(false);
   const [reviewViewLoading, setReviewViewLoading] = useState(false);
@@ -2690,6 +2830,7 @@ export default function FoodAdminPage({ token, resource }) {
   const [assigningRider, setAssigningRider] = useState(false);
   const [assignError, setAssignError] = useState("");
   const [updatingOrderItemId, setUpdatingOrderItemId] = useState(null);
+  const [addingOrderItem, setAddingOrderItem] = useState(false);
   const [itemUpdateError, setItemUpdateError] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -2846,6 +2987,20 @@ export default function FoodAdminPage({ token, resource }) {
     }
   };
 
+  const openCustomerProfile = (order) => {
+    const userId = Number(order?.user_id || 0);
+    if (!userId) {
+      setError("This order is not linked to a registered customer account.");
+      return;
+    }
+    setCustomerProfile({
+      userId,
+      name: order?.user?.name || order?.receiver_name || "Customer",
+      phone: order?.user?.phone || order?.receiver_phone || "",
+      email: order?.user?.email || "",
+    });
+  };
+
   const openViewReview = async (record) => {
     setReviewViewOpen(true);
     setViewReview(record);
@@ -2918,6 +3073,27 @@ export default function FoodAdminPage({ token, resource }) {
       setItemUpdateError(err.message || "Unable to update the item quantity.");
     } finally {
       setUpdatingOrderItemId(null);
+    }
+  };
+
+  const addOrderItem = async (body) => {
+    if (!viewOrder?.id) throw new Error("Order details are not available.");
+    setAddingOrderItem(true);
+    setItemUpdateError("");
+    try {
+      const data = await apiRequest(`/admin/food-orders/${viewOrder.id}/items`, {
+        method: "POST",
+        token,
+        body,
+      });
+      setViewOrder(data.record || viewOrder);
+      await load();
+      return data;
+    } catch (err) {
+      setItemUpdateError(err.message || "Unable to add the menu item.");
+      throw err;
+    } finally {
+      setAddingOrderItem(false);
     }
   };
 
@@ -3392,21 +3568,34 @@ export default function FoodAdminPage({ token, resource }) {
         <FoodOrderViewModal
           loading={viewLoading}
           order={viewOrder}
+          token={token}
           riders={riders}
           assigning={assigningRider}
           assignError={assignError}
           updatingItemId={updatingOrderItemId}
+          addingItem={addingOrderItem}
           itemUpdateError={itemUpdateError}
           onAssignRider={assignRiderToOrder}
           onUpdateItemQuantity={updateOrderItemQuantity}
+          onAddOrderItem={addOrderItem}
           onPreviewDeliveryLocation={previewOrderDeliveryLocation}
           onUpdateDeliveryLocation={updateOrderDeliveryLocation}
+          onOpenCustomerProfile={openCustomerProfile}
           onClose={() => {
             setViewOpen(false);
             setViewOrder(null);
             setAssignError("");
             setItemUpdateError("");
           }}
+        />
+      )}
+
+      {customerProfile && (
+        <Customer360ProfileModal
+          token={token}
+          userId={customerProfile.userId}
+          fallbackCustomer={customerProfile}
+          onClose={() => setCustomerProfile(null)}
         />
       )}
 

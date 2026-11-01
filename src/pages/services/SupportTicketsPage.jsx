@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import Button from "../../components/Button.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import { apiRequest } from "../../lib/api.js";
+import { formatDateTime } from "../../lib/formatters.js";
 
-const dateTime = (value) => (value ? new Date(value).toLocaleString("bn-BD") : "-");
+const dateTime = formatDateTime;
 
 function personFor(ticket) {
   if (ticket.type === "food") return ticket.user || {};

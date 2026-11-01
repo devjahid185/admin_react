@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "../../components/Button.jsx";
 import Input from "../../components/Input.jsx";
 import { apiRequest } from "../../lib/api.js";
+import { bdDateTimeInputToIso, toBdDateTimeInput } from "../../lib/formatters.js";
 
 const defaultSettings = {
   is_enabled: false,
@@ -220,7 +221,7 @@ export default function AiSocialAutomationPage({ token, onUnauthorized }) {
           source_type: selectedSource.source_type,
           source_id: selectedSource.source_id,
           tone: settings.default_tone,
-          scheduled_at: scheduledAt || null,
+          scheduled_at: bdDateTimeInputToIso(scheduledAt),
           generate_image: generateImage,
         },
       });
@@ -782,7 +783,7 @@ function PostCard({ post, busy, onSave, onAction, delay = 0 }) {
             value={scheduledAt}
             onChange={(e) => setScheduledAt(e.target.value)}
           />
-          <Button variant="ghost" type="button" onClick={() => onSave(post, { caption, image_prompt: imagePrompt, scheduled_at: scheduledAt || null })}>
+          <Button variant="ghost" type="button" onClick={() => onSave(post, { caption, image_prompt: imagePrompt, scheduled_at: bdDateTimeInputToIso(scheduledAt) })}>
             Save
           </Button>
           <Button variant="ghost" type="button" onClick={() => onAction(post, "image")} disabled={busy === `image-${post.id}`}>
@@ -923,9 +924,5 @@ function LoadingPanel() {
 }
 
 function toLocalInput(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const pad = (n) => `${n}`.padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return toBdDateTimeInput(value);
 }
